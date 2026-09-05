@@ -85,6 +85,8 @@ base.faixa_kpis(
             "unidade": "pct", "casas": 2, "chave_direcao": "inadimplencia_30d",
             "estado": "sem_meta",
             "nota": f"sobre o faturamento de {janela}" if janela else None,
+            # Faixa lateral no nivel da regra publicada, nunca num corte da tela.
+            "nivel": base.nivel_do_valor(df_alertas, "A9", None),
             "badges": ["janela de 12m incompleta"] if janela_incompleta else [],
             "ajuda": "Vencido há mais de 30 dias e ainda em aberto nessa data, sobre o faturamento "
                      "bruto dos 12 meses de competência que terminam nela.",
@@ -116,6 +118,7 @@ base.faixa_kpis(
             "valor": acima_180, "unidade": "brl", "chave_direcao": "carteira_vencida",
             "estado": "sem_meta" if acima_180 is not None else "erro",
             "nota": "vira baixa aos 365 dias",
+            "nivel": base.nivel_do_valor(df_alertas, "A10", acima_180),
             "ajuda": "A faixa mais antiga da carteira: é dela que sai a perda provável.",
         },
     ],
@@ -139,7 +142,6 @@ ui.nota_armadilha(
 # Qual a idade do que esta em aberto?
 # --------------------------------------------------------------------------
 ui.cabecalho_secao("Qual a idade do que está em aberto?", ancora="aging")
-faixa_escolhida = None
 if aging is None:
     ui.erro_metrica("as faixas de atraso da carteira", base.falhou(dados, "aging"))
 else:
@@ -177,14 +179,6 @@ else:
         title_font_size=theme.TIPOGRAFIA["nota"], tickformat=".2s",
     )
     base.mostrar_grafico(fig, chave="p3_aging", dados=aging)
-    faixa_escolhida = st.segmented_control(
-        "Recortar a fila de cobrança por faixa de atraso",
-        options=list(aging["faixa"]),
-        format_func=rot.faixa_aging,
-        selection_mode="single",
-        key="faixa_aging",
-        help="Equivale a clicar na faixa da barra: recorta a tabela de clientes mais abaixo.",
-    )
 
 # --------------------------------------------------------------------------
 # Quais segmentos?  |  Quais ratings?
@@ -208,9 +202,13 @@ with col_seg:
         for valor in risco_seg["inadimplencia_pct"]:
             razao = None if (empresa in (None, 0) or fmt.eh_vazio(valor)) else float(valor) / empresa
             niveis.append(base.nivel_do_valor(df_alertas, "A9", razao))
+        # O assunto do grafico e atraso, entao a barra usa a cor da inadimplencia,
+        # nao a identidade do segmento: aqui o segmento e o eixo, ja rotulado.
+        # Quem estoura o limiar da regra continua ganhando a cor do alerta.
+        cor_base = theme.cor_indicador("Inadimplencia > 30d", ctx.tema)
         cores = [
-            theme.cor_nivel(n, ctx.tema) if n != "neutro" else theme.cor_segmento(s, ctx.tema)
-            for n, s in zip(niveis, risco_seg["segmento"])
+            theme.cor_nivel(n, ctx.tema) if n != "neutro" else cor_base
+            for n in niveis
         ]
         fig = base.nova_figura(ctx.tema, altura=340, margin={"l": 180, "r": 90, "t": 16, "b": 48})
         base.barra_horizontal(
@@ -355,6 +353,17 @@ else:
 # A fila de cobranca, com drill ate a fatura
 # --------------------------------------------------------------------------
 ui.cabecalho_secao("Por onde começar a cobrança?", ancora="fila")
+# O seletor vive **aqui**, colado na tabela que ele recorta. Antes ficava na
+# secao de aging, tres graficos acima: clicar recarregava a pagina e a lista que
+# mudava estava fora da tela, entao parecia que nada acontecia.
+faixa_escolhida = st.segmented_control(
+    "Recortar por faixa de atraso",
+    options=list(config.FAIXAS_AGING),
+    format_func=rot.faixa_aging,
+    selection_mode="single",
+    key="faixa_aging",
+    help="Recorta a lista abaixo para quem tem saldo na faixa e ordena por ela.",
+)
 aging_cli = base.obter(dados, "aging_cliente")
 if aging_cli is None:
     ui.erro_metrica("a fila de cobrança", base.falhou(dados, "aging_cliente"))
@@ -416,9 +425,18 @@ else:
                 ajuda="O glifo segue o limiar publicado da regra de crédito, não um corte da tela.",
             ),
         },
-        # A coluna de rating sai colorida: mesma escala do grafico acima.
-        pintar={"rating_credito": [theme.RATING_NIVEL.get(str(r).strip().upper(), "neutro")
-                                   for r in fila["rating_credito"]]},
+        # Formatacao condicional so onde existe **limiar publicado**, nunca corte
+        # inventado na tela: rating (escala do cadastro), % da receita (regra A7)
+        # e uso do limite (regra A8). Cliente, segmento e os valores em reais nao
+        # ganham cor -- a barra "Peso" ja da a magnitude.
+        pintar={
+            "rating_credito": [theme.RATING_NIVEL.get(str(r).strip().upper(), "neutro")
+                               for r in fila["rating_credito"]],
+            "pct_vencido_30d": [base.nivel_do_valor(df_alertas, "A7", v)
+                                for v in fila["pct_vencido_30d"]],
+            "uso_limite_txt": [base.nivel_do_valor(df_alertas, "A8", v)
+                               for v in fila["uso_limite_pct"]],
+        },
         barra=coluna_ordem,
         rotulo_barra="Peso",
         escala="risco",
@@ -471,8 +489,17 @@ else:
                     visao = visao.sort_values("data_vencimento", ascending=False).head(40)
                     visao["faixa"] = visao["faixa"].map(rot.faixa_aging)
                     visao["status_calculado"] = visao["status_calculado"].map(rot.valor)
+                    # "Dias" colorido pela faixa de atraso: a mesma escala de
+                    # gravidade do aging, sem inventar corte novo.
+                    nivel_por_faixa = {
+                        "A vencer": "neutro", "1 a 30 dias": "neutro",
+                        "31 a 60 dias": "atencao", "61 a 90 dias": "atencao",
+                        "91 a 180 dias": "serio", "Mais de 180 dias": "critico",
+                    }
                     ui.tabela_com_barra(
                         visao,
+                        pintar={"dias_atraso": [nivel_por_faixa.get(str(x), "neutro")
+                                                for x in visao["faixa"]]},
                         colunas={
                             "id_titulo": ui.ColunaSpec("Fatura", "texto", largura="small"),
                             "competencia": ui.ColunaSpec("Competência", "competencia"),

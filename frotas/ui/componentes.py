@@ -437,6 +437,7 @@ def tile_kpi(
     ajuda: str | None = None,
     casas: int | None = None,
     estado: Estado = "normal",
+    nivel: Nivel | None = None,
     tema: Tema = "claro",
 ) -> None:
     """Tile de KPI com delta versus meta (UX 5.1).
@@ -475,6 +476,13 @@ def tile_kpi(
     # O parametro `ajuda` continua aceito (documenta a metrica no codigo) e alimenta
     # o rotulo acessivel, mas nao desenha nada.
     ajuda_html = ""
+    # Faixa lateral no nivel do KPI. O **numero grande continua em tinta**: cor no
+    # numero engana (um valor alto nao e "ruim" por si). A faixa da o estado do
+    # card sem competir com a leitura, do mesmo jeito que o banner de alerta.
+    faixa = (
+        f"border-left:4px solid {theme.cor_nivel(nivel, tema)};"
+        if nivel and nivel != "neutro" else ""
+    )
     classe = "fv-tile fv-tile--fraco" if estado in ("sem_dado", "carregando") else "fv-tile"
     lista_badges = list(badges)
     acessivel = ""
@@ -552,7 +560,7 @@ def tile_kpi(
     # leitor de tela nao ve a secao do Guia enquanto navega pelos tiles.
     rotulo_acessivel = f"{_e(rotulo)}: {_e(acessivel)}" + (f". {_e(ajuda)}" if ajuda else "")
     st.markdown(
-        f'<div class="{classe}" role="group" aria-label="{rotulo_acessivel}">'
+        f'<div class="{classe}" style="{faixa}" role="group" aria-label="{rotulo_acessivel}">'
         f'<div class="fv-tile__topo"><span class="fv-tile__rotulo">{_e(rotulo.upper())}</span>{ajuda_html}</div>'
         f"{corpo}{rodape}{nota_html}{badges_html}</div>",
         unsafe_allow_html=True,

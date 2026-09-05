@@ -222,7 +222,10 @@ with col_seg:
             fig,
             rot.valores(seg["segmento"]),
             list(seg["faturamento_bruto"]),
-            cores=[theme.cor_segmento(s, ctx.tema) for s in seg["segmento"]],
+            # Uma cor so: o segmento e o eixo, ja rotulado em cada barra. Oito matizes
+            # aqui competiam com as cores dos indicadores, que sao as que atravessam
+            # o relatorio inteiro.
+            cores=[theme.cor_indicador("Faturamento", ctx.tema)] * len(seg),
             textos=[f"{fmt.percentual(p, 1)}  {fmt.moeda_compacta(v)}"
                     for p, v in zip(seg["participacao_pct"], seg["faturamento_bruto"])],
             tema=ctx.tema,
