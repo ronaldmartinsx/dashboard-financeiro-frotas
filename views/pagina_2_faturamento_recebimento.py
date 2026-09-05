@@ -163,16 +163,16 @@ else:
             go.Scatter(
                 x=base.datas_de(caixa["ano_mes"]), y=caixa["realizado"],
                 mode="lines+markers", name="Recebido",
-                line={"color": theme.cor_indicador("Recebimento (Caixa)", ctx.tema),
-                      "width": theme.ESPESSURA_LINHA, "dash": "dash"},
-                marker={"size": theme.TAMANHO_MARCADOR},
+                # Preto (a tinta do tema), nao a cor do indicador: sobre as barras
+                # azuis o aqua nao destacava. A linha e a referencia de leitura.
+                line={"color": t.tinta, "width": theme.ESPESSURA_LINHA, "dash": "dash"},
+                marker={"size": theme.TAMANHO_MARCADOR, "color": t.tinta},
                 hovertemplate="pago em %{x|%b/%Y}: R$ %{y:,.0f}<extra>Recebido</extra>",
             )
         )
         base.rotular_ultimo_ponto(
             fig, base.datas_de(caixa["ano_mes"]), caixa["realizado"],
-            fmt.moeda_compacta(caixa["realizado"].iloc[-1]),
-            theme.cor_indicador("Recebimento (Caixa)", ctx.tema), tema=ctx.tema,
+            fmt.moeda_compacta(caixa["realizado"].iloc[-1]), t.tinta, tema=ctx.tema,
         )
     base.eixo_mensal(fig, meses)
     fig.update_yaxes(

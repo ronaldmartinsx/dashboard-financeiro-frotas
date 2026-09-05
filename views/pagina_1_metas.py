@@ -48,18 +48,14 @@ ANOS = list(range(config.COMPETENCIA_MIN.year, config.COMPETENCIA_MAX.year + 1))
 # O widget de segmento e lido do estado **antes** do carregamento: e ele que decide
 # se a consulta mais cara entra no lote. O widget em si aparece la embaixo, na
 # secao a que pertence.
-# Ligada por padrao: a analise por segmento faz parte da leitura da pagina.
-# O toggle continua, para quem quiser desligar e ganhar os ~13 s de volta.
-st.session_state.setdefault("meta_por_segmento", True)
 st.session_state.setdefault("meta_segmento_indicador", metas.TIPOS_META[0])
 indicador = st.session_state["meta_segmento_indicador"]
 if indicador not in metas.TIPOS_META:
     indicador = st.session_state["meta_segmento_indicador"] = metas.TIPOS_META[0]
-ver_segmento = bool(st.session_state["meta_por_segmento"])
 tem_segmento = indicador not in metas.SO_EMPRESA
 
 tarefas: dict = {}
-if ver_segmento and tem_segmento:
+if tem_segmento:
     # Primeiro no lote de proposito: e a consulta mais cara da pagina (~13 s) e
     # precisa comecar junto com as outras, nao depois delas.
     tarefas["segmento"] = lambda: metas.comparativo_por_segmento(indicador, ano)
@@ -378,33 +374,18 @@ ui.nota_armadilha(
 # Qual segmento explica o desvio?  (opcional -- e a consulta mais cara)
 # --------------------------------------------------------------------------
 ui.cabecalho_secao("Qual segmento explica o desvio?", ancora="segmento")
-col_ind, col_lig = st.columns([7, 5], gap="medium")
-with col_ind:
-    st.selectbox(
-        "Indicador",
-        options=[t for t in metas.TIPOS_META if t not in metas.SO_EMPRESA],
-        format_func=rot.valor,
-        key="meta_segmento_indicador",
-        label_visibility="collapsed",
-        help="Só os indicadores que têm meta por segmento aparecem aqui.",
-    )
-with col_lig:
-    st.toggle(
-        "Abrir a quebra por segmento",
-        key="meta_por_segmento",
-        disabled=not tem_segmento,
-        help="São oito segmentos apurados um a um e a consulta leva cerca de 13 s, "
-             "por isso ela só roda quando você pede.",
-    )
+st.selectbox(
+    "Indicador",
+    options=[t for t in metas.TIPOS_META if t not in metas.SO_EMPRESA],
+    format_func=rot.valor,
+    key="meta_segmento_indicador",
+    label_visibility="collapsed",
+    help="Só os indicadores que têm meta por segmento aparecem aqui.",
+)
 if not tem_segmento:
     ui.bloco_desabilitado(
         f"{rot.valor(indicador)} só tem meta no nível Empresa: o custo de veículo parado não "
         "pertence a segmento nenhum, e por isso o orçamento não desce a esse nível.",
-    )
-elif not ver_segmento:
-    ui.estado_vazio(
-        "Quebra por segmento fechada",
-        "Ligue o botão acima para apurar os oito segmentos.",
     )
 else:
     ponte = base.obter(dados, "segmento")

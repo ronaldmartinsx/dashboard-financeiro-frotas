@@ -564,7 +564,8 @@ def mostrar_grafico(
     """
     st.plotly_chart(fig, use_container_width=True, key=chave, config={"displaylogo": False})
     if nota:
-        st.caption(nota)
+        # Duas cifras na mesma nota abririam LaTeX no Markdown do Streamlit.
+        st.caption(fmt.sem_latex(nota))
     if tabela and dados is not None and not dados.empty:
         with st.expander(rotulo_expander):
             st.dataframe(

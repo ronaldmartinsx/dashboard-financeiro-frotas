@@ -191,20 +191,14 @@ def barra_lateral(opcoes: dict[str, list[str]], clientes: pd.DataFrame, *, pagin
                 comp_ini, comp_fim = comp_fim, comp_ini
 
         if "data" in exibidos:
-            if pagina == "inadimplencia":
-                # Ali o seletor e o controle principal e vive no topo da pagina.
-                # Desenhar o mesmo widget duas vezes quebraria o estado.
-                st.divider()
-                st.caption(f"Vendo como estava em **{fmt.data_br(data_ref)}** (controle no topo da página)")
-            else:
-                st.divider()
-                data_ref = ui.seletor_data_referencia(
-                    valor=data_ref,
-                    minimo=date(2024, 12, 31),
-                    maximo=config.DATA_EXTRACAO,
-                    chave="ref",
-                    rotulo="Ver como estava em",
-                )
+            st.divider()
+            data_ref = ui.seletor_data_referencia(
+                valor=data_ref,
+                minimo=date(2024, 12, 31),
+                maximo=config.DATA_EXTRACAO,
+                chave="ref",
+                rotulo="Ver como estava em",
+            )
 
         recortes = [c for c in ("segmento", "porte", "rating", "tipo_contrato", "cliente")
                     if c in exibidos]
@@ -240,7 +234,7 @@ def barra_lateral(opcoes: dict[str, list[str]], clientes: pd.DataFrame, *, pagin
             for chave in (
                 "preset_periodo", "comp_ini", "comp_fim", "f_segmentos", "f_portes",
                 "f_ratings", "f_tipos_contrato", "f_clientes", "faixa_aging",
-                "meta_segmento_indicador", "meta_por_segmento",
+                "meta_segmento_indicador",
             ):
                 st.session_state.pop(chave, None)
             st.rerun()

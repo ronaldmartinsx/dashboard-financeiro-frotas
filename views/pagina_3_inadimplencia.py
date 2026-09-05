@@ -14,7 +14,6 @@ safra, atraso medio ponderado e comparacao com meta por segmento ou rating
 
 from __future__ import annotations
 
-from datetime import date
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -30,31 +29,14 @@ from views import _comum as base
 
 PAGINA = 3
 
-ctx_inicial = base.contexto()
-ui.estilos(ctx_inicial.tema)
-
-col_titulo, col_data = st.columns([7, 5], gap="medium")
-with col_titulo:
-    ui.cabecalho_pagina("Inadimplência", "Quanto está em aberto hoje, e com quem?")
-with col_data:
-    data_ref = ui.seletor_data_referencia(
-        valor=st.session_state.get("ref_data", config.DATA_EXTRACAO),
-        minimo=date(2024, 12, 31),
-        maximo=config.DATA_EXTRACAO,
-        chave="ref",
-        rotulo="Ver como estava em",
-    )
-
-ctx = base.Contexto(
-    filtros=ctx_inicial.filtros.com(data_ref=data_ref),
-    data_ref=data_ref,
-    tema=ctx_inicial.tema,
-)
+# O seletor de data vive na barra lateral, junto dos demais filtros: e um filtro
+# como outro qualquer, e ter um controle solto no topo da pagina quebrava a regra
+# de "todo filtro fica no mesmo lugar".
+ctx = base.contexto()
+base.abrir_pagina(ctx, "Quanto está em aberto hoje, e com quem?",
+                  secao="Inadimplência", pagina=PAGINA)
 t = theme.tokens(ctx.tema)
 f, ref = ctx.filtros, ctx.data_ref
-
-# Os chips vem depois do seletor: so aqui a data e a que o usuario escolheu.
-ui.linha_chips(base.chips_contexto(ctx, pagina=PAGINA))
 
 with st.spinner("Fotografando a carteira..."):
     dados = base.carregar(
@@ -310,7 +292,8 @@ else:
     risco_cli = risco_cli[pd.to_numeric(risco_cli["faturamento_bruto_12m"], errors="coerce") > 0]
     ambar_a7, vermelho_a7 = base.limiares_de(df_alertas, "A7")
     ordem_rating = ["A", "B", "C", "D"]
-    cor_por_rating = dict(zip(ordem_rating, theme.rampa("neutra", ctx.tema, 4, ordinal=True)))
+    # Rating e escala de risco: A verde, B neutro, C ambar, D vermelho.
+    cor_por_rating = {n: theme.cor_rating(n, ctx.tema) for n in ordem_rating}
 
     fig = base.nova_figura(ctx.tema, altura=360, hovermode="closest")
     maior_venc = base.maximo_da_coluna(risco_cli, "vencido_30d_mais", 1.0) or 1.0
@@ -448,9 +431,12 @@ else:
             col_a, col_b = st.columns([4, 8], gap="medium")
             with col_a:
                 faixas = [c for c in config.FAIXAS_AGING if c in fila.columns]
+                # fmt.sem_latex em todo valor em reais: dois "R$" na mesma string
+                # fariam o Markdown do Streamlit abrir LaTeX e engolir o texto.
                 st.markdown(
-                    f"**Carteira em aberto** {fmt.moeda(cliente['carteira_total'])}  \n"
-                    f"**Vencido há mais de 30 dias** {fmt.moeda(cliente['vencido_30d_mais'])}  \n"
+                    f"**Carteira em aberto** {fmt.sem_latex(fmt.moeda(cliente['carteira_total']))}  \n"
+                    f"**Vencido há mais de 30 dias** "
+                    f"{fmt.sem_latex(fmt.moeda(cliente['vencido_30d_mais']))}  \n"
                     f"**Uso do limite de crédito** {cliente['uso_limite_txt']}  \n"
                     f"**Rating** {cliente['rating_credito']} · **Porte** {cliente['porte']}"
                 )

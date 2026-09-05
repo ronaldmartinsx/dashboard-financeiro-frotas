@@ -145,6 +145,15 @@ def contagem(valor: Any, *, unidade: str | None = None, vazio: str = VAZIO) -> s
 # --------------------------------------------------------------------------
 
 
+def sem_latex(texto: str) -> str:
+    """Neutraliza o cifrao para Markdown do Streamlit (``$...$`` vira LaTeX).
+
+    Use ao interpolar valor em reais dentro de ``st.markdown``/``st.caption``.
+    Componentes que montam HTML proprio ja escapam por conta.
+    """
+    return str(texto).replace("$", "&#36;")
+
+
 def moeda(valor: Any, casas: int = 2, *, com_sinal: bool = False, vazio: str = VAZIO) -> str:
     """Moeda cheia. ``moeda(1234567.89)`` -> ``R$ 1.234.567,89``.
 

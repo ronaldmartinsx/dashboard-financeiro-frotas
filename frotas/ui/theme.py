@@ -222,6 +222,22 @@ INDICADORES: Final[tuple[tuple[str, int], ...]] = (
 COR_INADIMPLENCIA: Final[tuple[str, str]] = ("#AF2C28", "#D74F47")
 
 
+#: Rating de credito -> nivel de status. Rating **e** uma escala de risco, entao
+#: reusar as cores de status e a leitura correta: A esta bom, D e critico. Nao ha
+#: competicao com o alerta -- os dois falam da mesma coisa, saude do cliente.
+RATING_NIVEL: Final[dict[str, Nivel]] = {
+    "A": "bom",
+    "B": "neutro",
+    "C": "atencao",
+    "D": "critico",
+}
+
+
+def cor_rating(nota: str, tema: Tema = "claro") -> str:
+    """Cor de um rating de credito (A a D). Desconhecido cai em neutro."""
+    return cor_nivel(RATING_NIVEL.get(str(nota).strip().upper(), "neutro"), tema)
+
+
 def cor_indicador(indicador: str, tema: Tema = "claro") -> str:
     """Cor fixa de um indicador orcado, estavel em todas as paginas."""
     if indicador == "Inadimplencia > 30d":

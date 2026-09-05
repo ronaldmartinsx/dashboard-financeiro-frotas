@@ -76,8 +76,14 @@ def tema_atual() -> Tema:
 
 
 def _e(texto: Any) -> str:
-    """Escapa texto para interpolar em HTML."""
-    return html.escape("" if texto is None else str(texto), quote=True)
+    """Escapa texto para interpolar em HTML **e** neutraliza o cifrao.
+
+    O Markdown do Streamlit trata ``$...$`` como LaTeX. Um texto com dois "R$"
+    (comum aqui: "R$ 12 mil de R$ 30 mil") vira formula: o miolo sai sem espacos
+    e os asteriscos de negrito aparecem como simbolos. Trocar por ``&#36;``
+    mostra o mesmo cifrao sem abrir modo matematico.
+    """
+    return html.escape("" if texto is None else str(texto), quote=True).replace("$", "&#36;")
 
 
 def reiniciar_estilos() -> None:
