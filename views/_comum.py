@@ -574,14 +574,12 @@ def barra_empilhada_100(
 # --------------------------------------------------------------------------
 
 
-def rodape(ctx: Contexto, funcoes: Sequence[str], *, ttl: int = config.TTL_FATOS) -> None:
-    """Rodape de proveniencia da pagina, com as funcoes de metrica que a alimentaram."""
+def rodape(ctx: Contexto) -> None:
+    """Rodape de proveniencia: sobre que recorte os numeros desta tela foram apurados."""
     ui.rodape_proveniencia(
         competencia=ctx.competencia,
         data_ref=ctx.data_ref,
         versao_orcamento=ctx.versao_orcamento,
-        funcoes=funcoes,
-        cache_ttl=ttl,
         tema=ctx.tema,
     )
 

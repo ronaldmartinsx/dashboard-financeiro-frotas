@@ -386,8 +386,4 @@ ui.tabela_com_barra(
 )
 
 base.barra_qualidade(df_alertas, tema=ctx.tema)
-base.rodape(
-    ctx,
-    ["custos.custos_por_competencia", "custos.custos_por_dimensao", "custos.custo_ociosidade",
-     "alertas.avaliar"],
-)
+base.rodape(ctx)

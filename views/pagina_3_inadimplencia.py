@@ -491,10 +491,4 @@ else:
                     )
 
 base.barra_qualidade(df_alertas, tema=ctx.tema)
-base.rodape(
-    ctx,
-    ["credito.inadimplencia_ponto_no_tempo", "credito.aging_carteira",
-     "credito.aging_por_cliente", "credito.risco_por_segmento", "credito.risco_por_rating",
-     "credito.risco_por_cliente", "credito.titulos_do_cliente", "alertas.avaliar"],
-    ttl=config.TTL_PESADO,
-)
+base.rodape(ctx)

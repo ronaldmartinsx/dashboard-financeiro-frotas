@@ -1,9 +1,10 @@
 # Data App de Frotas — Streamlit + Supabase
 
 Data app de análise financeira de uma locadora de frotas B2B. Lê o dataset direto do
-Supabase (Postgres, **somente leitura**) e responde cinco perguntas de negócio, uma por página.
+Supabase (Postgres, **somente leitura**) e responde quatro perguntas de negócio, uma por
+página, mais um guia de abertura.
 
-A leitura que o app existe para permitir: **faturamento e caixa estão acima do plano;
+A leitura que o app existe para permitir: **faturamento e caixa estão acima da meta;
 a crise é de crédito, não de receita.** A inadimplência > 30d fecha 2025 em 10,20%
 contra uma meta de 3,00% — um desvio de +7,20 p.p., o maior do dataset.
 
@@ -40,8 +41,8 @@ O menu lateral leva o **nome curto**; a **pergunta de negócio** é o título de
 
 | Menu | Pergunta central (título da página) | Público |
 |---|---|---|
-| Guia do Relatório | *(orientação — sem gráficos, não consulta o banco)* | quem abre pela primeira vez |
-| Análise da Meta | Estamos entregando o plano? | CFO |
+| Guia | *(orientação — sem gráficos, não consulta o banco)* | quem abre pela primeira vez |
+| Metas | Estamos entregando a meta? | CFO |
 | Faturamento e Recebimento | Quanto faturamos e quanto entrou em caixa? | Controller / CFO |
 | Inadimplência | Quanto está em aberto hoje, e com quem? | Gerente de crédito e cobrança |
 | Custos | Para onde vai o custo? | Gerente de operação e frota |
@@ -69,7 +70,6 @@ views/                    guia + uma página por pergunta, mais _comum.py
 scripts/
   validar_metricas.py     110 verificações contra os números publicados
   verificar_rotulos.py    falha se qualquer nome de coluna chegar à tela
-  gerar_metas.py          geração do orçamento (não roda no app)
 docs/                     00 briefing · 01 KPIs · 02 arquitetura · 03 UX · 04 handover
 ```
 

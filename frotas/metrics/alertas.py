@@ -72,7 +72,7 @@ LIMIARES: dict[str, Limiar] = {
     "A1": Limiar("A1", "empresa", 1, "Inadimplência acima da meta do mês", "p.p.",
                  "maior_pior", 1.0, 2.0,
                  "Inadimplência acima de 30 dias na data de referência, menos a meta vigente do mesmo mês."),
-    "A3": Limiar("A3", "empresa", 1, "Faturamento abaixo do plano", "% da meta",
+    "A3": Limiar("A3", "empresa", 1, "Faturamento abaixo da meta", "% da meta",
                  "menor_pior", 95.0, 90.0,
                  "Faturamento realizado do período dividido pela soma das metas mensais vigentes dos mesmos meses."),
     "A4": Limiar("A4", "empresa", 1, "Eficiência de cobrança", "%",

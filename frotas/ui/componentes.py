@@ -894,28 +894,27 @@ def rodape_proveniencia(
     competencia: tuple[date, date],
     data_ref: date,
     versao_orcamento: str,
-    funcoes: Sequence[str],
-    cache_ttl: int,
     tema: Tema = "claro",
     estado: Literal["normal", "cache_frio", "erro"] = "normal",
     ultima_leitura: str | None = None,
 ) -> None:
     """Uma linha de proveniencia no fim de **toda** pagina.
 
-    Nomear as funcoes de metrica que alimentaram a tela nao e decoracao: quando
-    alguem contestar um numero, o caminho ate a definicao esta na tela.
+    Diz **sobre que recorte** os numeros da tela foram apurados: o periodo de
+    competencia, a data da foto e a versao do orcamento -- as tres coisas que
+    mudam o numero e que o usuario escolheu (ou herdou) sem necessariamente
+    lembrar. Nao lista nome de funcao nem TTL de cache: sao vocabulario de quem
+    mantem o app, e a regra deste projeto e que nome tecnico nao chega a tela.
     """
-    horas = max(1, round(cache_ttl / 3600))
     partes = [
-        "Supabase public",
-        f"competencia {fmt.periodo(competencia[0], competencia[1])}",
+        f"Competência {fmt.periodo(competencia[0], competencia[1])}",
         f"foto em {fmt.data_br(data_ref)}",
-        f"orcamento {versao_orcamento}",
-        ", ".join(funcoes),
-        f"cache {horas}h" + (" (recalculado agora)" if estado == "cache_frio" else ""),
+        f"orçamento {versao_orcamento}",
     ]
+    if estado == "cache_frio":
+        partes.append("recalculado agora")
     if estado == "erro" and ultima_leitura:
-        partes.append(f"ultima leitura bem-sucedida: {ultima_leitura}")
+        partes.append(f"última leitura bem-sucedida: {ultima_leitura}")
     st.markdown(
         f'<div class="fv-rodape">{_e(" · ".join(partes))}</div>', unsafe_allow_html=True
     )

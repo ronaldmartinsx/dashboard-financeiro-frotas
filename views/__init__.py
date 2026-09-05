@@ -3,7 +3,7 @@
 Um guia e quatro perguntas, uma por pagina, declaradas no proprio titulo:
 
 0. ``pagina_0_guia``                     Guia do Relatorio
-1. ``pagina_1_metas``                    Estamos entregando o plano?
+1. ``pagina_1_metas``                    Estamos entregando a meta?
 2. ``pagina_2_faturamento_recebimento``  Quanto faturamos e quanto entrou em caixa?
 3. ``pagina_3_inadimplencia``            Quanto esta em aberto hoje, e com quem?
 4. ``pagina_4_custos``                   Para onde vai o custo?

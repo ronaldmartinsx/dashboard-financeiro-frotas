@@ -153,7 +153,7 @@ Reproduzidos exatamente contra o banco em 2026-08-31 — as definicoes nao estav
 
 ## Metas (orcamento)
 
-A tabela `metas` **nao veio de um CSV**. Houve um `fato_meta.csv` na raiz, feito a mao, apagado em 2026-09-01: tinha metas que nao fechavam entre granularidades (a anual excedia a soma das mensais em 1,1% a 2,6%) e cuja origem nao era reconstituivel. O orcamento foi regerado em 2026-09-01 (`scripts/gerar_metas.py`), com estas propriedades:
+A tabela `metas` **nao veio de um CSV**. Houve um `fato_meta.csv` na raiz, feito a mao, apagado em 2026-09-01: tinha metas que nao fechavam entre granularidades (a anual excedia a soma das mensais em 1,1% a 2,6%) e cuja origem nao era reconstituivel. O orcamento foi regerado em 2026-09-01 por `scripts/gerar_metas.py` — script **removido do repositorio em 2026-09-04**, ja tendo cumprido sua funcao (a tabela `metas` esta no banco); quem precisar dele o recupera do historico do git. O orcamento tem estas propriedades:
 
 **Coerencia por construcao** — verificada no banco, zero divergencias:
 - As 12 mensais somam exatamente as 4 trimestrais e a anual (metricas `Soma`).

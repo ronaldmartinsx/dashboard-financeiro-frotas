@@ -106,7 +106,7 @@ base.faixa_kpis(
             "valor": base.celula(eficiencia, "eficiencia_pct"),
             "unidade": "pct", "casas": 1, "chave_direcao": "eficiencia_cobranca",
             "estado": "sem_meta",
-            "nota": (f"piso do plano: {fmt.percentual(piso_cobranca, 1)}"
+            "nota": (f"piso da meta: {fmt.percentual(piso_cobranca, 1)}"
                      if piso_cobranca is not None else None),
             "badges": [f"foto em {fmt.data_br(ref)}"],
             "ajuda": "Caixa recebido dividido pelo faturamento válido, ambos na mesma janela "
@@ -318,9 +318,4 @@ ui.tabela_com_barra(
 )
 
 base.barra_qualidade(df_alertas, tema=ctx.tema)
-base.rodape(
-    ctx,
-    ["receita.resumo", "receita.faturamento_por_competencia", "receita.faturamento_por_dimensao",
-     "receita.yoy_mensal", "receita.yoy_anual", "receita.top_clientes",
-     "credito.eficiencia_cobranca", "metas.realizado_mensal", "alertas.avaliar"],
-)
+base.rodape(ctx)

@@ -1,4 +1,4 @@
-"""Pagina 1 -- Metas. "Estamos entregando o plano?"
+"""Pagina 1 -- Metas. "Estamos entregando a meta?"
 
 Quatro blocos, nesta ordem: os cinco indicadores orcados como KPI, o desvio do
 ano contra a meta dos mesmos meses, a conferencia ano a ano e o acompanhamento
@@ -39,7 +39,7 @@ DIRECAO: dict[str, str] = {
 }
 
 ctx = base.contexto()
-base.abrir_pagina(ctx, "Estamos entregando o plano?")
+base.abrir_pagina(ctx, "Estamos entregando a meta?")
 
 t = theme.tokens(ctx.tema)
 f, ref, ano = ctx.filtros, ctx.data_ref, ctx.ano
@@ -142,9 +142,9 @@ if parcial:
     )
 
 # --------------------------------------------------------------------------
-# Onde ficamos em relacao ao plano?
+# Onde ficamos em relacao a meta?
 # --------------------------------------------------------------------------
-ui.cabecalho_secao("Onde ficamos em relação ao plano?", ancora="desvio")
+ui.cabecalho_secao("Onde ficamos em relação à meta?", ancora="desvio")
 if comp is None:
     ui.erro_metrica("o comparativo com a meta", base.falhou(dados, f"comp_{ano}"))
 else:
@@ -214,7 +214,7 @@ else:
         )
         base.mostrar_grafico(
             fig, chave="p1_desvio",
-            nota="Azul é desvio favorável ao negócio: custo e inadimplência abaixo do plano contam "
+            nota="Azul é desvio favorável ao negócio: custo e inadimplência abaixo da meta contam "
                  "como favoráveis, ainda que o número seja negativo.",
             dados=comp,
             colunas_dados=["tipo_meta", "unidade", "realizado", "meta_alinhada", "meta_anual",
@@ -223,9 +223,9 @@ else:
         )
 
 # --------------------------------------------------------------------------
-# O plano foi entregue em cada ano?
+# A meta foi cumprida em cada ano?
 # --------------------------------------------------------------------------
-ui.cabecalho_secao("O plano foi entregue em cada ano?", ancora="conferencia")
+ui.cabecalho_secao("A meta foi cumprida em cada ano?", ancora="conferencia")
 conferencia = []
 for a in ANOS:
     df_ano = base.obter(dados, f"comp_{a}")
@@ -404,8 +404,4 @@ else:
         )
 
 base.barra_qualidade(df_alertas, tema=ctx.tema)
-base.rodape(
-    ctx,
-    ["metas.comparativo_anual", "metas.serie_mensal", "metas.comparativo_por_segmento",
-     "alertas.avaliar"],
-)
+base.rodape(ctx)

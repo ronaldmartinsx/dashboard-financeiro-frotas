@@ -35,12 +35,12 @@ ui.frase(
 ui.cabecalho_secao("O que cada página responde?")
 st.markdown(
     """
-| Página | A pergunta | Em uma frase |
+| Página | A pergunta que ela responde | Em uma frase |
 |---|---|---|
-| **Estamos entregando o plano?** | Metas | Realizado contra o orçamento vigente, indicador por indicador e ano por ano. |
-| **Quanto faturamos e quanto entrou em caixa?** | Faturamento e recebimento | O que foi emitido por competência, o que foi efetivamente pago, e a distância entre os dois. |
-| **Quanto está em aberto hoje, e com quem?** | Inadimplência | A foto da carteira numa data: quanto está vencido, há quanto tempo e de qual cliente. |
-| **Para onde vai o custo?** | Custos | Composição do custo operacional por categoria, por natureza e o peso do veículo parado. |
+| **Metas** | Estamos entregando a meta? | Realizado contra o orçamento vigente, indicador por indicador e ano por ano. |
+| **Faturamento e Recebimento** | Quanto faturamos e quanto entrou em caixa? | O que foi emitido por competência, o que foi efetivamente pago, e a distância entre os dois. |
+| **Inadimplência** | Quanto está em aberto hoje, e com quem? | A foto da carteira numa data: quanto está vencido, há quanto tempo e de qual cliente. |
+| **Custos** | Para onde vai o custo? | Composição do custo operacional por categoria, por natureza e o peso do veículo parado. |
 """
 )
 
@@ -110,7 +110,5 @@ ui.rodape_proveniencia(
     competencia=(config.COMPETENCIA_MIN, config.COMPETENCIA_MAX),
     data_ref=config.DATA_EXTRACAO,
     versao_orcamento=ctx.versao_orcamento,
-    funcoes=["filtros.politica_filtros", "metas.TIPOS_META"],
-    cache_ttl=config.TTL_DIMENSOES,
     tema=ctx.tema,
 )
