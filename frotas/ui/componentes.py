@@ -437,7 +437,6 @@ def tile_kpi(
     ajuda: str | None = None,
     casas: int | None = None,
     estado: Estado = "normal",
-    nivel: Nivel | None = None,
     tema: Tema = "claro",
 ) -> None:
     """Tile de KPI com delta versus meta (UX 5.1).
@@ -476,13 +475,6 @@ def tile_kpi(
     # O parametro `ajuda` continua aceito (documenta a metrica no codigo) e alimenta
     # o rotulo acessivel, mas nao desenha nada.
     ajuda_html = ""
-    # Faixa lateral no nivel do KPI. O **numero grande continua em tinta**: cor no
-    # numero engana (um valor alto nao e "ruim" por si). A faixa da o estado do
-    # card sem competir com a leitura, do mesmo jeito que o banner de alerta.
-    faixa = (
-        f"border-left:4px solid {theme.cor_nivel(nivel, tema)};"
-        if nivel and nivel != "neutro" else ""
-    )
     classe = "fv-tile fv-tile--fraco" if estado in ("sem_dado", "carregando") else "fv-tile"
     lista_badges = list(badges)
     acessivel = ""
@@ -560,7 +552,7 @@ def tile_kpi(
     # leitor de tela nao ve a secao do Guia enquanto navega pelos tiles.
     rotulo_acessivel = f"{_e(rotulo)}: {_e(acessivel)}" + (f". {_e(ajuda)}" if ajuda else "")
     st.markdown(
-        f'<div class="{classe}" style="{faixa}" role="group" aria-label="{rotulo_acessivel}">'
+        f'<div class="{classe}" role="group" aria-label="{rotulo_acessivel}">'
         f'<div class="fv-tile__topo"><span class="fv-tile__rotulo">{_e(rotulo.upper())}</span>{ajuda_html}</div>'
         f"{corpo}{rodape}{nota_html}{badges_html}</div>",
         unsafe_allow_html=True,
@@ -814,9 +806,11 @@ def tabela_com_barra(
     df: pd.DataFrame,
     *,
     colunas: Mapping[str, ColunaSpec],
-    barra: str | None = None,
+    barra: str | Sequence[str] | None = None,
     pintar: Mapping[str, Sequence[str]] | None = None,
-    rotulo_barra: str | None = None,
+    pintar_fundo: Mapping[str, Sequence[str]] | None = None,
+    tipos_barra: Mapping[str, str] | None = None,
+    rotulo_barra: str | Sequence[str] | None = None,
     escala: Escala = "neutra",
     ordenar_por: str | None = None,
     crescente: bool = False,
@@ -867,14 +861,11 @@ def tabela_com_barra(
 
     # ``barra=None``: tabela sem barra embutida. Uma matriz (indicador x ano) nao
     # tem uma coluna unica de magnitude para normalizar.
-    if barra is not None:
-        valores_barra = pd.to_numeric(dados[barra], errors="coerce")
-        maximo = float(valores_barra.abs().max() or 0) or 1.0
-        spec_barra = colunas.get(barra)
-        texto_max = (
-            _formatar_coluna(pd.Series([maximo]), spec_barra).iloc[0] if spec_barra
-            else fmt.numero(maximo, 0)
-        )
+    # ``barra`` aceita uma coluna ou varias: cada uma vira sua propria
+    # ProgressColumn, normalizada pelo **seu** maximo.
+    colunas_barra: list[str] = (
+        [] if barra is None else ([barra] if isinstance(barra, str) else list(barra))
+    )
 
     saida = pd.DataFrame(index=dados.index)
     config: dict[str, Any] = {}
@@ -885,14 +876,40 @@ def tabela_com_barra(
         config[spec.rotulo] = st.column_config.TextColumn(
             spec.rotulo, help=spec.ajuda, width=spec.largura
         )
-    if barra is not None:
-        nome_barra = rotulo_barra or (spec_barra.rotulo if spec_barra else barra)
+    for posicao, nome_col in enumerate(colunas_barra):
+        if nome_col not in dados.columns:
+            continue
+        valores_barra = pd.to_numeric(dados[nome_col], errors="coerce")
+        spec_barra = colunas.get(nome_col)
+        # Coluna que ja e percentual usa a **propria escala** (0 a 100): normalizar
+        # pelo maximo faria "46% da receita" aparecer como barra cheia so por ser
+        # o maior da lista, o que mente sobre a grandeza.
+        tipo_barra = (tipos_barra or {}).get(nome_col) or (spec_barra.tipo if spec_barra else "")
+        eh_percentual = tipo_barra in ("pct", "pp")
+        maximo = 100.0 if eh_percentual else (float(valores_barra.abs().max() or 0) or 1.0)
+        texto_max = (
+            _formatar_coluna(pd.Series([maximo]), spec_barra).iloc[0] if spec_barra
+            else fmt.numero(maximo, 0)
+        )
+        rotulos_barra = [rotulo_barra] if isinstance(rotulo_barra, str) else list(rotulo_barra or [])
+        nome_barra = (
+            rotulos_barra[posicao] if posicao < len(rotulos_barra)
+            else (spec_barra.rotulo if spec_barra else nome_col)
+        )
         coluna_barra = f"{nome_barra} ▮"
-        saida[coluna_barra] = (valores_barra.abs() / maximo * 100).fillna(0.0)
+        saida[coluna_barra] = (
+            valores_barra.abs().clip(upper=100.0) if eh_percentual
+            else valores_barra.abs() / maximo * 100
+        ).fillna(0.0)
+        ajuda_barra = (
+            "Barra na escala do proprio indicador, de 0% a 100%."
+            if eh_percentual
+            else f"Barra normalizada pelo maior valor visivel: {texto_max}. Escala {escala}."
+        )
         config[coluna_barra] = st.column_config.ProgressColumn(
             coluna_barra,
-            help=f"Barra normalizada pelo maior valor visivel: {texto_max}. Escala {escala}.",
-            format="%.0f%%",
+            help=ajuda_barra,
+            format="%.1f%%" if eh_percentual else "%.0f%%",
             min_value=0.0,
             max_value=100.0,
         )
@@ -906,8 +923,11 @@ def tabela_com_barra(
     # ``pintar``: {coluna original: nivel por linha}. Serve para a coluna de
     # rating de credito, onde a cor **e** a informacao (A verde ... D vermelho).
     corpo: Any = saida
-    if pintar:
-        mapa = {colunas[c].rotulo: list(n) for c, n in pintar.items() if c in colunas}
+    if pintar or pintar_fundo:
+        mapa = {colunas[c].rotulo: list(n) for c, n in (pintar or {}).items() if c in colunas}
+        mapa_fundo = {
+            colunas[c].rotulo: list(n) for c, n in (pintar_fundo or {}).items() if c in colunas
+        }
 
         def _pintar_colunas(_: pd.DataFrame) -> pd.DataFrame:
             estilo = pd.DataFrame("", index=saida.index, columns=saida.columns)
@@ -915,6 +935,17 @@ def tabela_com_barra(
                 if rotulo in estilo.columns and len(niveis) == len(estilo):
                     estilo[rotulo] = [
                         f"color: {theme.cor_nivel(str(n), tema, uso='texto')}; font-weight: 600"
+                        for n in niveis
+                    ]
+            # Fundo cheio: usado onde o valor e um rotulo curto (rating), em que a
+            # celula inteira vira a marca. O texto vai na cor da superficie do
+            # tema, para contrastar com a marca em qualquer nivel.
+            for rotulo, niveis in mapa_fundo.items():
+                if rotulo in estilo.columns and len(niveis) == len(estilo):
+                    estilo[rotulo] = [
+                        f"background-color: {theme.cor_nivel(str(n), tema)};"
+                        f"color: {theme.tokens(tema).superficie};"
+                        "font-weight: 600; text-align: center"
                         for n in niveis
                     ]
             return estilo

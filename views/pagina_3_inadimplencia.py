@@ -85,8 +85,6 @@ base.faixa_kpis(
             "unidade": "pct", "casas": 2, "chave_direcao": "inadimplencia_30d",
             "estado": "sem_meta",
             "nota": f"sobre o faturamento de {janela}" if janela else None,
-            # Faixa lateral no nivel da regra publicada, nunca num corte da tela.
-            "nivel": base.nivel_do_valor(df_alertas, "A9", None),
             "badges": ["janela de 12m incompleta"] if janela_incompleta else [],
             "ajuda": "Vencido há mais de 30 dias e ainda em aberto nessa data, sobre o faturamento "
                      "bruto dos 12 meses de competência que terminam nela.",
@@ -118,7 +116,6 @@ base.faixa_kpis(
             "valor": acima_180, "unidade": "brl", "chave_direcao": "carteira_vencida",
             "estado": "sem_meta" if acima_180 is not None else "erro",
             "nota": "vira baixa aos 365 dias",
-            "nivel": base.nivel_do_valor(df_alertas, "A10", acima_180),
             "ajuda": "A faixa mais antiga da carteira: é dela que sai a perda provável.",
         },
     ],
@@ -415,11 +412,6 @@ else:
                 rot.faixa_aging(faixa_escolhida), "brl_compacto",
                 ajuda="Saldo do cliente na faixa escolhida acima, que ordena esta lista.",
             )} if faixa_escolhida and faixa_escolhida in fila.columns else {}),
-            "pct_vencido_30d": ui.ColunaSpec(
-                "% da receita", "pct",
-                ajuda="Quanto o vencido representa do que esse cliente faturou nos "
-                      "últimos 12 meses.",
-            ),
             "uso_limite_txt": ui.ColunaSpec(
                 "Uso do limite", "texto",
                 ajuda="O glifo segue o limiar publicado da regra de crédito, não um corte da tela.",
@@ -429,16 +421,26 @@ else:
         # inventado na tela: rating (escala do cadastro), % da receita (regra A7)
         # e uso do limite (regra A8). Cliente, segmento e os valores em reais nao
         # ganham cor -- a barra "Peso" ja da a magnitude.
-        pintar={
+        # Rating: celula inteira na cor, porque o valor e uma letra e a cor **e**
+        # a informacao. Uso do limite mantem so a cor do texto, ja que traz numero.
+        pintar_fundo={
             "rating_credito": [theme.RATING_NIVEL.get(str(r).strip().upper(), "neutro")
                                for r in fila["rating_credito"]],
-            "pct_vencido_30d": [base.nivel_do_valor(df_alertas, "A7", v)
-                                for v in fila["pct_vencido_30d"]],
+        },
+        pintar={
             "uso_limite_txt": [base.nivel_do_valor(df_alertas, "A8", v)
                                for v in fila["uso_limite_pct"]],
         },
-        barra=coluna_ordem,
-        rotulo_barra="Peso",
+        # Duas barras: a magnitude do vencido e a parcela da propria receita. A
+        # segunda era cor de texto e virou barra -- percentual se compara melhor
+        # por comprimento do que por tom.
+        # "% da carteira", nao "% da receita": em aging_por_cliente esta coluna e
+        # vencido sobre a **carteira em aberto do cliente**, nao sobre o que ele
+        # faturou. O rotulo antigo descrevia a metrica de risco_por_cliente, que
+        # e outra conta e vive no grafico acima.
+        barra=[coluna_ordem, "pct_vencido_30d"],
+        rotulo_barra=["Peso", "% da carteira vencida"],
+        tipos_barra={"pct_vencido_30d": "pct"},
         escala="risco",
         ordenar_por=None,
         limite=None,
