@@ -252,7 +252,7 @@ for tipo in metas.TIPOS_META:
             vermelho=vermelho_inad if percentual else None,
             tema=ctx.tema,
         )
-        linha[str(a)] = f"{d.icone} {texto}" if not fmt.eh_vazio(desvio) else fmt.VAZIO
+        linha[str(a)] = f"{d.icone} {texto}".strip() if not fmt.eh_vazio(desvio) else fmt.VAZIO
         meses = int(reg.get("meses_realizados") or 0)
         cabecalhos[a] = f"{a} · {meses} meses" if reg.get("eh_parcial") else str(a)
     linhas_matriz.append(linha)

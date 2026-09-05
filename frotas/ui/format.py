@@ -411,11 +411,16 @@ def delta(
             favoravel = None
         else:
             favoravel = (v > 0) if direcao == "maior_melhor" else (v < 0)
+    # Nivel neutro nao ganha glifo: "– +8,2%" fazia o travessao (que significa
+    # "sem sinal de alerta") parecer parte do numero, competindo com o "+". Quando
+    # nao ha alerta, o numero fala sozinho; o glifo aparece so quando ha algo a
+    # dizer sobre ele.
+    icone = "" if nivel == "neutro" else theme.ICONE_NIVEL[nivel]
     return Delta(
         texto=texto,
         nivel=nivel,
         cor=theme.cor_nivel(nivel, tema, uso="texto"),
-        icone=theme.ICONE_NIVEL[nivel],
+        icone=icone,
         rotulo=theme.ROTULO_NIVEL[nivel],
         favoravel=favoravel,
     )

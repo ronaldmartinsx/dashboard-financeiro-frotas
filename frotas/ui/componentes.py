@@ -509,9 +509,10 @@ def tile_kpi(
             # ao lado era a mesma informacao em texto, competindo com o numero.
             # O rotulo continua no aria-label, para quem usa leitor de tela.
             sufixo = " vs meta" if periodo_meta else ""
+            glifo_html = f'<span aria-hidden="true">{d.icone}</span> ' if d.icone else ""
             rodape = (
                 f'<div class="fv-tile__delta" style="color:{d.cor}">'
-                f'<span aria-hidden="true">{d.icone}</span> {_e(d.texto)}{sufixo}</div>'
+                f'{glifo_html}{_e(d.texto)}{sufixo}</div>'
             )
             acessivel = f"{texto_valor}, {d.acessivel}"
 
