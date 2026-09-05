@@ -75,16 +75,6 @@ with st.spinner("Apurando realizado e meta..."):
 df_alertas = base.obter(dados, "alertas")
 comp = base.obter(dados, f"comp_{ano}")
 
-ui.banner_alerta(
-    base.alertas_da_pagina(
-        df_alertas, PAGINA,
-        destinos={"A1": base.ROTAS[3], "A3": base.ROTAS[2],
-                  "A4": base.ROTAS[2], "A6": base.ROTAS[4]},
-    ),
-    maximo=3, tema=ctx.tema,
-    regras_avaliadas=base.regras_da_pagina(df_alertas, PAGINA),
-    estado="erro" if df_alertas is None else "normal", data_ref=ref,
-)
 
 # --------------------------------------------------------------------------
 # Os cinco indicadores orcados
@@ -133,6 +123,17 @@ for tipo in metas.TIPOS_META:
         }
     )
 base.faixa_kpis(itens, tema=ctx.tema)
+
+ui.banner_alerta(
+    base.alertas_da_pagina(
+        df_alertas, PAGINA,
+        destinos={"A1": base.ROTAS[3], "A3": base.ROTAS[2],
+                  "A4": base.ROTAS[2], "A6": base.ROTAS[4]},
+    ),
+    maximo=3, tema=ctx.tema,
+    regras_avaliadas=base.regras_da_pagina(df_alertas, PAGINA),
+    estado="erro" if df_alertas is None else "normal", data_ref=ref,
+)
 
 if parcial:
     ui.nota_armadilha(
@@ -257,7 +258,10 @@ ui.tabela_com_barra(
         "indicador": ui.ColunaSpec("Indicador", "texto", largura="medium"),
         "exercicio": ui.ColunaSpec("Exercício", "texto", largura="small"),
         "realizado": ui.ColunaSpec("Realizado", "texto"),
-        "meta": ui.ColunaSpec("Meta dos mesmos meses", "texto"),
+        "meta": ui.ColunaSpec(
+            "Meta", "texto",
+            ajuda="Soma das metas dos mesmos meses já realizados, não a do ano cheio.",
+        ),
         "desvio": ui.ColunaSpec(
             "Desvio", "texto",
             ajuda="Indicador em R$ lê variação percentual; indicador em % lê pontos percentuais.",

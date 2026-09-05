@@ -56,12 +56,6 @@ with st.spinner("Apurando o custo operacional..."):
 df_alertas = base.obter(dados, "alertas")
 mensal = base.obter(dados, "mensal")
 
-ui.banner_alerta(
-    base.alertas_da_pagina(df_alertas, PAGINA),
-    maximo=3, tema=ctx.tema,
-    regras_avaliadas=base.regras_da_pagina(df_alertas, PAGINA),
-    estado="erro" if df_alertas is None else "normal", data_ref=ref,
-)
 
 # --------------------------------------------------------------------------
 # Faixa de KPIs
@@ -126,6 +120,13 @@ base.faixa_kpis(
         },
     ],
     tema=ctx.tema,
+)
+
+ui.banner_alerta(
+    base.alertas_da_pagina(df_alertas, PAGINA),
+    maximo=3, tema=ctx.tema,
+    regras_avaliadas=base.regras_da_pagina(df_alertas, PAGINA),
+    estado="erro" if df_alertas is None else "normal", data_ref=ref,
 )
 
 if escopo_contratos:

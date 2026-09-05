@@ -73,12 +73,6 @@ df_alertas = base.obter(dados, "alertas")
 pit = base.obter(dados, "inadimplencia")
 aging = base.obter(dados, "aging")
 
-ui.banner_alerta(
-    base.alertas_da_pagina(df_alertas, PAGINA),
-    maximo=3, tema=ctx.tema,
-    regras_avaliadas=base.regras_da_pagina(df_alertas, PAGINA),
-    estado="erro" if df_alertas is None else "normal", data_ref=ref,
-)
 
 # --------------------------------------------------------------------------
 # Faixa de KPIs -- tudo e a foto em ref
@@ -149,6 +143,13 @@ base.faixa_kpis(
         },
     ],
     tema=ctx.tema,
+)
+
+ui.banner_alerta(
+    base.alertas_da_pagina(df_alertas, PAGINA),
+    maximo=3, tema=ctx.tema,
+    regras_avaliadas=base.regras_da_pagina(df_alertas, PAGINA),
+    estado="erro" if df_alertas is None else "normal", data_ref=ref,
 )
 
 ui.nota_armadilha(
@@ -411,10 +412,20 @@ else:
         colunas={
             "nome_cliente": ui.ColunaSpec("Cliente", "texto", largura="large"),
             "segmento": ui.ColunaSpec("Segmento", "texto", largura="medium"),
-            "rating_credito": ui.ColunaSpec("Rating de crédito", "texto", largura="small"),
-            "carteira_total": ui.ColunaSpec("Carteira em aberto", "brl_compacto"),
-            "vencido_30d_mais": ui.ColunaSpec("Vencido há mais de 30 dias", "brl_compacto"),
-            "pct_vencido_30d": ui.ColunaSpec("Vencido sobre o faturamento de 12 meses", "pct"),
+            "rating_credito": ui.ColunaSpec("Rating", "texto", largura="small"),
+            "carteira_total": ui.ColunaSpec(
+                "Em aberto", "brl_compacto",
+                ajuda="Tudo que ainda não foi pago, vencido ou a vencer.",
+            ),
+            "vencido_30d_mais": ui.ColunaSpec(
+                "Vencido", "brl_compacto",
+                ajuda="Valor vencido há mais de 30 dias e ainda não pago nessa data.",
+            ),
+            "pct_vencido_30d": ui.ColunaSpec(
+                "% da receita", "pct",
+                ajuda="Quanto o vencido representa do que esse cliente faturou nos "
+                      "últimos 12 meses.",
+            ),
             "uso_limite_txt": ui.ColunaSpec(
                 "Uso do limite de crédito", "texto",
                 ajuda="O glifo segue o limiar publicado da regra de crédito, não um corte da tela.",
@@ -475,10 +486,13 @@ else:
                             "id_titulo": ui.ColunaSpec("Fatura", "texto", largura="small"),
                             "competencia": ui.ColunaSpec("Competência", "competencia"),
                             "data_vencimento": ui.ColunaSpec("Vencimento", "data"),
-                            "dias_atraso": ui.ColunaSpec("Dias em atraso", "dias"),
-                            "faixa": ui.ColunaSpec("Faixa de atraso", "texto", largura="small"),
+                            "dias_atraso": ui.ColunaSpec("Dias", "dias", ajuda="Dias de atraso na data escolhida."),
+                            "faixa": ui.ColunaSpec("Atraso", "texto", largura="small"),
                             "valor_bruto": ui.ColunaSpec("Valor", "brl"),
-                            "status_calculado": ui.ColunaSpec("Situação na data da foto", "texto"),
+                            "status_calculado": ui.ColunaSpec(
+                                "Situação", "texto",
+                                ajuda="Como a fatura estava na data escolhida.",
+                            ),
                         },
                         barra="valor_bruto",
                         rotulo_barra="Valor",
