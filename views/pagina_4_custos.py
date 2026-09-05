@@ -31,7 +31,7 @@ PAGINA = 4
 CATEGORIA_OCIOSA = "Patio e Ociosidade"
 
 ctx = base.contexto()
-base.abrir_pagina(ctx, "Para onde vai o custo?")
+base.abrir_pagina(ctx, "Para onde vai o custo?", secao="Custos")
 
 t = theme.tokens(ctx.tema)
 slot1 = theme.paleta_categorica(ctx.tema)[0]
@@ -386,4 +386,3 @@ ui.tabela_com_barra(
 )
 
 base.barra_qualidade(df_alertas, tema=ctx.tema)
-base.rodape(ctx)

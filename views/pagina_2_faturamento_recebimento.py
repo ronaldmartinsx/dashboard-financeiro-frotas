@@ -31,7 +31,7 @@ from views import _comum as base
 PAGINA = 2
 
 ctx = base.contexto()
-base.abrir_pagina(ctx, "Quanto faturamos e quanto entrou em caixa?")
+base.abrir_pagina(ctx, "Quanto faturamos e quanto entrou em caixa?", secao="Faturamento e Recebimento")
 
 t = theme.tokens(ctx.tema)
 slot1 = theme.paleta_categorica(ctx.tema)[0]
@@ -97,7 +97,7 @@ base.faixa_kpis(
             "valor": base.celula(eficiencia, "recebimento_12m"),
             "unidade": "brl", "chave_direcao": "recebimento_caixa", "estado": "sem_meta",
             "nota": f"caixa de {janela_caixa}" if janela_caixa else None,
-            "badges": [f"foto em {fmt.data_br(ref)}"],
+            "badges": ["12 meses até a foto"],
             "ajuda": "Somado pela data de pagamento, com juros e multa. Não soma com o "
                      "faturamento do mesmo mês.",
         },
@@ -108,7 +108,7 @@ base.faixa_kpis(
             "estado": "sem_meta",
             "nota": (f"piso da meta: {fmt.percentual(piso_cobranca, 1)}"
                      if piso_cobranca is not None else None),
-            "badges": [f"foto em {fmt.data_br(ref)}"],
+            "badges": ["12 meses até a foto"],
             "ajuda": "Caixa recebido dividido pelo faturamento válido, ambos na mesma janela "
                      "de 12 meses.",
         },
@@ -318,4 +318,3 @@ ui.tabela_com_barra(
 )
 
 base.barra_qualidade(df_alertas, tema=ctx.tema)
-base.rodape(ctx)

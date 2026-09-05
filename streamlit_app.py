@@ -37,7 +37,9 @@ from frotas.ui import componentes as ui  # noqa: E402
 from frotas.ui import format as fmt  # noqa: E402
 from frotas.ui import rotulos as rot  # noqa: E402
 
-TITULO = "Frotas · Painel financeiro"
+#: Nome do produto. Vem de ``ui.NOME_APP`` para que a aba do navegador, o
+#: cabecalho de cada pagina e a tela sem banco nunca divirjam.
+TITULO = ui.NOME_APP
 
 #: Presets do periodo de competencia (docs/01_kpis.md 7). O padrao sao os 12
 #: meses moveis fechados: e a janela em que a inadimplencia e comparavel.

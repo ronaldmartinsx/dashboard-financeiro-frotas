@@ -35,7 +35,7 @@ ui.estilos(ctx_inicial.tema)
 
 col_titulo, col_foto = st.columns([7, 5], gap="medium")
 with col_titulo:
-    st.title("Quanto está em aberto hoje, e com quem?")
+    ui.cabecalho_pagina("Inadimplência", "Quanto está em aberto hoje, e com quem?")
 with col_foto:
     data_ref = ui.seletor_data_referencia(
         valor=st.session_state.get("ref_data", config.DATA_EXTRACAO),
@@ -53,6 +53,9 @@ ctx = base.Contexto(
 )
 t = theme.tokens(ctx.tema)
 f, ref = ctx.filtros, ctx.data_ref
+
+# Os chips vem depois do seletor: so aqui a data da foto e a que o usuario escolheu.
+ui.linha_chips(base.chips_contexto(ctx))
 
 with st.spinner("Fotografando a carteira..."):
     dados = base.carregar(
@@ -96,7 +99,9 @@ if pit is not None:
     if ini and fim:
         janela = fmt.periodo(ini, fim)
 janela_incompleta = pit is not None and not bool(pit.iloc[0].get("janela_completa", True))
-badge_foto = [f"foto em {fmt.data_br(ref)}"]
+# Sem badge de foto nos tiles: nesta pagina *todos* sao foto na data de
+# referencia, e o cabecalho ja a declara. O badge nao distinguia nada.
+badge_foto: list[str] = []
 
 base.faixa_kpis(
     [
@@ -491,4 +496,3 @@ else:
                     )
 
 base.barra_qualidade(df_alertas, tema=ctx.tema)
-base.rodape(ctx)

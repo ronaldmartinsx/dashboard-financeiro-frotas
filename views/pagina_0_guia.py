@@ -20,8 +20,7 @@ from frotas.ui import rotulos as rot
 from views import _comum as base
 
 ctx = base.contexto()
-ui.estilos(ctx.tema)
-st.title("Guia do Relatório")
+base.abrir_pagina(ctx, "Como ler este dashboard?", secao="Guia")
 
 ui.frase(
     "Este relatório responde a quatro perguntas de negócio, uma por página. "
@@ -106,9 +105,3 @@ ui.nota_armadilha(
     tom="aviso",
 )
 
-ui.rodape_proveniencia(
-    competencia=(config.COMPETENCIA_MIN, config.COMPETENCIA_MAX),
-    data_ref=config.DATA_EXTRACAO,
-    versao_orcamento=ctx.versao_orcamento,
-    tema=ctx.tema,
-)

@@ -37,6 +37,7 @@ Escala = Literal["neutra", "risco", "divergente"]
 #: Vocabulario fechado de badges (UX 5.8). Nao inventar badge novo.
 BADGES_CONHECIDOS: tuple[str, ...] = (
     "escopo: contratos",
+    "12 meses até a foto",
     "periodo parcial",
     "receita rateada",
     "janela de 12m incompleta",
@@ -147,6 +148,14 @@ def estilos(tema: Tema = "claro") -> None:
 .fv-tile__nota {{
   font-size: {tp['nota']}px; color: var(--fv-tinta-3); line-height: 1.35;
   margin-top: auto;
+}}
+.fv-cab__kicker {{
+  font-size: {tp['rotulo']}px; color: var(--fv-tinta-2); font-weight: 500;
+  letter-spacing: .04em; text-transform: uppercase; margin-bottom: -{esp['sm']}px;
+}}
+.fv-cab__chips {{
+  display: flex; flex-wrap: wrap; gap: {esp['xs']}px;
+  margin: -{esp['xs']}px 0 {esp['lg']}px;
 }}
 .fv-badges {{ display: flex; flex-wrap: wrap; gap: {esp['xs']}px; margin-top: {esp['xs']}px; }}
 .fv-badge {{
@@ -328,6 +337,54 @@ def _texto_valor(valor: Any, unidade: Unidade, casas: int | None = None) -> str:
     if unidade == "dias":
         return fmt.dias(valor)
     return fmt.contagem(valor)
+
+
+#: Nome do produto. Aparece no cabecalho de toda pagina e na aba do navegador.
+NOME_APP = "Dashboard Financeiro"
+
+
+def cabecalho_pagina(
+    secao: str,
+    pergunta: str,
+    *,
+    chips: Sequence[str] = (),
+    tema: Tema = "claro",
+) -> None:
+    """Cabecalho de toda pagina: identidade, pergunta e o recorte apurado.
+
+    Tres camadas, de cima para baixo:
+
+    1. ``Dashboard Financeiro · <secao>`` -- onde o leitor esta;
+    2. a **pergunta de negocio**, que e o titulo da pagina;
+    3. os ``chips`` de contexto: periodo de competencia, data da foto, versao do
+       orcamento e os recortes ativos.
+
+    Os chips ficam **no topo**, e nao num rodape de proveniencia, porque contexto
+    de apuracao e o que se precisa saber *antes* de ler o numero. E porque o
+    recorte dimensional so aparecia na barra lateral: com ela recolhida, os
+    numeros mudavam sem nada na tela dizendo por que.
+    """
+    st.markdown(
+        f'<div class="fv-cab__kicker">{_e(NOME_APP)} · {_e(secao)}</div>',
+        unsafe_allow_html=True,
+    )
+    st.title(pergunta)
+    linha_chips(chips)
+
+
+def linha_chips(chips: Sequence[str]) -> None:
+    """So a faixa de chips do cabecalho.
+
+    Existe separada porque a pagina de inadimplencia divide o topo em colunas
+    (titulo | seletor da foto) e os chips precisam vir depois, ja com a data
+    que o usuario escolheu.
+    """
+    if not chips:
+        return
+    st.markdown(
+        f'<div class="fv-cab__chips">{"".join(badge(c) for c in chips)}</div>',
+        unsafe_allow_html=True,
+    )
 
 
 def tile_kpi(

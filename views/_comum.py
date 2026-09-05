@@ -126,13 +126,50 @@ def contexto() -> Contexto:
     )
 
 
-def abrir_pagina(ctx: Contexto, titulo: str) -> None:
-    """Estilos + titulo. Primeira chamada de toda pagina.
+def chips_contexto(ctx: Contexto, *, com_orcamento: bool = True) -> list[str]:
+    """Os recortes que produziram os numeros desta tela, prontos para o cabecalho.
 
-    O titulo **e** a pergunta da pagina; nao ha subtitulo explicando o titulo.
+    Inclui os **recortes dimensionais** (segmento, porte, rating, tipo de contrato,
+    cliente), que antes so existiam na barra lateral: com ela recolhida, os numeros
+    mudavam sem nada na tela dizendo por que.
+    """
+    f = ctx.filtros
+    chips = [
+        f"Competência {fmt.periodo(f.inicio, f.fim)}",
+        f"Foto em {fmt.data_br(ctx.data_ref)}",
+    ]
+    if com_orcamento:
+        chips.append(f"Orçamento {ctx.versao_orcamento}")
+    for rotulo, valores in (
+        ("Segmento", f.segmentos),
+        ("Porte", f.portes),
+        ("Rating", f.ratings),
+        ("Tipo de contrato", f.tipos_contrato),
+        ("Cliente", f.clientes),
+    ):
+        if not valores:
+            continue
+        # Ate dois valores cabem por extenso; acima disso o chip vira contagem,
+        # senao um filtro de oito segmentos empurra o titulo para fora da tela.
+        if len(valores) <= 2:
+            chips.append(f"{rotulo}: {', '.join(rot.valor(v) for v in valores)}")
+        else:
+            chips.append(f"{rotulo}: {len(valores)} selecionados")
+    return chips
+
+
+def abrir_pagina(ctx: Contexto, titulo: str, *, secao: str, com_orcamento: bool = True) -> None:
+    """Estilos + cabecalho. Primeira chamada de toda pagina.
+
+    O titulo **e** a pergunta da pagina; ``secao`` e o nome curto que aparece no
+    menu, e que o cabecalho repete para o leitor saber onde esta.
     """
     ui.estilos(ctx.tema)
-    st.title(titulo)
+    ui.cabecalho_pagina(
+        secao, titulo,
+        chips=chips_contexto(ctx, com_orcamento=com_orcamento),
+        tema=ctx.tema,
+    )
 
 
 # --------------------------------------------------------------------------
@@ -569,19 +606,6 @@ def barra_empilhada_100(
     fig.update_yaxes(showticklabels=False, showgrid=False)
 
 
-# --------------------------------------------------------------------------
-# Rodape
-# --------------------------------------------------------------------------
-
-
-def rodape(ctx: Contexto) -> None:
-    """Rodape de proveniencia: sobre que recorte os numeros desta tela foram apurados."""
-    ui.rodape_proveniencia(
-        competencia=ctx.competencia,
-        data_ref=ctx.data_ref,
-        versao_orcamento=ctx.versao_orcamento,
-        tema=ctx.tema,
-    )
 
 
 __all__ = [
@@ -590,5 +614,6 @@ __all__ = [
     "celula", "texto_celula", "soma", "do_ano", "valor_da_serie", "maximo_da_coluna",
     "texto_periodo", "linha_meta", "faixa_kpis", "alertas_da_pagina", "barra_qualidade",
     "nova_figura", "eixo_mensal", "rotulos_mensais", "datas_de", "mostrar_grafico",
-    "cor_divergente", "barra_horizontal", "barra_empilhada_100", "rodape",
+    "cor_divergente", "barra_horizontal", "barra_empilhada_100", "chips_contexto",
+    "regras_da_pagina",
 ]

@@ -1,6 +1,6 @@
-# Data App de Frotas — Streamlit + Supabase
+# Dashboard Financeiro — Streamlit + Supabase
 
-Data app de análise financeira de uma locadora de frotas B2B. Lê o dataset direto do
+Dashboard financeiro de uma locadora de frotas B2B. Lê o dataset direto do
 Supabase (Postgres, **somente leitura**) e responde quatro perguntas de negócio, uma por
 página, mais um guia de abertura.
 
@@ -41,11 +41,17 @@ O menu lateral leva o **nome curto**; a **pergunta de negócio** é o título de
 
 | Menu | Pergunta central (título da página) | Público |
 |---|---|---|
-| Guia | *(orientação — sem gráficos, não consulta o banco)* | quem abre pela primeira vez |
+| Guia | Como ler este dashboard? | quem abre pela primeira vez |
 | Metas | Estamos entregando a meta? | CFO |
 | Faturamento e Recebimento | Quanto faturamos e quanto entrou em caixa? | Controller / CFO |
 | Inadimplência | Quanto está em aberto hoje, e com quem? | Gerente de crédito e cobrança |
 | Custos | Para onde vai o custo? | Gerente de operação e frota |
+
+Toda página abre com o mesmo cabeçalho: **Dashboard Financeiro · <seção>**, a pergunta
+de negócio como título, e os **chips de contexto** — período de competência, data da foto,
+versão do orçamento e os recortes ativos. Os chips ficam no topo, e não num rodapé, porque
+contexto de apuração se lê **antes** do número; e porque o recorte dimensional só existia
+na barra lateral, invisível com ela recolhida.
 
 Duas regras editoriais que o código sustenta: **uma pergunta central por página,
 declarada no título**, e **no máximo um bloco curto de texto por página** — o resto é

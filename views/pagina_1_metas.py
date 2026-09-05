@@ -39,7 +39,7 @@ DIRECAO: dict[str, str] = {
 }
 
 ctx = base.contexto()
-base.abrir_pagina(ctx, "Estamos entregando a meta?")
+base.abrir_pagina(ctx, "Estamos entregando a meta?", secao="Metas")
 
 t = theme.tokens(ctx.tema)
 f, ref, ano = ctx.filtros, ctx.data_ref, ctx.ano
@@ -404,4 +404,3 @@ else:
         )
 
 base.barra_qualidade(df_alertas, tema=ctx.tema)
-base.rodape(ctx)
