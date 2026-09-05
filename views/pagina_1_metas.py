@@ -332,7 +332,7 @@ else:
     fig.update_layout(showlegend=True, legend={"orientation": "h", "y": 1.15, "x": 0})
     base.mostrar_grafico(
         fig, chave="p1_mensal",
-        nota=("O valor do mês é a foto do último dia — inadimplência não se soma."
+        nota=("O valor do mês é a foto do último dia: inadimplência não se soma."
               if percentual else
               "Meses ainda sem realizado ficam vazios, nunca zerados."),
         dados=serie.drop(columns=["x"]),
@@ -347,7 +347,7 @@ st.toggle(
     key="meta_por_segmento",
     disabled=not tem_segmento,
     help="Custa cerca de 13 s: são oito segmentos apurados um a um. Custo Operacional e "
-         "Inadimplência não têm meta por segmento — o custo de veículo parado não pertence "
+         "Inadimplência não têm meta por segmento, porque o custo de veículo parado não pertence "
          "a segmento nenhum.",
 )
 if not tem_segmento:

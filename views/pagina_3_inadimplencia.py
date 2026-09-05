@@ -42,14 +42,13 @@ with col_foto:
         minimo=date(2024, 12, 31),
         maximo=config.DATA_EXTRACAO,
         chave="ref",
-        rotulo="Data da foto (independente do período)",
+        rotulo="Posição em (independente do período)",
     )
 
 ctx = base.Contexto(
     filtros=ctx_inicial.filtros.com(data_ref=data_ref),
     data_ref=data_ref,
     tema=ctx_inicial.tema,
-    versao_orcamento=ctx_inicial.versao_orcamento,
 )
 t = theme.tokens(ctx.tema)
 f, ref = ctx.filtros, ctx.data_ref
@@ -112,7 +111,7 @@ base.faixa_kpis(
             "estado": "sem_meta",
             "nota": f"sobre o faturamento de {janela}" if janela else None,
             "badges": badge_foto + (["janela de 12m incompleta"] if janela_incompleta else []),
-            "ajuda": "Vencido há mais de 30 dias e ainda vivo na data da foto, sobre o faturamento "
+            "ajuda": "Vencido há mais de 30 dias e ainda em aberto nessa data, sobre o faturamento "
                      "bruto dos 12 meses de competência que terminam nela.",
         },
         {
@@ -121,7 +120,7 @@ base.faixa_kpis(
             "unidade": "brl", "chave_direcao": "carteira_vencida", "estado": "sem_meta",
             "nota": f"{fmt.contagem(base.celula(pit, 'qtd_titulos_vencidos'))} faturas",
             "badges": badge_foto,
-            "ajuda": "Numerador da inadimplência: não pago e não cancelado na data da foto.",
+            "ajuda": "Numerador da inadimplência: não pago e não cancelado nessa data.",
         },
         {
             "rotulo": "Carteira em aberto",
@@ -129,7 +128,7 @@ base.faixa_kpis(
             "estado": "sem_meta" if carteira is not None else "erro",
             "nota": "tudo que ainda não foi pago, vencido ou a vencer",
             "badges": badge_foto,
-            "ajuda": "Exclui faturas pagas, canceladas e baixadas na data da foto.",
+            "ajuda": "Exclui faturas pagas, canceladas e baixadas até essa data.",
         },
         {
             "rotulo": "Já vencido",
@@ -153,8 +152,8 @@ base.faixa_kpis(
 )
 
 ui.nota_armadilha(
-    f"Tudo nesta página é a foto de {fmt.data_br(ref)} — o filtro de período não se aplica aqui, "
-    "porque uma fatura de 2024 ainda vencida conta na foto de hoje. A carteira exclui faturas "
+    f"Tudo nesta página é a posição em {fmt.data_br(ref)}. O filtro de período não se aplica aqui, "
+    "porque uma fatura de 2024 ainda vencida conta na posição de hoje. A carteira exclui faturas "
     "baixadas; a inadimplência não. As duas leituras estão certas e diferem em R$ 328 mil."
 )
 

@@ -85,7 +85,6 @@ class Contexto:
     filtros: Filtros
     data_ref: date
     tema: Tema
-    versao_orcamento: str
 
     @property
     def ano(self) -> int:
@@ -122,11 +121,12 @@ def contexto() -> Contexto:
         filtros=filtros,
         data_ref=filtros.ref,
         tema=ui.tema_atual(),
-        versao_orcamento=st.session_state.get("versao_orcamento", "Revisão 2026 (vigente)"),
     )
 
 
-def chips_contexto(ctx: Contexto, *, com_orcamento: bool = True) -> list[str]:
+def chips_contexto(
+    ctx: Contexto, *, com_orcamento: bool = True, periodo_total: bool = False
+) -> list[str]:
     """Os recortes que produziram os numeros desta tela, prontos para o cabecalho.
 
     Inclui os **recortes dimensionais** (segmento, porte, rating, tipo de contrato,
@@ -134,12 +134,18 @@ def chips_contexto(ctx: Contexto, *, com_orcamento: bool = True) -> list[str]:
     mudavam sem nada na tela dizendo por que.
     """
     f = ctx.filtros
-    chips = [
-        f"Competência {fmt.periodo(f.inicio, f.fim)}",
-        f"Foto em {fmt.data_br(ctx.data_ref)}",
-    ]
+    if periodo_total:
+        # No Guia o chip anuncia o que **existe** para analisar, nao o recorte em
+        # vigor: quem abre a pagina de orientacao com o filtro em "ultimos 12m"
+        # concluiria que 2024 nao esta no dashboard.
+        ini, fim, quando = config.COMPETENCIA_MIN, config.COMPETENCIA_MAX, config.DATA_EXTRACAO
+        chips = [f"Dados de {fmt.periodo(ini, fim)} disponíveis"]
+    else:
+        ini, fim, quando = f.inicio, f.fim, ctx.data_ref
+        chips = [f"Período de {fmt.periodo(ini, fim)}"]
+    chips.append(f"Posição em {fmt.data_br(quando)}")
     if com_orcamento:
-        chips.append(f"Orçamento {ctx.versao_orcamento}")
+        chips.append(f"Orçamento vigente de {fim.year}")
     for rotulo, valores in (
         ("Segmento", f.segmentos),
         ("Porte", f.portes),
@@ -158,7 +164,10 @@ def chips_contexto(ctx: Contexto, *, com_orcamento: bool = True) -> list[str]:
     return chips
 
 
-def abrir_pagina(ctx: Contexto, titulo: str, *, secao: str, com_orcamento: bool = True) -> None:
+def abrir_pagina(
+    ctx: Contexto, titulo: str, *, secao: str,
+    com_orcamento: bool = True, periodo_total: bool = False,
+) -> None:
     """Estilos + cabecalho. Primeira chamada de toda pagina.
 
     O titulo **e** a pergunta da pagina; ``secao`` e o nome curto que aparece no
@@ -167,7 +176,7 @@ def abrir_pagina(ctx: Contexto, titulo: str, *, secao: str, com_orcamento: bool 
     ui.estilos(ctx.tema)
     ui.cabecalho_pagina(
         secao, titulo,
-        chips=chips_contexto(ctx, com_orcamento=com_orcamento),
+        chips=chips_contexto(ctx, com_orcamento=com_orcamento, periodo_total=periodo_total),
         tema=ctx.tema,
     )
 

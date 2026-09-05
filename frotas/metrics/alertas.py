@@ -423,7 +423,7 @@ def _a19(ctx: _Contexto) -> dict:
     valor = float(falha["pct_do_faturamento"].sum())
     return _linha(lim, _nivel(valor, lim), valor,
                   f"{fmt.moeda_compacta(float(falha['valor_bruto'].sum()))} cancelados por erro de "
-                  "emissão ou faturamento indevido — falha de processo, não decisão comercial.",
+                  "emissão ou faturamento indevido. É falha de processo, não decisão comercial.",
                   entidades=tuple(falha["motivo_cancelamento"]))
 
 

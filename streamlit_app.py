@@ -32,7 +32,7 @@ if str(_RAIZ) not in sys.path:
 
 from frotas import config, db  # noqa: E402
 from frotas.filtros import Filtros  # noqa: E402
-from frotas.metrics import dimensoes, metas  # noqa: E402
+from frotas.metrics import dimensoes  # noqa: E402
 from frotas.ui import componentes as ui  # noqa: E402
 from frotas.ui import format as fmt  # noqa: E402
 from frotas.ui import rotulos as rot  # noqa: E402
@@ -78,9 +78,6 @@ def _clientes() -> pd.DataFrame:
     return dimensoes.listar_clientes()
 
 
-@st.cache_data(ttl=config.TTL_FATOS, show_spinner=False)
-def _versoes(ano: int) -> pd.DataFrame:
-    return metas.versoes_orcamento(ano)
 
 
 def _meses_disponiveis() -> list[date]:
@@ -163,7 +160,7 @@ def barra_lateral(opcoes: dict[str, list[str]], clientes: pd.DataFrame, *, pagin
             key="preset_periodo",
             on_change=_aplicar_preset,
             help="O período move o eixo do tempo e o recorte dos fatos. Ele NÃO move a janela "
-                 "de 12 meses da inadimplência nem a foto da carteira.",
+                 "de 12 meses da inadimplência nem a posição da carteira.",
         )
         col_ini, col_fim = st.columns(2)
         with col_ini:
@@ -186,14 +183,14 @@ def barra_lateral(opcoes: dict[str, list[str]], clientes: pd.DataFrame, *, pagin
             # e vive no cabecalho da propria pagina. Renderizar duas vezes o
             # mesmo widget quebraria o estado, entao aqui a barra lateral so ecoa.
             data_ref = st.session_state.get("ref_data", config.DATA_EXTRACAO)
-            st.caption(f"Data da foto: **{fmt.data_br(data_ref)}** (no topo da página)")
+            st.caption(f"Posição em **{fmt.data_br(data_ref)}** (no topo da página)")
         else:
             data_ref = ui.seletor_data_referencia(
                 valor=st.session_state.get("ref_data", config.DATA_EXTRACAO),
                 minimo=date(2024, 12, 31),
                 maximo=config.DATA_EXTRACAO,
                 chave="ref",
-                rotulo="Data da foto (independente do período)",
+                rotulo="Posição em (independente do período)",
             )
 
         st.divider()
@@ -247,7 +244,6 @@ def barra_lateral(opcoes: dict[str, list[str]], clientes: pd.DataFrame, *, pagin
         clientes=[nomes[n] for n in escolhidos if n in nomes],
     )
     st.session_state["filtros"] = filtros
-    st.session_state["versao_orcamento"] = _rotulo_versao(filtros.fim.year)
     return filtros
 
 
@@ -270,20 +266,9 @@ def _filtros_do_estado(clientes: pd.DataFrame) -> Filtros:
         clientes=[nomes[n] for n in escolhidos if n in nomes],
     )
     st.session_state["filtros"] = filtros
-    st.session_state["versao_orcamento"] = _rotulo_versao(filtros.fim.year)
     return filtros
 
 
-def _rotulo_versao(ano: int) -> str:
-    """Rotulo da versao vigente do orcamento do ano, para o rodape de proveniencia."""
-    try:
-        df = _versoes(ano)
-        vigente = df[df["eh_versao_vigente"]]
-        if not vigente.empty:
-            return f"{rot.valor(vigente.iloc[0]['versao_meta'])} (vigente)"
-    except Exception:  # noqa: BLE001 - rodape nunca derruba a pagina
-        pass
-    return "versão vigente"
 
 
 # --------------------------------------------------------------------------

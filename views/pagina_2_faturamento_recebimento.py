@@ -90,14 +90,14 @@ base.faixa_kpis(
             "valor": base.celula(resumo, "receita_liquida"),
             "unidade": "brl", "chave_direcao": "receita_liquida", "estado": "sem_meta",
             "nota": f"impostos: {fmt.moeda_compacta(base.celula(resumo, 'impostos'))}",
-            "ajuda": "Faturamento menos impostos, incluindo faturas canceladas — é a definição publicada.",
+            "ajuda": "Faturamento menos impostos, incluindo faturas canceladas. É a definição publicada.",
         },
         {
             "rotulo": "Recebimento em 12 meses",
             "valor": base.celula(eficiencia, "recebimento_12m"),
             "unidade": "brl", "chave_direcao": "recebimento_caixa", "estado": "sem_meta",
             "nota": f"caixa de {janela_caixa}" if janela_caixa else None,
-            "badges": ["12 meses até a foto"],
+            "badges": ["Janela de 12 meses"],
             "ajuda": "Somado pela data de pagamento, com juros e multa. Não soma com o "
                      "faturamento do mesmo mês.",
         },
@@ -108,7 +108,7 @@ base.faixa_kpis(
             "estado": "sem_meta",
             "nota": (f"piso da meta: {fmt.percentual(piso_cobranca, 1)}"
                      if piso_cobranca is not None else None),
-            "badges": ["12 meses até a foto"],
+            "badges": ["Janela de 12 meses"],
             "ajuda": "Caixa recebido dividido pelo faturamento válido, ambos na mesma janela "
                      "de 12 meses.",
         },
@@ -190,7 +190,7 @@ else:
         partes_nota.append(
             f"Cancelamentos no período: {fmt.moeda_compacta(cancelado)} "
             f"({fmt.percentual(pct_cancelado, 2)} do faturado), avaliados na data de referência "
-            f"— uma fatura cancelada depois dela ainda conta como faturamento."
+            f"(uma fatura cancelada depois dela ainda conta como faturamento)."
         )
     if ctx.tem_recorte:
         partes_nota.append(
@@ -277,7 +277,7 @@ with col_yoy:
         base.mostrar_grafico(
             fig, chave="p2_yoy",
             nota=(f"No acumulado, {fmt.variacao(comparavel)} contra os mesmos meses de {ano - 1} "
-                  "— comparar com o ano cheio anterior subestimaria um ano parcial."
+                  ". Comparar com o ano cheio anterior subestimaria um ano parcial."
                   if not fmt.eh_vazio(comparavel) else None),
             dados=yoy,
             colunas_dados=["ano_mes", "faturamento_bruto", "faturamento_bruto_ano_anterior",

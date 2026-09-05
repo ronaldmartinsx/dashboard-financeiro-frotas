@@ -121,7 +121,7 @@ base.faixa_kpis(
             "nota": ("não existe no escopo de contratos: veículo parado não tem cliente"
                      if escopo_contratos else _peso(custo_ocioso)),
             "badges": badges_escopo,
-            "ajuda": "Custo das linhas sem contrato — pátio, seguro e depreciação do veículo "
+            "ajuda": "Custo das linhas sem contrato: pátio, seguro e depreciação do veículo "
                      "que não está alocado.",
         },
     ],
@@ -131,7 +131,7 @@ base.faixa_kpis(
 if escopo_contratos:
     ui.nota_armadilha(
         "O recorte ativo troca a fonte do custo: sai o pátio, fica só o custo alocado a contrato. "
-        "O total encolhe e deixa de ser comparável com o orçamento — por isso o indicador mudou "
+        "O total encolhe e deixa de ser comparável com o orçamento, por isso o indicador mudou "
         "de nome e a comparação com a meta some.",
         tom="aviso",
     )
@@ -347,7 +347,7 @@ else:
             anotacao.font.color = t.tinta_secundaria
         base.mostrar_grafico(
             fig, chave="p4_ociosidade",
-            nota="As faixas marcam os limiares publicados da regra de ociosidade — a UI não "
+            nota="As faixas marcam os limiares publicados da regra de ociosidade. A UI não "
                  "conhece o corte, ela o lê da camada de alertas.",
             dados=ocio,
             colunas_dados=["ano_mes", "taxa_ociosidade_pct", "qtd_veiculos_ociosos",

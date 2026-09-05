@@ -37,7 +37,7 @@ Escala = Literal["neutra", "risco", "divergente"]
 #: Vocabulario fechado de badges (UX 5.8). Nao inventar badge novo.
 BADGES_CONHECIDOS: tuple[str, ...] = (
     "escopo: contratos",
-    "12 meses até a foto",
+    "Janela de 12 meses",
     "periodo parcial",
     "receita rateada",
     "janela de 12m incompleta",
@@ -246,7 +246,7 @@ def badge(texto: str, *, nivel: Nivel = "neutro") -> str:
     outro componente (tile, cabecalho de tabela). Para exibir solto, use
     :func:`linha_badges`.
 
-    O vocabulario e fechado (:data:`BADGES_CONHECIDOS` + ``foto em {data}`` e
+    O vocabulario e fechado (:data:`BADGES_CONHECIDOS` + ``Posição em {data}`` e
     ``{ano} e parcial ({n} meses)``); textos livres passam, mas a revisao de UX
     e quem decide se entram.
     """
@@ -367,7 +367,7 @@ def cabecalho_pagina(
 
     1. ``Dashboard Financeiro · <secao>`` -- onde o leitor esta;
     2. a **pergunta de negocio**, que e o titulo da pagina;
-    3. os ``chips`` de contexto: periodo de competencia, data da foto, versao do
+    3. os ``chips`` de contexto: periodo de competencia, data da posicao, versao do
        orcamento e os recortes ativos.
 
     Os chips ficam **no topo**, e nao num rodape de proveniencia, porque contexto
@@ -391,7 +391,7 @@ def linha_chips(chips: Sequence[str]) -> None:
     """So a faixa de chips do cabecalho.
 
     Existe separada porque a pagina de inadimplencia divide o topo em colunas
-    (titulo | seletor da foto) e os chips precisam vir depois, ja com a data
+    (titulo | seletor de data) e os chips precisam vir depois, ja com a data
     que o usuario escolheu.
     """
     if not chips:
@@ -705,7 +705,7 @@ def banner_alerta(
         cor = theme.cor_nivel("bom", tema, uso="texto")
         # "nenhum limiar atingido" era jargao: limiar e vocabulario de quem
         # construiu a regra, nao de quem le o painel.
-        quando = f", na foto de {fmt.data_br(data_ref)}" if data_ref else ""
+        quando = f", na posição de {fmt.data_br(data_ref)}" if data_ref else ""
         st.markdown(
             f'<div class="fv-banner fv-banner--linha" style="border-left-color:{cor}">'
             f'<span style="color:{cor}">{theme.ICONE_NIVEL["bom"]} Nenhum ponto de '
@@ -928,7 +928,7 @@ def seletor_data_referencia(
         st.session_state[chave_data] = opcoes[-1]
 
     presets = {
-        f"Ultima foto ({fmt.data_br(maximo)})": maximo,
+        f"Mais recente ({fmt.data_br(maximo)})": maximo,
         "Fim de 2025": date(2025, 12, 31),
         "Fim de 2024": date(2024, 12, 31),
     }
@@ -940,7 +940,7 @@ def seletor_data_referencia(
             st.session_state[chave_data] = presets[escolhido]
 
     st.radio(
-        "Presets de foto",
+        "Atalhos de data",
         options=list(presets),
         index=None,
         horizontal=True,
@@ -950,7 +950,7 @@ def seletor_data_referencia(
     )
     escolhida = st.selectbox(rotulo, options=opcoes, format_func=fmt.data_br, key=chave_data)
     st.caption(
-        f"Foto em {fmt.data_br(escolhida)}"
+        f"Posição em {fmt.data_br(escolhida)}"
         + (f" · {TEXTO_DATA_BLOQUEADA}" if horizontal else "")
     )
     return escolhida
@@ -960,36 +960,6 @@ def seletor_data_referencia(
 # 5.6 rodape_proveniencia
 # --------------------------------------------------------------------------
 
-
-def rodape_proveniencia(
-    *,
-    competencia: tuple[date, date],
-    data_ref: date,
-    versao_orcamento: str,
-    tema: Tema = "claro",
-    estado: Literal["normal", "cache_frio", "erro"] = "normal",
-    ultima_leitura: str | None = None,
-) -> None:
-    """Uma linha de proveniencia no fim de **toda** pagina.
-
-    Diz **sobre que recorte** os numeros da tela foram apurados: o periodo de
-    competencia, a data da foto e a versao do orcamento -- as tres coisas que
-    mudam o numero e que o usuario escolheu (ou herdou) sem necessariamente
-    lembrar. Nao lista nome de funcao nem TTL de cache: sao vocabulario de quem
-    mantem o app, e a regra deste projeto e que nome tecnico nao chega a tela.
-    """
-    partes = [
-        f"Competência {fmt.periodo(competencia[0], competencia[1])}",
-        f"foto em {fmt.data_br(data_ref)}",
-        f"orçamento {versao_orcamento}",
-    ]
-    if estado == "cache_frio":
-        partes.append("recalculado agora")
-    if estado == "erro" and ultima_leitura:
-        partes.append(f"última leitura bem-sucedida: {ultima_leitura}")
-    st.markdown(
-        f'<div class="fv-rodape">{_e(" · ".join(partes))}</div>', unsafe_allow_html=True
-    )
 
 
 # --------------------------------------------------------------------------
@@ -1027,5 +997,5 @@ __all__ = [
     "tema_atual", "estilos", "badge", "linha_badges", "nota_armadilha",
     "cabecalho_secao", "tile_kpi", "alertas_da_camada", "banner_alerta",
     "tabela_com_barra", "estado_vazio", "seletor_data_referencia", "fins_de_mes",
-    "rodape_proveniencia", "frase", "bloco_desabilitado", "erro_metrica",
+    "frase", "bloco_desabilitado", "erro_metrica",
 ]
