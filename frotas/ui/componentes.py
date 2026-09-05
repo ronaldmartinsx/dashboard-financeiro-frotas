@@ -18,9 +18,9 @@ regra mais importante do tile e que **o numero grande nunca e colorido**.
 from __future__ import annotations
 
 import html
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date
-from typing import Any, Callable, Iterable, Literal, Mapping, Sequence
+from typing import Any, Literal, Mapping, Sequence
 
 import pandas as pd
 import streamlit as st
@@ -37,7 +37,6 @@ Escala = Literal["neutra", "risco", "divergente"]
 #: Vocabulario fechado de badges (UX 5.8). Nao inventar badge novo.
 BADGES_CONHECIDOS: tuple[str, ...] = (
     "escopo: contratos",
-    "meta indisponivel neste recorte",
     "periodo parcial",
     "receita rateada",
     "janela de 12m incompleta",
@@ -140,7 +139,6 @@ def estilos(tema: Tema = "claro") -> None:
   font-size: {tp['rotulo']}px; color: var(--fv-tinta-2); font-weight: 400;
   letter-spacing: .02em; line-height: 1.2;
 }}
-.fv-ajuda {{ font-size: {tp['nota']}px; color: var(--fv-tinta-3); cursor: help; }}
 .fv-tile__valor {{
   font-size: {tp['numero_kpi']}px; font-weight: 600; color: var(--fv-tinta);
   line-height: 1.15; margin-top: {esp['xs']}px;
@@ -597,6 +595,7 @@ def banner_alerta(
     tema: Tema = "claro",
     estado: Literal["normal", "carregando", "erro"] = "normal",
     data_ref: date | None = None,
+    regras_avaliadas: int | None = None,
 ) -> None:
     """Banner de alertas: no maximo ``maximo`` na tela, o resto num expander.
 
@@ -626,6 +625,11 @@ def banner_alerta(
         )
         return
     if not alertas:
+        # Pagina sem nenhuma regra nao ganha banner: um verde permanente que nunca
+        # avaliou nada e falsa seguranca -- o mesmo modo de falha que escondeu um
+        # alerta vermelho de ociosidade atras de "nenhum limiar atingido".
+        if regras_avaliadas == 0:
+            return
         cor = theme.cor_nivel("bom", tema, uso="texto")
         # "nenhum limiar atingido" era jargao: limiar e vocabulario de quem
         # construiu a regra, nao de quem le o painel.
@@ -743,7 +747,7 @@ def tabela_com_barra(
     if estado == "carregando":
         st.markdown(
             "".join(
-                f'<div class="fv-esqueleto" style="height:28px;margin-bottom:4px"></div>'
+                '<div class="fv-esqueleto" style="height:28px;margin-bottom:4px"></div>'
                 for _ in range(5)
             ),
             unsafe_allow_html=True,

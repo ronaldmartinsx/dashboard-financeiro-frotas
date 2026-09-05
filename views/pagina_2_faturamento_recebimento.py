@@ -61,6 +61,7 @@ ui.banner_alerta(
     base.alertas_da_pagina(df_alertas, PAGINA, destinos={"A1": base.ROTAS[3],
                                                          "A6": base.ROTAS[4]}),
     maximo=3, tema=ctx.tema,
+    regras_avaliadas=base.regras_da_pagina(df_alertas, PAGINA),
     estado="erro" if df_alertas is None else "normal", data_ref=ref,
 )
 

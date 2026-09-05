@@ -363,11 +363,14 @@ ICONE_NIVEL: Final[dict[Nivel, str]] = {
 }
 
 #: Rotulo textual do nivel, para leitor de tela e para o ``title`` do elemento.
+#: Rotulo de cada nivel. Estes textos vao para a **tela** (banner) e para o
+#: aria-label, entao sao escritos em pt-BR com acento -- as chaves continuam sem,
+#: porque sao identificadores internos.
 ROTULO_NIVEL: Final[dict[Nivel, str]] = {
     "bom": "dentro da meta",
-    "atencao": "atencao",
-    "serio": "atencao alta",
-    "critico": "critico",
+    "atencao": "atenção",
+    "serio": "atenção alta",
+    "critico": "crítico",
     "neutro": "sem sinal",
     "meta": "meta",
 }

@@ -392,6 +392,17 @@ def alertas_da_pagina(
     return disparados + nao_aplicaveis
 
 
+def regras_da_pagina(df_alertas, pagina: int) -> int:
+    """Quantas regras de alerta existem para esta pagina (tenham disparado ou nao).
+
+    O banner usa isto para diferenciar "avaliei e esta tudo bem" de "nao existe
+    regra aqui". Sem a distincao, uma pagina sem regra exibe verde para sempre.
+    """
+    if df_alertas is None or df_alertas.empty:
+        return 0
+    return int((df_alertas["pagina"] == pagina).sum())
+
+
 def barra_qualidade(df_alertas: pd.DataFrame | None, *, tema: Tema = "claro") -> None:
     """Barra discreta de qualidade de dado (A18, A19), em **todas** as paginas.
 
