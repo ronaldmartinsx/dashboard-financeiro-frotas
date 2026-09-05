@@ -151,7 +151,7 @@ def estilos(tema: Tema = "claro") -> None:
 }}
 .fv-cab__kicker {{
   font-size: {tp['rotulo']}px; color: var(--fv-tinta-2); font-weight: 500;
-  letter-spacing: .04em; text-transform: uppercase; margin-bottom: -{esp['sm']}px;
+  letter-spacing: .04em; text-transform: uppercase; vertical-align: middle;
 }}
 .fv-cab__chips {{
   display: flex; flex-wrap: wrap; gap: {esp['xs']}px;
@@ -342,6 +342,17 @@ def _texto_valor(valor: Any, unidade: Unidade, casas: int | None = None) -> str:
 #: Nome do produto. Aparece no cabecalho de toda pagina e na aba do navegador.
 NOME_APP = "Dashboard Financeiro"
 
+#: Icone de cada secao, em Material Symbols. Fonte unica: o ``st.navigation`` do
+#: entrypoint e o cabecalho da pagina leem daqui, entao o icone do menu e o do
+#: topo da pagina nunca divergem.
+ICONE_SECAO: Mapping[str, str] = {
+    "Guia": ":material/menu_book:",
+    "Metas": ":material/flag:",
+    "Faturamento e Recebimento": ":material/receipt_long:",
+    "Inadimplência": ":material/gavel:",
+    "Custos": ":material/payments:",
+}
+
 
 def cabecalho_pagina(
     secao: str,
@@ -364,8 +375,12 @@ def cabecalho_pagina(
     recorte dimensional so aparecia na barra lateral: com ela recolhida, os
     numeros mudavam sem nada na tela dizendo por que.
     """
+    # A diretiva ``:material/x:`` fica **fora** da tag: dentro de HTML bruto o
+    # Streamlit nao a reprocessa e ela sairia literal na tela.
+    icone = ICONE_SECAO.get(secao, "")
+    prefixo = f"{icone} " if icone else ""
     st.markdown(
-        f'<div class="fv-cab__kicker">{_e(NOME_APP)} · {_e(secao)}</div>',
+        f'{prefixo}<span class="fv-cab__kicker">{_e(NOME_APP)} · {_e(secao)}</span>',
         unsafe_allow_html=True,
     )
     st.title(pergunta)

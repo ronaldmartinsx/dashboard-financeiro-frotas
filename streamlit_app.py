@@ -293,20 +293,22 @@ def _rotulo_versao(ano: int) -> str:
 
 #: Uma pergunta por pagina, declarada no titulo. O Guia e a pagina inicial:
 #: quem abre o relatorio pela primeira vez comeca sabendo o que vai encontrar.
+# O menu leva o nome curto (e um dashboard, nao um sumario); a pergunta de negocio
+# continua sendo o titulo dentro da pagina. O icone vem de ``ui.ICONE_SECAO``, o
+# mesmo que o cabecalho da pagina usa -- menu e topo nunca divergem.
 PAGINAS = [
     st.Page("views/pagina_0_guia.py", title="Guia",
-            icon=":material/menu_book:", url_path="guia", default=True),
-    # O menu leva o nome curto (é um dashboard, não um sumário); a pergunta de
-    # negócio continua sendo o titulo dentro da pagina.
+            icon=ui.ICONE_SECAO["Guia"], url_path="guia", default=True),
     st.Page("views/pagina_1_metas.py", title="Metas",
-            icon=":material/flag:", url_path="metas"),
+            icon=ui.ICONE_SECAO["Metas"], url_path="metas"),
     st.Page("views/pagina_2_faturamento_recebimento.py",
             title="Faturamento e Recebimento",
-            icon=":material/receipt_long:", url_path="faturamento-recebimento"),
+            icon=ui.ICONE_SECAO["Faturamento e Recebimento"],
+            url_path="faturamento-recebimento"),
     st.Page("views/pagina_3_inadimplencia.py", title="Inadimplência",
-            icon=":material/gavel:", url_path="inadimplencia"),
+            icon=ui.ICONE_SECAO["Inadimplência"], url_path="inadimplencia"),
     st.Page("views/pagina_4_custos.py", title="Custos",
-            icon=":material/payments:", url_path="custos"),
+            icon=ui.ICONE_SECAO["Custos"], url_path="custos"),
 ]
 
 
