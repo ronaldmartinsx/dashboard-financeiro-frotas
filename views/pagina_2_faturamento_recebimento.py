@@ -34,7 +34,8 @@ ctx = base.contexto()
 base.abrir_pagina(ctx, "Quanto faturamos e quanto entrou em caixa?", secao="Faturamento e Recebimento", pagina=PAGINA)
 
 t = theme.tokens(ctx.tema)
-slot1 = theme.paleta_categorica(ctx.tema)[0]
+# Cor do indicador que a pagina trata (ver theme.INDICADORES).
+slot1 = theme.cor_indicador("Faturamento", ctx.tema)
 f, ref, ano = ctx.filtros, ctx.data_ref, ctx.ano
 f_yoy = f.com(competencia_ini=date(ano - 1, 1, 1), competencia_fim=f.fim)
 
@@ -151,8 +152,9 @@ else:
     fig.add_trace(
         go.Bar(
             x=base.datas_de(meses), y=fat["faturamento_bruto"], name="Faturamento bruto",
-            marker={"color": slot1,
+            marker={"color": theme.cor_indicador("Faturamento", ctx.tema),
                     "line": {"color": t.superficie, "width": theme.FOLGA_ENTRE_MARCAS}},
+            **base.rotulos_de_barra(fat["faturamento_bruto"]),
             hovertemplate="competência %{x|%b/%Y}: R$ %{y:,.0f}<extra></extra>",
         ),
         row=1, col=1,
@@ -161,8 +163,9 @@ else:
         fig.add_trace(
             go.Bar(
                 x=base.datas_de(caixa["ano_mes"]), y=caixa["realizado"], name="Recebimento",
-                marker={"color": slot1,
+                marker={"color": theme.cor_indicador("Recebimento (Caixa)", ctx.tema),
                         "line": {"color": t.superficie, "width": theme.FOLGA_ENTRE_MARCAS}},
+                **base.rotulos_de_barra(caixa["realizado"]),
                 hovertemplate="caixa %{x|%b/%Y}: R$ %{y:,.0f}<extra></extra>",
             ),
             row=2, col=1,

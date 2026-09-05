@@ -194,6 +194,36 @@ COR_OUTROS: Final[tuple[str, str]] = ("#9A9A93", "#77797D")
 TRANSPARENTE: Final[str] = "rgba(0,0,0,0)"
 
 
+#: Indicador orcado -> slot categorico. Cor **por indicador**, nao por segmento:
+#: o indicador atravessa as quatro paginas (aparece em card, serie e matriz),
+#: enquanto o segmento so pinta dois visuais. Quem le associa "laranja = custo"
+#: em qualquer tela.
+#:
+#: Nenhum indicador recebe vermelho ou verde: sao as cores de status (critico e
+#: dentro da meta). Uma serie de inadimplencia pintada de vermelho pareceria em
+#: alerta permanente, inclusive quando o indicador esta bom.
+#:
+#: Segmento e indicador compartilham os mesmos oito slots, mas **nunca no mesmo
+#: visual**: um grafico mostra series de indicadores ou de segmentos, jamais os
+#: dois. A ambiguidade seria entre telas, e o rotulo direto resolve.
+INDICADORES: Final[tuple[tuple[str, int], ...]] = (
+    ("Faturamento", 0),          # azul -- a serie que abre a leitura
+    ("Receita Liquida", 7),      # ciano -- parente do azul: faturamento menos impostos
+    ("Recebimento (Caixa)", 2),  # aqua -- o dinheiro que entrou
+    ("Custo Operacional", 1),    # laranja -- a saida
+    ("Inadimplencia > 30d", 3),  # violeta -- risco sem usar o vermelho de alerta
+)
+
+
+def cor_indicador(indicador: str, tema: Tema = "claro") -> str:
+    """Cor fixa de um indicador orcado, estavel em todas as paginas."""
+    paleta = paleta_categorica(tema)
+    for nome, slot in INDICADORES:
+        if nome == indicador:
+            return paleta[slot]
+    return paleta[0]
+
+
 def paleta_categorica(tema: Tema = "claro") -> list[str]:
     """Os 8 slots categoricos, na ordem validada."""
     indice = 1 if tema == "claro" else 2
@@ -359,10 +389,10 @@ DIRECAO_KPI: Final[dict[str, Direcao]] = {
 #: contradizer o menos.
 ICONE_NIVEL: Final[dict[Nivel, str]] = {
     "bom": "✓",       # visto -- "dentro do esperado"
-    "atencao": "△",   # triangulo vazado -- "olhar"
-    "serio": "◆",     # losango cheio
-    "critico": "■",   # quadrado cheio -- para
-    "neutro": "–",    # travessao -- sem sinal
+    "atencao": "!",   # exclamacao -- "olhe isto"
+    "serio": "!!",    # exclamacao dupla -- "olhe agora"
+    "critico": "✕",   # xis -- "fora do aceitavel"
+    "neutro": "–",    # travessao -- sem sinal (nao vai a tela: ver format.delta)
     "meta": "┄",      # tracejado -- alvo
 }
 

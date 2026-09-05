@@ -208,8 +208,12 @@ def estilos(tema: Tema = "claro") -> None:
   background: var(--fv-superficie-fraca); border-left: 2px solid var(--fv-eixo);
   border-radius: {theme.RAIO_MARCA}px; padding: {esp['sm']}px {esp['md']}px;
   font-size: {tp['nota']}px; color: var(--fv-tinta-2); line-height: 1.45;
-  margin-bottom: {esp['sm']}px; font-family: {theme.FONTE};
+  /* Mesmo respiro do banner: a nota tambem aparece logo abaixo da faixa de
+     KPIs e, sem margem no topo, encostava nos cards. */
+  margin: {esp['lg']}px 0 {esp['sm']}px; font-family: {theme.FONTE};
 }}
+/* Notas ou banners em sequencia nao repetem o respiro. */
+.fv-nota + .fv-nota, .fv-banner + .fv-nota, .fv-nota + .fv-banner {{ margin-top: 0; }}
 .fv-rodape {{
   margin-top: {esp['xxl']}px; padding-top: {esp['md']}px;
   border-top: 1px solid var(--fv-grade);
@@ -888,6 +892,50 @@ def tabela_com_barra(
         width="stretch",
         key=chave,
         **extras,
+    )
+
+
+def matriz_status(
+    texto: pd.DataFrame,
+    niveis: pd.DataFrame,
+    *,
+    colunas: Mapping[str, str],
+    ajudas: Mapping[str, str] | None = None,
+    tema: Tema = "claro",
+) -> None:
+    """Matriz (entidade x periodo) com a **cor** do nivel em cada celula.
+
+    ``texto`` traz o que se le; ``niveis`` traz o nivel de cada celula, na mesma
+    forma. A cor vem de ``theme.cor_nivel(..., uso="texto")``, e o glifo continua
+    dentro do proprio texto: cor nunca viaja sozinha.
+
+    Existe separado de :func:`tabela_com_barra` porque aquela formata coluna a
+    coluna por tipo; aqui toda celula ja chega formatada e o que varia e a cor.
+    """
+    ajudas = ajudas or {}
+    renomeado = texto.rename(columns=colunas)
+    mapa_cor = niveis.rename(columns=colunas)
+
+    def _pintar(_: pd.DataFrame) -> pd.DataFrame:
+        estilo = pd.DataFrame("", index=renomeado.index, columns=renomeado.columns)
+        for coluna in renomeado.columns:
+            if coluna not in mapa_cor.columns:
+                continue
+            estilo[coluna] = [
+                f"color: {theme.cor_nivel(str(n), tema, uso='texto')}; font-weight: 600"
+                if str(n) not in ("", "neutro") else ""
+                for n in mapa_cor[coluna]
+            ]
+        return estilo
+
+    st.dataframe(
+        renomeado.style.apply(_pintar, axis=None),
+        column_config={
+            rotulo: st.column_config.TextColumn(rotulo, help=ajudas.get(original))
+            for original, rotulo in colunas.items()
+        },
+        hide_index=True,
+        width="stretch",
     )
 
 

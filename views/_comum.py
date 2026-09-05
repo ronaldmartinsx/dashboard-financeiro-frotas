@@ -582,6 +582,47 @@ def cor_divergente(delta: float | None, *, direcao: str, limite: float, tema: Te
     return escala[max(0, min(len(escala) - 1, indice))]
 
 
+#: Acima disto o rotulo em cada marca vira ruido e some (32 meses de "Tudo" nao
+#: cabem lado a lado). O hover e o eixo continuam respondendo.
+MAX_MARCAS_ROTULADAS: int = 14
+
+
+def rotulos_de_barra(valores: Sequence[Any], *, compacto: bool = True) -> dict[str, Any]:
+    """``kwargs`` de rotulo direto para ``go.Bar``, ou vazio se houver marcas demais.
+
+    Rotulo direto dispensa ler o eixo Y para saber o valor de cada mes -- que e o
+    ponto de um dashboard. Acima de :data:`MAX_MARCAS_ROTULADAS` marcas ele sai.
+    """
+    if len(valores) > MAX_MARCAS_ROTULADAS:
+        return {}
+    formatar = fmt.moeda_compacta if compacto else (lambda v: fmt.numero(v, 0))
+    return {
+        "text": [formatar(v) for v in valores],
+        "textposition": "outside",
+        "textfont": {"size": theme.TIPOGRAFIA["nota"]},
+        "cliponaxis": False,
+    }
+
+
+def rotular_ultimo_ponto(
+    fig: go.Figure, x: Sequence[Any], y: Sequence[Any], texto: str, cor: str, *, tema: Tema
+) -> None:
+    """Escreve o valor **do ultimo ponto** de uma serie, ao lado do marcador.
+
+    Serie de linha nao ganha rotulo em todos os pontos: doze numeros sobre a
+    linha competem com ela. O ultimo ponto e o que responde "quanto esta agora"
+    sem obrigar a ler o eixo.
+    """
+    if not len(x) or not len(y) or texto in ("", fmt.VAZIO):
+        return
+    fig.add_annotation(
+        x=list(x)[-1], y=list(y)[-1], text=texto, showarrow=False,
+        xanchor="left", yanchor="middle", xshift=8,
+        font={"size": theme.TIPOGRAFIA["nota"], "color": cor},
+        bgcolor=theme.tokens(tema).superficie, borderpad=2,
+    )
+
+
 def barra_horizontal(
     fig: go.Figure,
     categorias: Sequence[str],

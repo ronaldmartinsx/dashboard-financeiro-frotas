@@ -230,20 +230,20 @@ ui.cabecalho_secao("A meta foi cumprida em cada ano?", ancora="conferencia")
 # o nome do indicador tres vezes e o ano cinco, e obrigava a caçar a comparacao
 # ano a ano linha a linha.
 linhas_matriz: list[dict[str, str]] = []
+linhas_nivel: list[dict[str, str]] = []
 cabecalhos: dict[int, str] = {}
 for tipo in metas.TIPOS_META:
     linha: dict[str, str] = {"indicador": rot.valor(tipo)}
+    nivel_linha: dict[str, str] = {"indicador": ""}
     for a in ANOS:
         df_ano = base.obter(dados, f"comp_{a}")
         reg = base.linha_meta(df_ano, tipo) if df_ano is not None else None
         if reg is None:
             linha[str(a)] = fmt.VAZIO
+            nivel_linha[str(a)] = ""
             continue
         percentual = str(reg.get("unidade")) == "%"
         desvio = reg.get("variacao_abs_alinhada" if percentual else "variacao_pct_alinhada")
-        texto = fmt.pontos_percentuais(desvio) if percentual else fmt.variacao(desvio)
-        # Glifo junto do numero: cor nunca viaja sozinha, e st.dataframe nao
-        # colore celula por valor sem Styler.
         d = fmt.delta(
             desvio,
             unidade="pp" if percentual else "pct",
@@ -252,23 +252,27 @@ for tipo in metas.TIPOS_META:
             vermelho=vermelho_inad if percentual else None,
             tema=ctx.tema,
         )
-        linha[str(a)] = f"{d.icone} {texto}".strip() if not fmt.eh_vazio(desvio) else fmt.VAZIO
+        # Verde para o que bateu a meta, vermelho para o que nao bateu: a secao
+        # pergunta "cumpriu?", que e binario. O nivel de `delta` respeita limiares
+        # (e deixa em neutro o desvio pequeno sem regra), o que aqui deixaria em
+        # cinza justamente as celulas que nao cumpriram. Onde ha limiar publicado
+        # -- inadimplencia -- ele prevalece, para distinguir "estourou" de "passou".
+        nivel = d.nivel
+        if nivel == "neutro" and d.favoravel is not None:
+            nivel = "bom" if d.favoravel else "critico"
+        linha[str(a)] = f"{theme.ICONE_NIVEL[nivel]} {d.texto}".strip()
+        nivel_linha[str(a)] = nivel
         meses = int(reg.get("meses_realizados") or 0)
         cabecalhos[a] = f"{a} · {meses} meses" if reg.get("eh_parcial") else str(a)
     linhas_matriz.append(linha)
+    linhas_nivel.append(nivel_linha)
 
-ui.tabela_com_barra(
+ui.matriz_status(
     pd.DataFrame(linhas_matriz),
-    colunas={
-        "indicador": ui.ColunaSpec("Indicador", "texto", largura="medium"),
-        **{
-            str(a): ui.ColunaSpec(
-                cabecalhos.get(a, str(a)), "texto", largura="small",
-                ajuda="Realizado contra a soma das metas dos mesmos meses do ano.",
-            )
-            for a in ANOS
-        },
-    },
+    pd.DataFrame(linhas_nivel),
+    colunas={"indicador": "Indicador", **{str(a): cabecalhos.get(a, str(a)) for a in ANOS}},
+    ajudas={str(a): "Realizado contra a soma das metas dos mesmos meses do ano." for a in ANOS},
+    tema=ctx.tema,
 )
 ui.nota_armadilha(
     "Cada célula é o desvio contra a meta dos mesmos meses do ano, não contra o "
@@ -303,7 +307,7 @@ def _grafico_mensal(tipo: str, chave: str, *, altura: int, com_legenda: bool) ->
         fig.add_trace(
             go.Scatter(
                 x=serie["x"], y=serie["realizado"], mode="lines+markers", name="Realizado",
-                line={"color": t.marca_critico, "width": theme.ESPESSURA_LINHA},
+                line={"color": theme.cor_indicador(tipo, ctx.tema), "width": theme.ESPESSURA_LINHA},
                 marker={"size": theme.TAMANHO_MARCADOR},
                 hovertemplate="%{x|%b/%Y}: <b>%{y:.2f}%</b><extra>Realizado</extra>",
             )
@@ -312,8 +316,13 @@ def _grafico_mensal(tipo: str, chave: str, *, altura: int, com_legenda: bool) ->
         fig.add_trace(
             go.Bar(
                 x=serie["x"], y=serie["realizado"], name="Realizado",
-                marker={"color": theme.paleta_categorica(ctx.tema)[0],
+                marker={"color": theme.cor_indicador(tipo, ctx.tema),
                         "line": {"color": t.superficie, "width": theme.FOLGA_ENTRE_MARCAS}},
+                # Rotulo direto em cada barra: dispensa ler o eixo para saber o valor.
+                text=[fmt.moeda_compacta(v) for v in serie["realizado"]],
+                textposition="outside",
+                textfont={"size": theme.TIPOGRAFIA["nota"], "color": t.tinta_secundaria},
+                cliponaxis=False,
                 hovertemplate="%{x|%b/%Y}: R$ %{y:,.0f}<extra>Realizado</extra>",
             )
         )
@@ -325,6 +334,12 @@ def _grafico_mensal(tipo: str, chave: str, *, altura: int, com_legenda: bool) ->
                            else "meta %{x|%b/%Y}: R$ %{y:,.0f}<extra></extra>"),
         )
     )
+    if percentual:
+        base.rotular_ultimo_ponto(
+            fig, serie["x"], serie["realizado"],
+            fmt.percentual(serie["realizado"].iloc[-1], 2),
+            theme.cor_indicador(tipo, ctx.tema), tema=ctx.tema,
+        )
     base.eixo_mensal(fig, list(serie["ano_mes"]))
     fig.update_yaxes(
         title_text="% no fim do mês" if percentual else "R$ no mês",

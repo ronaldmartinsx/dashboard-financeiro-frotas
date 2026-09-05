@@ -34,7 +34,8 @@ ctx = base.contexto()
 base.abrir_pagina(ctx, "Para onde vai o custo?", secao="Custos", pagina=PAGINA)
 
 t = theme.tokens(ctx.tema)
-slot1 = theme.paleta_categorica(ctx.tema)[0]
+# Cor do indicador que a pagina trata (ver theme.INDICADORES).
+slot1 = theme.cor_indicador("Custo Operacional", ctx.tema)
 f, ref = ctx.filtros, ctx.data_ref
 # Armadilha 6: veiculo parado tem contrato nulo. Com recorte de cliente ou de
 # contrato o bloco fica **desabilitado**, nunca zerado.
@@ -169,6 +170,7 @@ else:
             x=base.datas_de(meses), y=mensal["custo_total"], name="Custo total",
             marker={"color": slot1,
                     "line": {"color": t.superficie, "width": theme.FOLGA_ENTRE_MARCAS}},
+            **base.rotulos_de_barra(mensal["custo_total"]),
             customdata=mensal[["custo_fixo", "custo_variavel", "custo_nao_caixa"]].to_numpy(),
             hovertemplate="competência %{x|%b/%Y}: R$ %{y:,.0f}<br>fixo R$ %{customdata[0]:,.0f}"
                           "<br>variável R$ %{customdata[1]:,.0f}"
