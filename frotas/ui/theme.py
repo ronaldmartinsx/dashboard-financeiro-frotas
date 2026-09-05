@@ -353,8 +353,12 @@ DIRECAO_KPI: Final[dict[str, Direcao]] = {
 
 #: Glifo que acompanha cada nivel. Cor **nunca** viaja sozinha (acessibilidade).
 #: Sao glifos tipograficos, nao emoji: renderizam em qualquer fonte de sistema.
+#: Os glifos dizem **qualidade**, nunca direcao: quem informa se o numero subiu
+#: ou desceu e o sinal do proprio numero. Por isso "bom" nao e um triangulo para
+#: cima -- em "▲ −2,1%" (custo abaixo da meta, o que e bom) a seta parecia
+#: contradizer o menos.
 ICONE_NIVEL: Final[dict[Nivel, str]] = {
-    "bom": "▲",       # triangulo cheio para cima
+    "bom": "✓",       # visto -- "dentro do esperado"
     "atencao": "△",   # triangulo vazado -- "olhar"
     "serio": "◆",     # losango cheio
     "critico": "■",   # quadrado cheio -- para

@@ -365,13 +365,13 @@ if por_veiculo is not None:
 ui.tabela_com_barra(
     por_veiculo if por_veiculo is not None else pd.DataFrame(),
     colunas={
-        "categoria": ui.ColunaSpec("Categoria de veículo", "texto", largura="large"),
+        "categoria": ui.ColunaSpec("Categoria", "texto", largura="large"),
         "custo_total": ui.ColunaSpec("Custo total", "brl_compacto"),
         "custo_fixo": ui.ColunaSpec("Custo fixo", "brl_compacto"),
         "custo_variavel": ui.ColunaSpec("Custo variável", "brl_compacto"),
         "custo_nao_caixa": ui.ColunaSpec("Custo não caixa", "brl_compacto"),
         "custo_ocioso": ui.ColunaSpec(
-            "Custo de veículo parado", "brl_compacto",
+            "Veículo parado", "brl_compacto",
             ajuda="Some as categorias e você tem o pátio inteiro: é a parcela sem contrato.",
         ),
         "participacao_pct": ui.ColunaSpec("Participação", "pct"),

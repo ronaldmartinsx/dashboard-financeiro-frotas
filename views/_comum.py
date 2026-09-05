@@ -548,6 +548,7 @@ def mostrar_grafico(
     colunas_dados: Sequence[str] | None = None,
     rotulos_dados: Mapping[str, str] | None = None,
     rotulo_expander: str = "ver dados do gráfico",
+    tabela: bool = False,
 ) -> None:
     """Renderiza o grafico com a alternativa textual obrigatoria.
 
@@ -556,13 +557,15 @@ def mostrar_grafico(
     comparabilidade). Descrever em prosa o que o grafico ja mostra e exatamente
     o que saiu nesta rodada.
 
-    O expander "ver dados" passa o frame por :func:`frotas.ui.rotulos.renomear`:
-    era a maior fonte de nome de coluna cru no app.
+    ``tabela`` liga o expander com os numeros do grafico. Ele e **opt-in**: um
+    "ver dados do grafico" embaixo de cada um dos catorze visuais do app poluia
+    mais do que ajudava. Os parametros ``dados``/``colunas_dados``/
+    ``rotulos_dados`` continuam aceitos para quem quiser ligar ponto a ponto.
     """
     st.plotly_chart(fig, use_container_width=True, key=chave, config={"displaylogo": False})
     if nota:
         st.caption(nota)
-    if dados is not None and not dados.empty:
+    if tabela and dados is not None and not dados.empty:
         with st.expander(rotulo_expander):
             st.dataframe(
                 rot.renomear(dados, extras=rotulos_dados, apenas=colunas_dados),

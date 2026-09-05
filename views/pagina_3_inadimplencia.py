@@ -427,7 +427,7 @@ else:
                       "últimos 12 meses.",
             ),
             "uso_limite_txt": ui.ColunaSpec(
-                "Uso do limite de crédito", "texto",
+                "Uso do limite", "texto",
                 ajuda="O glifo segue o limiar publicado da regra de crédito, não um corte da tela.",
             ),
         },
