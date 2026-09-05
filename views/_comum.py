@@ -62,6 +62,29 @@ ROTAS: Mapping[int, str] = {
     4: "/custos",
 }
 
+#: Que filtros cada pagina exibe, e portanto quais chips o cabecalho mostra.
+#: So entram os que **mudam o numero daquela analise**: um filtro visivel que nao
+#: faz nada e pior que filtro nenhum, porque o usuario mexe nele e conclui que o
+#: dashboard esta quebrado. Fonte: ``frotas.filtros.politica_filtros()``.
+#:
+#: * Metas nao lista porte, rating, tipo de contrato nem cliente: a tabela de
+#:   orcamento so tem os niveis Empresa e Segmento.
+#: * Inadimplencia nao lista periodo: a pagina e uma leitura numa data, e uma
+#:   fatura de 2024 ainda vencida conta nela.
+FILTROS_DA_PAGINA: Mapping[int, tuple[str, ...]] = {
+    0: (),
+    1: ("periodo", "segmento"),
+    2: ("periodo", "data", "segmento", "porte", "rating", "tipo_contrato", "cliente"),
+    3: ("data", "segmento", "porte", "rating", "tipo_contrato", "cliente"),
+    4: ("periodo", "data", "segmento", "porte", "rating", "tipo_contrato", "cliente"),
+}
+
+#: url_path -> numero da pagina. "" porque o Streamlit serve a default na raiz.
+PAGINA_POR_URL: Mapping[str, int] = {
+    "": 0, "guia": 0, "metas": 1, "faturamento-recebimento": 2,
+    "inadimplencia": 3, "custos": 4,
+}
+
 #: Alertas em escopo por pagina. ``0`` = qualidade de dado (A18, A19), que
 #: aparece em todas via :func:`barra_qualidade`. Sao 13 regras no total; as
 #: outras 7 sairam com o escopo (margem, serie de inadimplencia, corretiva).
@@ -125,7 +148,7 @@ def contexto() -> Contexto:
 
 
 def chips_contexto(
-    ctx: Contexto, *, com_orcamento: bool = True, periodo_total: bool = False
+    ctx: Contexto, *, pagina: int, periodo_total: bool = False
 ) -> list[str]:
     """Os recortes que produziram os numeros desta tela, prontos para o cabecalho.
 
@@ -134,26 +157,26 @@ def chips_contexto(
     mudavam sem nada na tela dizendo por que.
     """
     f = ctx.filtros
+    exibidos = FILTROS_DA_PAGINA.get(pagina, ())
     if periodo_total:
         # No Guia o chip anuncia o que **existe** para analisar, nao o recorte em
         # vigor: quem abre a pagina de orientacao com o filtro em "ultimos 12m"
         # concluiria que 2024 nao esta no dashboard.
         ini, fim, quando = config.COMPETENCIA_MIN, config.COMPETENCIA_MAX, config.DATA_EXTRACAO
-        chips = [f"Dados de {fmt.periodo(ini, fim)} disponíveis"]
+        chips = [f"Dados de {fmt.periodo(ini, fim)}"]
     else:
         ini, fim, quando = f.inicio, f.fim, ctx.data_ref
-        chips = [f"Período de {fmt.periodo(ini, fim)}"]
-    chips.append(f"Posição em {fmt.data_br(quando)}")
-    if com_orcamento:
-        chips.append(f"Orçamento vigente de {fim.year}")
-    for rotulo, valores in (
-        ("Segmento", f.segmentos),
-        ("Porte", f.portes),
-        ("Rating", f.ratings),
-        ("Tipo de contrato", f.tipos_contrato),
-        ("Cliente", f.clientes),
+        chips = [f"Período de {fmt.periodo(ini, fim)}"] if "periodo" in exibidos else []
+        if "data" in exibidos:
+            chips.append(f"Como estava em {fmt.data_br(quando)}")
+    for chave, rotulo, valores in (
+        ("segmento", "Segmento", f.segmentos),
+        ("porte", "Porte", f.portes),
+        ("rating", "Rating", f.ratings),
+        ("tipo_contrato", "Tipo de contrato", f.tipos_contrato),
+        ("cliente", "Cliente", f.clientes),
     ):
-        if not valores:
+        if not valores or (exibidos and chave not in exibidos):
             continue
         # Ate dois valores cabem por extenso; acima disso o chip vira contagem,
         # senao um filtro de oito segmentos empurra o titulo para fora da tela.
@@ -165,8 +188,8 @@ def chips_contexto(
 
 
 def abrir_pagina(
-    ctx: Contexto, titulo: str, *, secao: str,
-    com_orcamento: bool = True, periodo_total: bool = False,
+    ctx: Contexto, titulo: str, *, secao: str, pagina: int,
+    periodo_total: bool = False,
 ) -> None:
     """Estilos + cabecalho. Primeira chamada de toda pagina.
 
@@ -176,7 +199,7 @@ def abrir_pagina(
     ui.estilos(ctx.tema)
     ui.cabecalho_pagina(
         secao, titulo,
-        chips=chips_contexto(ctx, com_orcamento=com_orcamento, periodo_total=periodo_total),
+        chips=chips_contexto(ctx, pagina=pagina, periodo_total=periodo_total),
         tema=ctx.tema,
     )
 

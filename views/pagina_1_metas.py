@@ -39,7 +39,7 @@ DIRECAO: dict[str, str] = {
 }
 
 ctx = base.contexto()
-base.abrir_pagina(ctx, "Estamos entregando a meta?", secao="Metas")
+base.abrir_pagina(ctx, "Estamos entregando a meta?", secao="Metas", pagina=PAGINA)
 
 t = theme.tokens(ctx.tema)
 f, ref, ano = ctx.filtros, ctx.data_ref, ctx.ano

@@ -13,14 +13,12 @@ from __future__ import annotations
 import streamlit as st
 
 from frotas import config
-from frotas.filtros import politica_filtros
 from frotas.ui import componentes as ui
 from frotas.ui import format as fmt
-from frotas.ui import rotulos as rot
 from views import _comum as base
 
 ctx = base.contexto()
-base.abrir_pagina(ctx, "Como ler este dashboard?", secao="Guia", periodo_total=True)
+base.abrir_pagina(ctx, "Como ler este dashboard?", secao="Guia", pagina=0, periodo_total=True)
 
 ui.frase(
     "Este relatório responde a quatro perguntas de negócio, uma por página. "
@@ -49,35 +47,19 @@ st.markdown(
 ui.cabecalho_secao("Como navegar e usar os filtros?")
 st.markdown(
     f"""
-- **Navegação**: a lista de páginas fica na barra lateral. Este guia é a página inicial.
-- **Período de competência**: move o eixo do tempo e o recorte dos fatos de faturamento
-  e de custo. Os presets cobrem os últimos 12 meses, cada ano fechado e o dataset inteiro.
-- **Posição em**: é outro eixo, independente do período. Define a data em que a carteira é
-  observada, ou seja, o que estava em aberto naquele dia. Na página de inadimplência esse
-  controle fica no topo, porque lá é o principal. O padrão é
-  {fmt.data_br(config.DATA_EXTRACAO)}, a data da última extração.
-- **Recortes de cliente**: segmento, porte, rating de crédito, tipo de contrato e cliente.
-  Valem para faturamento, recebimento e carteira.
-- **Sem dado não é zero**: quando um bloco não se aplica ao recorte, ele aparece
-  desabilitado com o motivo, em cinza. Bloco cinza é "não se aplica", não é "está bom".
+- **Cada página mostra só os filtros que mudam os números dela.** Se um filtro não
+  aparece na barra lateral, é porque ele não teria efeito naquela análise.
+- **Período**: escolhe os meses que entram na conta do que foi faturado, recebido e gasto.
+- **Ver como estava em**: escolhe o dia da leitura, ou seja, o que ainda não tinha sido pago
+  naquela data. É independente do período e o padrão é
+  {fmt.data_br(config.DATA_EXTRACAO)}, o último dia com dados.
+- **Recortes**: segmento, porte, rating de crédito, tipo de contrato e cliente.
+- **O que está no topo da página** repete os filtros em uso, para você saber a que recorte
+  os números se referem sem precisar abrir a barra lateral.
+- **Cinza não é zero**: quando um bloco não se aplica ao recorte escolhido, ele aparece
+  em cinza com o motivo. Cinza quer dizer "não se aplica", não "está bom".
 """
 )
-
-ui.cabecalho_secao("Qual filtro não afeta o quê?")
-st.markdown(
-    """
-| Filtro | Não afeta | Por quê |
-|---|---|---|
-| Período de competência | Inadimplência, carteira em aberto e faixas de atraso | São posições da carteira **inteira** numa data: uma fatura de 2024 ainda vencida conta na posição de 2026. Recortar por competência esconderia justamente o atraso antigo. |
-| Período de competência | O denominador da inadimplência | É sempre a janela fixa dos 12 meses anteriores à data de referência. Deixar a tela mexer nela quebraria a comparação com o número publicado. |
-| Segmento, porte, rating, cliente, tipo de contrato | Custo de veículo parado | Veículo sem contrato não pertence a cliente nem a segmento. Aplicar o recorte **zeraria** o custo em vez de filtrá-lo. |
-| Qualquer recorte que não seja segmento | As metas | O orçamento só existe nos níveis Empresa e Segmento. Filtrar o realizado sem filtrar a meta inventaria variação. |
-| Recorte de cliente ou de contrato | Nada, mas **troca a fonte** do custo | Com o recorte, o custo passa a ser só o alocado a contrato: o pátio sai, o total encolhe e deixa de ser comparável com a meta. A página avisa quando isso acontece. |
-"""
-)
-
-with st.expander("Tabela técnica de política de filtros (a mesma que a camada de dados publica)"):
-    st.dataframe(rot.renomear(politica_filtros()), hide_index=True, width="stretch")
 
 # --------------------------------------------------------------------------
 # Definicoes

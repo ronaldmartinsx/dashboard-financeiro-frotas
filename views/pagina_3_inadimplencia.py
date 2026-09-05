@@ -42,7 +42,7 @@ with col_foto:
         minimo=date(2024, 12, 31),
         maximo=config.DATA_EXTRACAO,
         chave="ref",
-        rotulo="Posição em (independente do período)",
+        rotulo="Ver como estava em",
     )
 
 ctx = base.Contexto(
@@ -54,7 +54,7 @@ t = theme.tokens(ctx.tema)
 f, ref = ctx.filtros, ctx.data_ref
 
 # Os chips vem depois do seletor: so aqui a data da foto e a que o usuario escolheu.
-ui.linha_chips(base.chips_contexto(ctx))
+ui.linha_chips(base.chips_contexto(ctx, pagina=PAGINA))
 
 with st.spinner("Fotografando a carteira..."):
     dados = base.carregar(
@@ -152,7 +152,7 @@ base.faixa_kpis(
 )
 
 ui.nota_armadilha(
-    f"Tudo nesta página é a posição em {fmt.data_br(ref)}. O filtro de período não se aplica aqui, "
+    f"Tudo nesta página mostra como a carteira estava em {fmt.data_br(ref)}. "
     "porque uma fatura de 2024 ainda vencida conta na posição de hoje. A carteira exclui faturas "
     "baixadas; a inadimplência não. As duas leituras estão certas e diferem em R$ 328 mil."
 )

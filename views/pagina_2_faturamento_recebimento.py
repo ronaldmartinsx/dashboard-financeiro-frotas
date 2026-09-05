@@ -31,7 +31,7 @@ from views import _comum as base
 PAGINA = 2
 
 ctx = base.contexto()
-base.abrir_pagina(ctx, "Quanto faturamos e quanto entrou em caixa?", secao="Faturamento e Recebimento")
+base.abrir_pagina(ctx, "Quanto faturamos e quanto entrou em caixa?", secao="Faturamento e Recebimento", pagina=PAGINA)
 
 t = theme.tokens(ctx.tema)
 slot1 = theme.paleta_categorica(ctx.tema)[0]

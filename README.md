@@ -48,10 +48,15 @@ O menu lateral leva o **nome curto**; a **pergunta de negócio** é o título de
 | Custos | Para onde vai o custo? | Gerente de operação e frota |
 
 Toda página abre com o mesmo cabeçalho: **Dashboard Financeiro · <seção>**, a pergunta
-de negócio como título, e os **chips de contexto** — período de competência, data da foto,
-versão do orçamento e os recortes ativos. Os chips ficam no topo, e não num rodapé, porque
-contexto de apuração se lê **antes** do número; e porque o recorte dimensional só existia
-na barra lateral, invisível com ela recolhida.
+de negócio como título, e os **chips de contexto**, que repetem os filtros em uso. Os chips
+ficam no topo, e não num rodapé, porque contexto de apuração se lê antes do número, e porque
+o recorte só existia na barra lateral, invisível com ela recolhida.
+
+**Cada página exibe apenas os filtros que mudam os números dela** (`FILTROS_DA_PAGINA` em
+`views/_comum.py`, derivado de `filtros.politica_filtros()`). Metas não lista porte, rating,
+tipo de contrato nem cliente, porque o orçamento só existe nos níveis Empresa e Segmento;
+Inadimplência não lista período, porque a página é uma leitura numa data. Filtro visível que
+não faz nada é pior que filtro nenhum: o usuário mexe e conclui que o dashboard quebrou.
 
 Duas regras editoriais que o código sustenta: **uma pergunta central por página,
 declarada no título**, e **no máximo um bloco curto de texto por página** — o resto é

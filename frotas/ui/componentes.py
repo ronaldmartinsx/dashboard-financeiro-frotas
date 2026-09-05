@@ -705,7 +705,7 @@ def banner_alerta(
         cor = theme.cor_nivel("bom", tema, uso="texto")
         # "nenhum limiar atingido" era jargao: limiar e vocabulario de quem
         # construiu a regra, nao de quem le o painel.
-        quando = f", na posição de {fmt.data_br(data_ref)}" if data_ref else ""
+        quando = f", em {fmt.data_br(data_ref)}" if data_ref else ""
         st.markdown(
             f'<div class="fv-banner fv-banner--linha" style="border-left-color:{cor}">'
             f'<span style="color:{cor}">{theme.ICONE_NIVEL["bom"]} Nenhum ponto de '
@@ -950,7 +950,7 @@ def seletor_data_referencia(
     )
     escolhida = st.selectbox(rotulo, options=opcoes, format_func=fmt.data_br, key=chave_data)
     st.caption(
-        f"Posição em {fmt.data_br(escolhida)}"
+        f"Como estava em {fmt.data_br(escolhida)}"
         + (f" · {TEXTO_DATA_BLOQUEADA}" if horizontal else "")
     )
     return escolhida

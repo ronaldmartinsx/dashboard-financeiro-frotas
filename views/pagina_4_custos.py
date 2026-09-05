@@ -31,7 +31,7 @@ PAGINA = 4
 CATEGORIA_OCIOSA = "Patio e Ociosidade"
 
 ctx = base.contexto()
-base.abrir_pagina(ctx, "Para onde vai o custo?", secao="Custos")
+base.abrir_pagina(ctx, "Para onde vai o custo?", secao="Custos", pagina=PAGINA)
 
 t = theme.tokens(ctx.tema)
 slot1 = theme.paleta_categorica(ctx.tema)[0]

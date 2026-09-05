@@ -36,6 +36,7 @@ from frotas.metrics import dimensoes  # noqa: E402
 from frotas.ui import componentes as ui  # noqa: E402
 from frotas.ui import format as fmt  # noqa: E402
 from frotas.ui import rotulos as rot  # noqa: E402
+from views import _comum as base  # noqa: E402
 
 #: Nome do produto. Vem de ``ui.NOME_APP`` para que a aba do navegador, o
 #: cabecalho de cada pagina e a tela sem banco nunca divirjam.
@@ -53,6 +54,7 @@ PRESETS_PERIODO: dict[str, tuple[date, date]] = {
 }
 
 _SEM_RATING = "(sem rating)"
+
 
 
 # --------------------------------------------------------------------------
@@ -151,86 +153,96 @@ def barra_lateral(opcoes: dict[str, list[str]], clientes: pd.DataFrame, *, pagin
         # aparecer -- e a valer -- assim que o usuario entra numa pagina de dados.
         return _filtros_do_estado(clientes)
 
+    exibidos = base.FILTROS_DA_PAGINA.get(base.PAGINA_POR_URL.get(pagina, -1), ())
+    est = st.session_state
+    comp_ini, comp_fim = est.get("comp_ini"), est.get("comp_fim")
+    data_ref = est.get("ref_data", config.DATA_EXTRACAO)
+    segmentos = est.get("f_segmentos", [])
+    portes = est.get("f_portes", [])
+    ratings = est.get("f_ratings", [])
+    tipos_contrato = est.get("f_tipos_contrato", [])
+    escolhidos = est.get("f_clientes", [])
+    nomes = dict(zip(clientes["nome_cliente"], clientes["id_cliente"])) if not clientes.empty else {}
+
     with st.sidebar:
         st.markdown("### Filtros")
 
-        st.radio(
-            "Período de competência",
-            options=list(PRESETS_PERIODO),
-            key="preset_periodo",
-            on_change=_aplicar_preset,
-            help="O período move o eixo do tempo e o recorte dos fatos. Ele NÃO move a janela "
-                 "de 12 meses da inadimplência nem a posição da carteira.",
-        )
-        col_ini, col_fim = st.columns(2)
-        with col_ini:
-            comp_ini = st.selectbox(
-                "De", options=meses, key="comp_ini",
-                format_func=lambda d: fmt.competencia(d, longo=True),
+        if "periodo" in exibidos:
+            st.radio(
+                "Período",
+                options=list(PRESETS_PERIODO),
+                key="preset_periodo",
+                on_change=_aplicar_preset,
+                help="Recorta o mês de competência dos valores faturados e dos custos.",
             )
-        with col_fim:
-            comp_fim = st.selectbox(
-                "Até", options=meses, key="comp_fim",
-                format_func=lambda d: fmt.competencia(d, longo=True),
+            col_ini, col_fim = st.columns(2)
+            with col_ini:
+                comp_ini = st.selectbox(
+                    "De", options=meses, key="comp_ini",
+                    format_func=lambda d: fmt.competencia(d, longo=True),
+                )
+            with col_fim:
+                comp_fim = st.selectbox(
+                    "Até", options=meses, key="comp_fim",
+                    format_func=lambda d: fmt.competencia(d, longo=True),
+                )
+            if comp_ini > comp_fim:
+                st.warning("O mês inicial é posterior ao final; o intervalo foi invertido.")
+                comp_ini, comp_fim = comp_fim, comp_ini
+
+        if "data" in exibidos:
+            if pagina == "inadimplencia":
+                # Ali o seletor e o controle principal e vive no topo da pagina.
+                # Desenhar o mesmo widget duas vezes quebraria o estado.
+                st.divider()
+                st.caption(f"Vendo como estava em **{fmt.data_br(data_ref)}** (controle no topo da página)")
+            else:
+                st.divider()
+                data_ref = ui.seletor_data_referencia(
+                    valor=data_ref,
+                    minimo=date(2024, 12, 31),
+                    maximo=config.DATA_EXTRACAO,
+                    chave="ref",
+                    rotulo="Ver como estava em",
+                )
+
+        recortes = [c for c in ("segmento", "porte", "rating", "tipo_contrato", "cliente")
+                    if c in exibidos]
+        if recortes:
+            st.divider()
+        if "segmento" in exibidos:
+            segmentos = st.multiselect(
+                "Segmento", options=opcoes.get("segmentos", []), key="f_segmentos",
+                format_func=rot.valor,
             )
-        if comp_ini > comp_fim:
-            st.warning("O mês inicial é posterior ao final; o intervalo foi invertido.")
-            comp_ini, comp_fim = comp_fim, comp_ini
+        if "porte" in exibidos:
+            portes = st.multiselect(
+                "Porte", options=opcoes.get("portes", []), key="f_portes", format_func=rot.valor,
+            )
+        if "rating" in exibidos:
+            ratings = st.multiselect(
+                "Rating de crédito", options=list(opcoes.get("ratings", [])) + [_SEM_RATING],
+                key="f_ratings",
+            )
+        if "tipo_contrato" in exibidos:
+            tipos_contrato = st.multiselect(
+                "Tipo de contrato", options=opcoes.get("tipos_contrato", []),
+                key="f_tipos_contrato", format_func=rot.valor,
+            )
+        if "cliente" in exibidos:
+            escolhidos = st.multiselect(
+                "Cliente", options=sorted(nomes), placeholder="busque pelo nome",
+                key="f_clientes",
+            )
 
         st.divider()
-        if pagina == "inadimplencia":
-            # Na pagina de inadimplencia o seletor de foto e o controle principal
-            # e vive no cabecalho da propria pagina. Renderizar duas vezes o
-            # mesmo widget quebraria o estado, entao aqui a barra lateral so ecoa.
-            data_ref = st.session_state.get("ref_data", config.DATA_EXTRACAO)
-            st.caption(f"Posição em **{fmt.data_br(data_ref)}** (no topo da página)")
-        else:
-            data_ref = ui.seletor_data_referencia(
-                valor=st.session_state.get("ref_data", config.DATA_EXTRACAO),
-                minimo=date(2024, 12, 31),
-                maximo=config.DATA_EXTRACAO,
-                chave="ref",
-                rotulo="Posição em (independente do período)",
-            )
-
-        st.divider()
-        segmentos = st.multiselect(
-            "Segmento", options=opcoes.get("segmentos", []), key="f_segmentos",
-            format_func=rot.valor,
-        )
-        portes = st.multiselect(
-            "Porte", options=opcoes.get("portes", []), key="f_portes", format_func=rot.valor,
-        )
-        ratings_opcoes = list(opcoes.get("ratings", [])) + [_SEM_RATING]
-        ratings = st.multiselect("Rating de crédito", options=ratings_opcoes, key="f_ratings")
-        tipos_contrato = st.multiselect(
-            "Tipo de contrato", options=opcoes.get("tipos_contrato", []),
-            key="f_tipos_contrato", format_func=rot.valor,
-        )
-
-        nomes = dict(zip(clientes["nome_cliente"], clientes["id_cliente"])) if not clientes.empty else {}
-        escolhidos = st.multiselect(
-            "Cliente", options=sorted(nomes), placeholder="busque pelo nome", key="f_clientes",
-            help="Recorte de cliente desliga a atribuição do custo de veículo parado: ele não "
-                 "pertence a contrato nenhum, e por isso não pertence a cliente nenhum.",
-        )
-
-        # Nao ha expander de "versoes do orcamento" nem de politica de filtros aqui:
-        # o app usa sempre a versao vigente (o usuario nao escolhe), e a tabela de
-        # "qual filtro nao afeta o que" vive no Guia, onde e explicada. Repetir as
-        # duas na barra lateral so competia com os filtros de verdade.
-        st.divider()
-        if st.button("limpar filtros", width="stretch"):
+        if st.button("Limpar filtros", icon=":material/filter_alt_off:", width="stretch"):
             for chave in (
                 "preset_periodo", "comp_ini", "comp_fim", "f_segmentos", "f_portes",
                 "f_ratings", "f_tipos_contrato", "f_clientes", "faixa_aging",
                 "meta_indicador", "meta_por_segmento",
             ):
                 st.session_state.pop(chave, None)
-            st.rerun()
-        if st.button("atualizar dados (limpar cache)", width="stretch"):
-            db.limpar_cache()
-            st.cache_data.clear()
             st.rerun()
 
     filtros = Filtros.criar(
