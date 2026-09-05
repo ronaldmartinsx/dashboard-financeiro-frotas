@@ -301,20 +301,16 @@ else:
         grupo = risco_cli[risco_cli["rating_credito"] == nota_rating]
         if grupo.empty:
             continue
-        contornos = [
-            t.marca_critico
-            if (vermelho_a7 is not None and not fmt.eh_vazio(v) and float(v) >= vermelho_a7)
-            else t.superficie
-            for v in grupo["pct_vencido_30d"]
-        ]
         fig.add_trace(
             go.Scatter(
                 x=grupo["faturamento_bruto_12m"], y=grupo["pct_vencido_30d"], mode="markers",
                 name=f"Rating {nota_rating}",
                 marker={
                     "size": (grupo["vencido_30d_mais"] / maior_venc * 40 + 8).tolist(),
+                    # So preenchimento: a cor ja e o rating e a linha do limiar
+                    # marca quem passou do corte. Um anel por cima era um terceiro
+                    # canal repetindo o que dois ja diziam.
                     "color": cor_por_rating[nota_rating],
-                    "line": {"color": contornos, "width": 2},
                 },
                 customdata=grupo[["nome_cliente", "vencido_30d_mais", "uso_limite_pct",
                                   "segmento"]].to_numpy(),
@@ -409,6 +405,9 @@ else:
                 ajuda="O glifo segue o limiar publicado da regra de crédito, não um corte da tela.",
             ),
         },
+        # A coluna de rating sai colorida: mesma escala do grafico acima.
+        pintar={"rating_credito": [theme.RATING_NIVEL.get(str(r).strip().upper(), "neutro")
+                                   for r in fila["rating_credito"]]},
         barra="vencido_30d_mais",
         rotulo_barra="Peso",
         escala="risco",

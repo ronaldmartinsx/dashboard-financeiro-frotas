@@ -133,7 +133,10 @@ def estilos(tema: Tema = "claro") -> None:
   border: 1px solid var(--fv-borda);
   border-radius: var(--fv-raio);
   padding: {esp['lg']}px;
-  min-height: 168px;
+  /* Altura minima do card com rotulo + numero. Delta, nota e badges
+     empurram conforme existem: pagina sem meta nao carrega o vao de
+     um card cheio. */
+  min-height: 104px;
   display: flex; flex-direction: column; gap: {esp['xs']}px;
   font-family: {theme.FONTE};
 }}
@@ -538,7 +541,7 @@ def tile_kpi(
     nota_html = (
         f'<div class="fv-tile__nota">{"<br/>".join(_e(p) for p in partes_nota)}</div>'
         if partes_nota
-        else '<div class="fv-tile__nota"></div>'
+        else ""
     )
     badges_html = (
         f'<div class="fv-badges">{"".join(badge(b) for b in lista_badges)}</div>'
@@ -804,6 +807,7 @@ def tabela_com_barra(
     *,
     colunas: Mapping[str, ColunaSpec],
     barra: str | None = None,
+    pintar: Mapping[str, Sequence[str]] | None = None,
     rotulo_barra: str | None = None,
     escala: Escala = "neutra",
     ordenar_por: str | None = None,
@@ -890,8 +894,27 @@ def tabela_com_barra(
     if selecionavel:
         extras["on_select"] = "rerun"
         extras["selection_mode"] = "single-row"
+
+    # ``pintar``: {coluna original: nivel por linha}. Serve para a coluna de
+    # rating de credito, onde a cor **e** a informacao (A verde ... D vermelho).
+    corpo: Any = saida
+    if pintar:
+        mapa = {colunas[c].rotulo: list(n) for c, n in pintar.items() if c in colunas}
+
+        def _pintar_colunas(_: pd.DataFrame) -> pd.DataFrame:
+            estilo = pd.DataFrame("", index=saida.index, columns=saida.columns)
+            for rotulo, niveis in mapa.items():
+                if rotulo in estilo.columns and len(niveis) == len(estilo):
+                    estilo[rotulo] = [
+                        f"color: {theme.cor_nivel(str(n), tema, uso='texto')}; font-weight: 600"
+                        for n in niveis
+                    ]
+            return estilo
+
+        corpo = saida.style.apply(_pintar_colunas, axis=None)
+
     return st.dataframe(
-        saida,
+        corpo,
         column_config=config,
         hide_index=True,
         width="stretch",
