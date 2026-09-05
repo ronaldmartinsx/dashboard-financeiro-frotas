@@ -211,17 +211,27 @@ INDICADORES: Final[tuple[tuple[str, int], ...]] = (
     ("Receita Liquida", 7),      # ciano -- parente do azul: faturamento menos impostos
     ("Recebimento (Caixa)", 2),  # aqua -- o dinheiro que entrou
     ("Custo Operacional", 1),    # laranja -- a saida
-    ("Inadimplencia > 30d", 3),  # violeta -- risco sem usar o vermelho de alerta
+    ("Inadimplencia > 30d", -1),  # vermelho -- ver COR_INADIMPLENCIA
 )
+
+#: Inadimplencia e a excecao da regra "indicador nao usa cor de status": aqui o
+#: vermelho **e** o significado, e o dono do painel pediu para manter a associacao.
+#: Nao e o mesmo vermelho do alerta critico (``marca_critico``): e o tom mais
+#: escuro e terroso da rampa divergente, para a serie nao se confundir com um
+#: badge de alerta na mesma tela.
+COR_INADIMPLENCIA: Final[tuple[str, str]] = ("#AF2C28", "#D74F47")
 
 
 def cor_indicador(indicador: str, tema: Tema = "claro") -> str:
     """Cor fixa de um indicador orcado, estavel em todas as paginas."""
+    if indicador == "Inadimplencia > 30d":
+        return COR_INADIMPLENCIA[0 if tema == "claro" else 1]
     paleta = paleta_categorica(tema)
     for nome, slot in INDICADORES:
-        if nome == indicador:
+        if nome == indicador and slot >= 0:
             return paleta[slot]
     return paleta[0]
+
 
 
 def paleta_categorica(tema: Tema = "claro") -> list[str]:

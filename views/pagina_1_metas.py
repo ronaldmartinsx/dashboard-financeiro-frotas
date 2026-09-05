@@ -48,7 +48,9 @@ ANOS = list(range(config.COMPETENCIA_MIN.year, config.COMPETENCIA_MAX.year + 1))
 # O widget de segmento e lido do estado **antes** do carregamento: e ele que decide
 # se a consulta mais cara entra no lote. O widget em si aparece la embaixo, na
 # secao a que pertence.
-st.session_state.setdefault("meta_por_segmento", False)
+# Ligada por padrao: a analise por segmento faz parte da leitura da pagina.
+# O toggle continua, para quem quiser desligar e ganhar os ~13 s de volta.
+st.session_state.setdefault("meta_por_segmento", True)
 st.session_state.setdefault("meta_segmento_indicador", metas.TIPOS_META[0])
 indicador = st.session_state["meta_segmento_indicador"]
 if indicador not in metas.TIPOS_META:

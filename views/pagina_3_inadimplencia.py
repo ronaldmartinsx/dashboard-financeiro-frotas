@@ -1,7 +1,7 @@
 """Pagina 3 -- Inadimplencia. "Quanto esta em aberto hoje, e com quem?"
 
 **So a posicao atual.** A serie historica de inadimplencia saiu do projeto: aqui
-tudo e a foto da carteira numa data, e o seletor de data de referencia sobe para
+tudo e a leitura da carteira numa data, e o seletor de data sobe para
 o cabecalho porque nesta pagina ele e o controle principal, nao um ajuste.
 
 O caminho empresa -> segmento -> cliente -> **fatura** tem que ser percorrivel
@@ -33,10 +33,10 @@ PAGINA = 3
 ctx_inicial = base.contexto()
 ui.estilos(ctx_inicial.tema)
 
-col_titulo, col_foto = st.columns([7, 5], gap="medium")
+col_titulo, col_data = st.columns([7, 5], gap="medium")
 with col_titulo:
     ui.cabecalho_pagina("Inadimplência", "Quanto está em aberto hoje, e com quem?")
-with col_foto:
+with col_data:
     data_ref = ui.seletor_data_referencia(
         valor=st.session_state.get("ref_data", config.DATA_EXTRACAO),
         minimo=date(2024, 12, 31),
@@ -53,7 +53,7 @@ ctx = base.Contexto(
 t = theme.tokens(ctx.tema)
 f, ref = ctx.filtros, ctx.data_ref
 
-# Os chips vem depois do seletor: so aqui a data da foto e a que o usuario escolheu.
+# Os chips vem depois do seletor: so aqui a data e a que o usuario escolheu.
 ui.linha_chips(base.chips_contexto(ctx, pagina=PAGINA))
 
 with st.spinner("Fotografando a carteira..."):
@@ -75,7 +75,7 @@ aging = base.obter(dados, "aging")
 
 
 # --------------------------------------------------------------------------
-# Faixa de KPIs -- tudo e a foto em ref
+# Faixa de KPIs -- tudo e a leitura em ref
 # --------------------------------------------------------------------------
 carteira = base.soma(aging, "valor_bruto")
 vencido = None
@@ -92,9 +92,8 @@ if pit is not None:
     if ini and fim:
         janela = fmt.periodo(ini, fim)
 janela_incompleta = pit is not None and not bool(pit.iloc[0].get("janela_completa", True))
-# Sem badge de foto nos tiles: nesta pagina *todos* sao foto na data de
-# referencia, e o cabecalho ja a declara. O badge nao distinguia nada.
-badge_foto: list[str] = []
+# Sem badge de data nos tiles: nesta pagina *todos* os numeros sao a leitura da
+# data escolhida, e o cabecalho ja a declara.
 
 base.faixa_kpis(
     [
@@ -104,7 +103,7 @@ base.faixa_kpis(
             "unidade": "pct", "casas": 2, "chave_direcao": "inadimplencia_30d",
             "estado": "sem_meta",
             "nota": f"sobre o faturamento de {janela}" if janela else None,
-            "badges": badge_foto + (["janela de 12m incompleta"] if janela_incompleta else []),
+            "badges": ["janela de 12m incompleta"] if janela_incompleta else [],
             "ajuda": "Vencido há mais de 30 dias e ainda em aberto nessa data, sobre o faturamento "
                      "bruto dos 12 meses de competência que terminam nela.",
         },
@@ -113,7 +112,6 @@ base.faixa_kpis(
             "valor": base.celula(pit, "valor_vencido_30d"),
             "unidade": "brl", "chave_direcao": "carteira_vencida", "estado": "sem_meta",
             "nota": f"{fmt.contagem(base.celula(pit, 'qtd_titulos_vencidos'))} faturas",
-            "badges": badge_foto,
             "ajuda": "Numerador da inadimplência: não pago e não cancelado nessa data.",
         },
         {
@@ -121,7 +119,6 @@ base.faixa_kpis(
             "valor": carteira, "unidade": "brl", "chave_direcao": "carteira_vencida",
             "estado": "sem_meta" if carteira is not None else "erro",
             "nota": "vencido ou a vencer",
-            "badges": badge_foto,
             "ajuda": "Exclui faturas pagas, canceladas e baixadas até essa data.",
         },
         {
@@ -130,7 +127,6 @@ base.faixa_kpis(
             "estado": "sem_meta" if vencido is not None else "erro",
             "nota": (f"{fmt.percentual(vencido / carteira * 100, 1)} da carteira"
                      if carteira else None),
-            "badges": badge_foto,
             "ajuda": "Soma de todas as faixas de atraso, do primeiro dia em diante.",
         },
         {
@@ -138,7 +134,6 @@ base.faixa_kpis(
             "valor": acima_180, "unidade": "brl", "chave_direcao": "carteira_vencida",
             "estado": "sem_meta" if acima_180 is not None else "erro",
             "nota": "vira baixa aos 365 dias",
-            "badges": badge_foto,
             "ajuda": "A faixa mais antiga da carteira: é dela que sai a perda provável.",
         },
     ],
@@ -195,7 +190,7 @@ else:
     fig.update_layout(barmode="stack", showlegend=False)
     fig.update_yaxes(showticklabels=False, showgrid=False)
     fig.update_xaxes(
-        title_text="R$ em aberto na data da foto (da esquerda para a direita: a vencer até "
+        title_text="R$ em aberto na data escolhida (da esquerda para a direita: a vencer até "
                    "mais de 180 dias)",
         title_font_size=theme.TIPOGRAFIA["nota"], tickformat=".2s",
     )
@@ -432,7 +427,7 @@ else:
             ),
         },
         barra="vencido_30d_mais",
-        rotulo_barra="Vencido há mais de 30 dias",
+        rotulo_barra="Peso",
         escala="risco",
         ordenar_por=None,
         limite=None,
@@ -440,7 +435,7 @@ else:
         selecionavel=True,
         tema=ctx.tema,
         vazio_titulo="Nenhum cliente nesta faixa de atraso",
-        vazio_corpo="Nenhum cliente do recorte tem saldo nesta faixa na data da foto.",
+        vazio_corpo="Nenhum cliente do recorte tem saldo nesta faixa na data escolhida.",
     )
     st.caption("Clique numa linha para abrir as faturas do cliente.")
 
@@ -504,7 +499,7 @@ else:
                         vazio_titulo=f"Nada em aberto para este cliente em {fmt.data_br(ref)}",
                     )
                     st.caption(
-                        "A situação é recalculada na data da foto, nunca lida da situação gravada "
+                        "A situação é recalculada na data escolhida, nunca lida da situação gravada "
                         "na extração."
                     )
 

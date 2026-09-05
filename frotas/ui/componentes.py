@@ -500,11 +500,10 @@ def tile_kpi(
         )
         corpo = f'<div class="fv-tile__valor">{_e(texto_valor)}</div>'
         if estado == "sem_meta" or fmt.eh_vazio(delta):
-            cor_neutra = theme.cor_nivel("neutro", tema, uso="texto")
-            rodape = (
-                f'<div class="fv-tile__delta" style="color:{cor_neutra}">'
-                f'{theme.ICONE_NIVEL["neutro"]} {fmt.VAZIO}</div>'
-            )
+            # Sem meta nao ha delta, e "– —" embaixo do numero nao dizia nada:
+            # um glifo de "sem sinal" ao lado de um travessao de "sem valor".
+            # A linha simplesmente nao aparece.
+            rodape = ""
             # Sem badge "meta indisponivel neste recorte": o travessao ja diz que
             # nao ha comparacao, e o badge repetido em cada tile virava ruido.
             acessivel = f"{texto_valor}, sem meta no recorte"

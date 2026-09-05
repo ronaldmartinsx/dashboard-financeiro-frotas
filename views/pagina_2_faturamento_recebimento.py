@@ -19,7 +19,6 @@ from datetime import date
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-from plotly.subplots import make_subplots
 
 from frotas.metrics import credito, metas, receita
 from frotas.ui import componentes as ui
@@ -145,47 +144,45 @@ else:
     teto = base.maximo_da_coluna(fat, "faturamento_bruto")
     if caixa is not None and not caixa.empty:
         teto = max(teto, base.maximo_da_coluna(caixa, "realizado"))
-    fig = make_subplots(
-        rows=2, cols=1, shared_xaxes=False, vertical_spacing=0.18,
-        subplot_titles=("Faturamento bruto, por competência", "Recebimento, por data de pagamento"),
-    )
+    # Um grafico so: barras do faturado e linha tracejada do recebido. Os dois
+    # sao R$ na mesma escala, entao dividem o eixo sem distorcer -- e e justamente
+    # a distancia entre a barra e a linha que interessa. O empilhado anterior
+    # obrigava o olho a saltar entre dois paineis para comparar o mesmo mes.
+    fig = base.nova_figura(ctx.tema, altura=380)
     fig.add_trace(
         go.Bar(
-            x=base.datas_de(meses), y=fat["faturamento_bruto"], name="Faturamento bruto",
+            x=base.datas_de(meses), y=fat["faturamento_bruto"], name="Faturado",
             marker={"color": theme.cor_indicador("Faturamento", ctx.tema),
                     "line": {"color": t.superficie, "width": theme.FOLGA_ENTRE_MARCAS}},
             **base.rotulos_de_barra(fat["faturamento_bruto"]),
-            hovertemplate="competência %{x|%b/%Y}: R$ %{y:,.0f}<extra></extra>",
-        ),
-        row=1, col=1,
+            hovertemplate="competência %{x|%b/%Y}: R$ %{y:,.0f}<extra>Faturado</extra>",
+        )
     )
     if caixa is not None and not caixa.empty:
         fig.add_trace(
-            go.Bar(
-                x=base.datas_de(caixa["ano_mes"]), y=caixa["realizado"], name="Recebimento",
-                marker={"color": theme.cor_indicador("Recebimento (Caixa)", ctx.tema),
-                        "line": {"color": t.superficie, "width": theme.FOLGA_ENTRE_MARCAS}},
-                **base.rotulos_de_barra(caixa["realizado"]),
-                hovertemplate="caixa %{x|%b/%Y}: R$ %{y:,.0f}<extra></extra>",
-            ),
-            row=2, col=1,
+            go.Scatter(
+                x=base.datas_de(caixa["ano_mes"]), y=caixa["realizado"],
+                mode="lines+markers", name="Recebido",
+                line={"color": theme.cor_indicador("Recebimento (Caixa)", ctx.tema),
+                      "width": theme.ESPESSURA_LINHA, "dash": "dash"},
+                marker={"size": theme.TAMANHO_MARCADOR},
+                hovertemplate="pago em %{x|%b/%Y}: R$ %{y:,.0f}<extra>Recebido</extra>",
+            )
         )
-    fig.update_layout(**theme.layout_grafico(ctx.tema))
-    fig.update_layout(height=390, showlegend=False, hovermode="x unified", bargap=0.25)
-    for linha, titulo in ((1, "Mês de competência"), (2, "Mês do pagamento")):
-        fig.update_xaxes(
-            tickmode="array", tickvals=base.datas_de(meses), ticktext=base.rotulos_mensais(meses),
-            title_text=titulo, title_font_size=theme.TIPOGRAFIA["nota"],
-            gridcolor=t.grade, linecolor=t.eixo, row=linha, col=1,
+        base.rotular_ultimo_ponto(
+            fig, base.datas_de(caixa["ano_mes"]), caixa["realizado"],
+            fmt.moeda_compacta(caixa["realizado"].iloc[-1]),
+            theme.cor_indicador("Recebimento (Caixa)", ctx.tema), tema=ctx.tema,
         )
-        fig.update_yaxes(
-            title_text="R$ no mês", title_font_size=theme.TIPOGRAFIA["nota"], tickformat=".2s",
-            range=[0, teto * 1.1 if teto else 1], gridcolor=t.grade, linecolor=t.eixo,
-            row=linha, col=1,
-        )
-    for anotacao in fig.layout.annotations:
-        anotacao.font.size = theme.TIPOGRAFIA["nota"]
-        anotacao.font.color = t.tinta_secundaria
+    base.eixo_mensal(fig, meses)
+    fig.update_yaxes(
+        title_text="R$ no mês", title_font_size=theme.TIPOGRAFIA["nota"],
+        tickformat=".2s", range=[0, teto * 1.15 if teto else 1],
+    )
+    fig.update_layout(
+        hovermode="x unified", bargap=0.25,
+        showlegend=True, legend={"orientation": "h", "y": 1.14, "x": 0},
+    )
 
     cancelado = base.celula(resumo, "valor_cancelado")
     pct_cancelado = base.celula(resumo, "pct_cancelado")
@@ -311,7 +308,7 @@ ui.tabela_com_barra(
         "participacao_pct": ui.ColunaSpec("Participação", "pct", casas=2),
     },
     barra="faturamento_bruto",
-    rotulo_barra="Faturamento bruto",
+    rotulo_barra="Peso",
     escala="neutra",
     ordenar_por="faturamento_bruto",
     limite=10,

@@ -379,7 +379,7 @@ ui.tabela_com_barra(
         "participacao_pct": ui.ColunaSpec("Participação", "pct"),
     },
     barra="custo_total",
-    rotulo_barra="Custo total",
+    rotulo_barra="Peso",
     escala="neutra",
     ordenar_por="custo_total",
     limite=None,
