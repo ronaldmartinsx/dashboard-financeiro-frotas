@@ -1,0 +1,11 @@
+.env
+.DS_Store
+__pycache__/
+.streamlit/secrets.toml
+*.pyc
+.venv/
+
+# Skills instaladas (dependencia externa, como node_modules).
+# O que reproduz o ambiente e o skills-lock.json, esse sim versionado.
+.agents/skills/
+.claude/skills/

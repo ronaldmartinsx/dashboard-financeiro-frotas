@@ -1,0 +1,12 @@
+# Data app de frotas -- Streamlit + Supabase (Postgres), somente leitura.
+# Versoes fixadas nas ja instaladas no ambiente do projeto (Python 3.13).
+
+streamlit==1.50.0
+pandas==2.3.3
+SQLAlchemy==2.0.43
+psycopg2-binary==2.9.10
+python-dotenv==1.1.1
+
+# Visualizacao (usada pela camada de UI; a camada de dados nao depende dela)
+plotly==6.3.1
+altair==5.5.0

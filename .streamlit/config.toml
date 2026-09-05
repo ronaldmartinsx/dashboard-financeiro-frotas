@@ -1,0 +1,99 @@
+# Tema do Streamlit -- espelho fiel de frotas/ui/theme.py (TEMA_CLARO).
+#
+# Regra de manutencao: nenhum hex nasce aqui. Todo valor deste arquivo existe
+# primeiro como token em frotas/ui/theme.py; se um mudar, o outro muda junto.
+# Streamlit 1.50 nao tem bloco [theme.dark]; o tema escuro vive em
+# theme.TEMA_ESCURO e e selecionado em tempo de execucao por
+# st.context.theme.type (ver docs/03_ux.md secao 2).
+
+[theme]
+base = "light"
+
+# --- superficies e tinta (Tokens.plano / superficie / tinta) ---------------
+backgroundColor          = "#FBFBF9"   # superficie de card e area de grafico
+secondaryBackgroundColor = "#F2F2EE"   # plano da pagina, sidebar, zebra de tabela
+textColor                = "#101112"   # tinta primaria -- 18,2:1 na superficie
+linkColor                = "#1C5CAB"   # azul 550: 6,0:1, legivel como link
+
+# --- identidade -----------------------------------------------------------
+primaryColor = "#2A78D6"               # slot 1 da paleta categorica
+
+# --- tipografia (theme.TIPOGRAFIA) ----------------------------------------
+font        = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+headingFont = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+codeFont    = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+baseFontSize = 14
+
+# --- superficie e borda (theme.RAIO_CARD) ---------------------------------
+baseRadius       = "8px"
+buttonRadius     = "8px"
+borderColor      = "#E4E3DC"           # mesma cor da grade dos graficos
+showWidgetBorder = true
+showSidebarBorder = true
+dataframeHeaderBackgroundColor = "#F2F2EE"
+dataframeBorderColor           = "#E4E3DC"
+
+# --- paleta categorica: os 8 segmentos, na ordem validada -----------------
+# Nunca reordenar. A ordem e o mecanismo de seguranca para daltonismo
+# (pior par adjacente DeltaE 9,2 protan/deutan; piso de visao normal 19,6).
+chartCategoricalColors = [
+  "#2A78D6",  # 1 Agronegocio            azul
+  "#EB6834",  # 2 Construcao Civil       laranja
+  "#1BAF7A",  # 3 Energia e Saneamento   aqua
+  "#4A3AA7",  # 4 Industria              violeta
+  "#008300",  # 5 Logistica e Transporte verde
+  "#E87BA4",  # 6 Mineracao              magenta
+  "#EDA100",  # 7 Servicos Publicos      amarelo
+  "#0E8EA6",  # 8 Varejo e Distribuicao  ciano
+]
+
+# --- rampa sequencial neutra (magnitude sem polaridade) -------------------
+# A rampa de risco (vermelha) NAO entra aqui de proposito: ela e reservada a
+# risco real e e passada explicitamente pelo grafico que a usa.
+chartSequentialColors = [
+  "#CDE2FB", "#B7D3F6", "#9EC5F4", "#86B6EF", "#6DA7EC",
+  "#5598E7", "#3987E5", "#2A78D6", "#256ABF", "#1C5CAB",
+]
+
+# --- cores semanticas dos elementos nativos (st.success/warning/error) ----
+# Casadas com Tokens.marca_* / Tokens.texto_* para que um st.error nao apareca
+# num vermelho diferente do vermelho dos alertas.
+redColor              = "#B02525"
+redTextColor          = "#B02525"
+redBackgroundColor    = "#FBECEC"
+orangeColor           = "#9A4A22"
+orangeTextColor       = "#9A4A22"
+orangeBackgroundColor = "#FDF0E9"
+yellowColor           = "#8A5A00"
+yellowTextColor       = "#8A5A00"
+yellowBackgroundColor = "#FBF3E0"
+greenColor            = "#0F7A12"
+greenTextColor        = "#0F7A12"
+greenBackgroundColor  = "#EAF5EA"
+blueColor             = "#1C5CAB"
+blueTextColor         = "#1C5CAB"
+blueBackgroundColor   = "#E9F0FA"
+grayColor             = "#6E6D67"
+grayTextColor         = "#6E6D67"
+grayBackgroundColor   = "#F2F2EE"
+
+[theme.sidebar]
+backgroundColor          = "#F2F2EE"
+secondaryBackgroundColor = "#FBFBF9"
+borderColor              = "#E4E3DC"
+showWidgetBorder         = true
+
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false
+
+[client]
+# O app e read-only: erro de conexao nao deve despejar traceback na tela do CFO.
+# O texto amigavel de erro esta especificado em docs/03_ux.md secao 6.
+showErrorDetails = "stacktrace"
+toolbarMode = "minimal"
+
+[runner]
+fastReruns = true
