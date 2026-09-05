@@ -45,13 +45,14 @@ t = theme.tokens(ctx.tema)
 f, ref, ano = ctx.filtros, ctx.data_ref, ctx.ano
 ANOS = list(range(config.COMPETENCIA_MIN.year, config.COMPETENCIA_MAX.year + 1))
 
-# Widgets sao lidos do estado **antes** do carregamento: sao eles que decidem
-# quais consultas entram no lote. Os proprios widgets aparecem la embaixo, na
-# secao a que pertencem -- por isso o estado nasce aqui, e nao no widget.
-if st.session_state.get("meta_indicador") not in metas.TIPOS_META:
-    st.session_state["meta_indicador"] = metas.TIPOS_META[0]
+# O widget de segmento e lido do estado **antes** do carregamento: e ele que decide
+# se a consulta mais cara entra no lote. O widget em si aparece la embaixo, na
+# secao a que pertence.
 st.session_state.setdefault("meta_por_segmento", False)
-indicador = st.session_state["meta_indicador"]
+st.session_state.setdefault("meta_segmento_indicador", metas.TIPOS_META[0])
+indicador = st.session_state["meta_segmento_indicador"]
+if indicador not in metas.TIPOS_META:
+    indicador = st.session_state["meta_segmento_indicador"] = metas.TIPOS_META[0]
 ver_segmento = bool(st.session_state["meta_por_segmento"])
 tem_segmento = indicador not in metas.SO_EMPRESA
 
@@ -60,12 +61,10 @@ if ver_segmento and tem_segmento:
     # Primeiro no lote de proposito: e a consulta mais cara da pagina (~13 s) e
     # precisa comecar junto com as outras, nao depois delas.
     tarefas["segmento"] = lambda: metas.comparativo_por_segmento(indicador, ano)
-tarefas.update(
-    {
-        "serie": lambda: metas.serie_mensal(indicador, ano),
-        "alertas": lambda: base.avaliar_alertas(f, ref, base.ALERTAS_DA_PAGINA[PAGINA]),
-    }
-)
+# As cinco series mensais vao juntas: ~0,6 s cada, em paralelo no mesmo lote.
+for tipo in metas.TIPOS_META:
+    tarefas[f"serie_{tipo}"] = lambda alvo=tipo: metas.serie_mensal(alvo, ano)
+tarefas["alertas"] = lambda: base.avaliar_alertas(f, ref, base.ALERTAS_DA_PAGINA[PAGINA])
 for a in ANOS:
     tarefas[f"comp_{a}"] = lambda alvo=a: metas.comparativo_anual(alvo)
 
@@ -226,78 +225,80 @@ else:
 # A meta foi cumprida em cada ano?
 # --------------------------------------------------------------------------
 ui.cabecalho_secao("A meta foi cumprida em cada ano?", ancora="conferencia")
-conferencia = []
-for a in ANOS:
-    df_ano = base.obter(dados, f"comp_{a}")
-    if df_ano is None:
-        continue
-    for tipo in metas.TIPOS_META:
-        reg = base.linha_meta(df_ano, tipo)
+# Analise temporal com o tempo na HORIZONTAL: uma coluna por exercicio, uma linha
+# por indicador. O formato longo anterior (uma linha por indicador x ano) repetia
+# o nome do indicador tres vezes e o ano cinco, e obrigava a caçar a comparacao
+# ano a ano linha a linha.
+linhas_matriz: list[dict[str, str]] = []
+cabecalhos: dict[int, str] = {}
+for tipo in metas.TIPOS_META:
+    linha: dict[str, str] = {"indicador": rot.valor(tipo)}
+    for a in ANOS:
+        df_ano = base.obter(dados, f"comp_{a}")
+        reg = base.linha_meta(df_ano, tipo) if df_ano is not None else None
         if reg is None:
+            linha[str(a)] = fmt.VAZIO
             continue
         percentual = str(reg.get("unidade")) == "%"
         desvio = reg.get("variacao_abs_alinhada" if percentual else "variacao_pct_alinhada")
-        meses = int(reg.get("meses_realizados") or 0)
-        conferencia.append(
-            {
-                "indicador": rot.valor(tipo),
-                "exercicio": f"{a} · {meses} meses" if reg.get("eh_parcial") else str(a),
-                "realizado": fmt.percentual(reg["realizado"], 2) if percentual
-                else fmt.moeda_compacta(reg["realizado"]),
-                "meta": fmt.percentual(reg.get("meta_alinhada"), 2) if percentual
-                else fmt.moeda_compacta(reg.get("meta_alinhada")),
-                "desvio": fmt.pontos_percentuais(desvio) if percentual else fmt.variacao(desvio),
-                "orcamento": rot.valor(reg.get("versao_meta")),
-                "magnitude": abs(float(desvio)) if not fmt.eh_vazio(desvio) else 0.0,
-            }
+        texto = fmt.pontos_percentuais(desvio) if percentual else fmt.variacao(desvio)
+        # Glifo junto do numero: cor nunca viaja sozinha, e st.dataframe nao
+        # colore celula por valor sem Styler.
+        d = fmt.delta(
+            desvio,
+            unidade="pp" if percentual else "pct",
+            direcao=theme.DIRECAO_KPI.get(DIRECAO[tipo], "neutro"),
+            ambar=ambar_inad if percentual else None,
+            vermelho=vermelho_inad if percentual else None,
+            tema=ctx.tema,
         )
+        linha[str(a)] = f"{d.icone} {texto}" if not fmt.eh_vazio(desvio) else fmt.VAZIO
+        meses = int(reg.get("meses_realizados") or 0)
+        cabecalhos[a] = f"{a} · {meses} meses" if reg.get("eh_parcial") else str(a)
+    linhas_matriz.append(linha)
+
 ui.tabela_com_barra(
-    pd.DataFrame(conferencia),
+    pd.DataFrame(linhas_matriz),
     colunas={
         "indicador": ui.ColunaSpec("Indicador", "texto", largura="medium"),
-        "exercicio": ui.ColunaSpec("Exercício", "texto", largura="small"),
-        "realizado": ui.ColunaSpec("Realizado", "texto"),
-        "meta": ui.ColunaSpec(
-            "Meta", "texto",
-            ajuda="Soma das metas dos mesmos meses já realizados, não a do ano cheio.",
-        ),
-        "desvio": ui.ColunaSpec(
-            "Desvio", "texto",
-            ajuda="Indicador em R$ lê variação percentual; indicador em % lê pontos percentuais.",
-        ),
-        "orcamento": ui.ColunaSpec("Versão do orçamento", "texto", largura="medium"),
+        **{
+            str(a): ui.ColunaSpec(
+                cabecalhos.get(a, str(a)), "texto", largura="small",
+                ajuda="Realizado contra a soma das metas dos mesmos meses do ano.",
+            )
+            for a in ANOS
+        },
     },
-    barra="magnitude",
-    rotulo_barra="Tamanho do desvio",
-    escala="divergente",
-    ordenar_por=None,
-    limite=None,
-    chave="p1_conferencia",
-    tema=ctx.tema,
-    vazio_titulo="Nenhum ano com meta apurada",
+)
+ui.nota_armadilha(
+    "Cada célula é o desvio contra a meta dos mesmos meses do ano, não contra o "
+    "orçamento do ano cheio."
 )
 
 # --------------------------------------------------------------------------
 # Como o indicador andou mes a mes?
 # --------------------------------------------------------------------------
-ui.cabecalho_secao("Como o indicador andou mês a mês?", ancora="mensal")
-st.segmented_control(
-    "Indicador orçado",
-    options=list(metas.TIPOS_META),
-    format_func=rot.valor,
-    selection_mode="single",
-    key="meta_indicador",
-    label_visibility="collapsed",
-    help="Os cinco indicadores com orçamento vigente neste projeto.",
-)
-serie = base.obter(dados, "serie")
-if serie is None:
-    ui.erro_metrica("o acompanhamento mensal", base.falhou(dados, "serie"))
-else:
+ui.cabecalho_secao("Como cada indicador andou mês a mês?", ancora="mensal")
+
+
+def _grafico_mensal(tipo: str, chave: str, *, altura: int, com_legenda: bool) -> None:
+    """Serie mensal de um indicador contra a meta vigente.
+
+    Os cinco indicadores ficam **todos na tela**, em vez de um seletor que troca o
+    grafico: comparar faturamento com inadimplencia era impossivel quando so um
+    aparecia por vez, e cada serie custa ~0,6 s (as cinco vao juntas no lote).
+    """
+    serie = base.obter(dados, f"serie_{tipo}")
+    if serie is None:
+        ui.erro_metrica(f"a série de {rot.valor(tipo)}", base.falhou(dados, f"serie_{tipo}"))
+        return
     serie = serie[serie["realizado"].notna() | serie["meta"].notna()].copy()
+    if serie.empty:
+        ui.estado_vazio(f"Sem série de {rot.valor(tipo)} neste ano")
+        return
     percentual = str(serie.iloc[0].get("unidade")) == "%"
     serie["x"] = base.datas_de(serie["ano_mes"])
-    fig = base.nova_figura(ctx.tema, altura=330)
+    fig = base.nova_figura(ctx.tema, altura=altura)
     if percentual:
         fig.add_trace(
             go.Scatter(
@@ -332,27 +333,52 @@ else:
         tickformat=None if percentual else ".2s",
         rangemode="tozero",
     )
-    fig.update_layout(showlegend=True, legend={"orientation": "h", "y": 1.15, "x": 0})
-    base.mostrar_grafico(
-        fig, chave="p1_mensal",
-        nota=("O valor do mês é a foto do último dia: inadimplência não se soma."
-              if percentual else
-              "Meses ainda sem realizado ficam vazios, nunca zerados."),
-        dados=serie.drop(columns=["x"]),
+    fig.update_layout(
+        showlegend=com_legenda,
+        legend={"orientation": "h", "y": 1.18, "x": 0} if com_legenda else None,
+        title={"text": rot.valor(tipo), "x": 0, "xanchor": "left",
+               "font": {"size": theme.TIPOGRAFIA["rotulo"]}},
+        margin={"t": 46},
     )
+    base.mostrar_grafico(fig, chave=chave, dados=serie.drop(columns=["x"]))
+
+
+# Faturamento em largura inteira (e a serie que abre a leitura); os outros quatro
+# em duas linhas de dois, para caber num bater de olho sem rolar.
+_grafico_mensal(metas.TIPOS_META[0], "p1_mensal_0", altura=300, com_legenda=True)
+for a, b in ((1, 2), (3, 4)):
+    col_a, col_b = st.columns(2, gap="medium")
+    with col_a:
+        _grafico_mensal(metas.TIPOS_META[a], f"p1_mensal_{a}", altura=250, com_legenda=False)
+    with col_b:
+        _grafico_mensal(metas.TIPOS_META[b], f"p1_mensal_{b}", altura=250, com_legenda=False)
+ui.nota_armadilha(
+    "A inadimplência é o valor do último dia de cada mês, não a soma dos meses. "
+    "Meses ainda sem realizado ficam vazios, nunca zerados."
+)
 
 # --------------------------------------------------------------------------
 # Qual segmento explica o desvio?  (opcional -- e a consulta mais cara)
 # --------------------------------------------------------------------------
 ui.cabecalho_secao("Qual segmento explica o desvio?", ancora="segmento")
-st.toggle(
-    "Abrir a quebra por segmento",
-    key="meta_por_segmento",
-    disabled=not tem_segmento,
-    help="Custa cerca de 13 s: são oito segmentos apurados um a um. Custo Operacional e "
-         "Inadimplência não têm meta por segmento, porque o custo de veículo parado não pertence "
-         "a segmento nenhum.",
-)
+col_ind, col_lig = st.columns([7, 5], gap="medium")
+with col_ind:
+    st.selectbox(
+        "Indicador",
+        options=[t for t in metas.TIPOS_META if t not in metas.SO_EMPRESA],
+        format_func=rot.valor,
+        key="meta_segmento_indicador",
+        label_visibility="collapsed",
+        help="Só os indicadores que têm meta por segmento aparecem aqui.",
+    )
+with col_lig:
+    st.toggle(
+        "Abrir a quebra por segmento",
+        key="meta_por_segmento",
+        disabled=not tem_segmento,
+        help="São oito segmentos apurados um a um e a consulta leva cerca de 13 s, "
+             "por isso ela só roda quando você pede.",
+    )
 if not tem_segmento:
     ui.bloco_desabilitado(
         f"{rot.valor(indicador)} só tem meta no nível Empresa: o custo de veículo parado não "

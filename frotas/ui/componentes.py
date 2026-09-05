@@ -793,7 +793,7 @@ def tabela_com_barra(
     df: pd.DataFrame,
     *,
     colunas: Mapping[str, ColunaSpec],
-    barra: str,
+    barra: str | None = None,
     rotulo_barra: str | None = None,
     escala: Escala = "neutra",
     ordenar_por: str | None = None,
@@ -843,12 +843,16 @@ def tabela_com_barra(
     if limite:
         dados = dados.head(limite)
 
-    valores_barra = pd.to_numeric(dados[barra], errors="coerce")
-    maximo = float(valores_barra.abs().max() or 0) or 1.0
-    spec_barra = colunas.get(barra)
-    texto_max = (
-        _formatar_coluna(pd.Series([maximo]), spec_barra).iloc[0] if spec_barra else fmt.numero(maximo, 0)
-    )
+    # ``barra=None``: tabela sem barra embutida. Uma matriz (indicador x ano) nao
+    # tem uma coluna unica de magnitude para normalizar.
+    if barra is not None:
+        valores_barra = pd.to_numeric(dados[barra], errors="coerce")
+        maximo = float(valores_barra.abs().max() or 0) or 1.0
+        spec_barra = colunas.get(barra)
+        texto_max = (
+            _formatar_coluna(pd.Series([maximo]), spec_barra).iloc[0] if spec_barra
+            else fmt.numero(maximo, 0)
+        )
 
     saida = pd.DataFrame(index=dados.index)
     config: dict[str, Any] = {}
@@ -859,16 +863,17 @@ def tabela_com_barra(
         config[spec.rotulo] = st.column_config.TextColumn(
             spec.rotulo, help=spec.ajuda, width=spec.largura
         )
-    nome_barra = rotulo_barra or (spec_barra.rotulo if spec_barra else barra)
-    coluna_barra = f"{nome_barra} ▮"
-    saida[coluna_barra] = (valores_barra.abs() / maximo * 100).fillna(0.0)
-    config[coluna_barra] = st.column_config.ProgressColumn(
-        coluna_barra,
-        help=f"Barra normalizada pelo maior valor visivel: {texto_max}. Escala {escala}.",
-        format="%.0f%%",
-        min_value=0.0,
-        max_value=100.0,
-    )
+    if barra is not None:
+        nome_barra = rotulo_barra or (spec_barra.rotulo if spec_barra else barra)
+        coluna_barra = f"{nome_barra} ▮"
+        saida[coluna_barra] = (valores_barra.abs() / maximo * 100).fillna(0.0)
+        config[coluna_barra] = st.column_config.ProgressColumn(
+            coluna_barra,
+            help=f"Barra normalizada pelo maior valor visivel: {texto_max}. Escala {escala}.",
+            format="%.0f%%",
+            min_value=0.0,
+            max_value=100.0,
+        )
     extras: dict[str, Any] = {}
     if altura:
         extras["height"] = altura

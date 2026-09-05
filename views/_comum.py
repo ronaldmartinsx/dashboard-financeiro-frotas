@@ -484,7 +484,9 @@ def barra_qualidade(df_alertas: pd.DataFrame | None, *, tema: Tema = "claro") ->
         (df_alertas["pagina"] == 0) & (df_alertas["nivel"].isin(("vermelho", "ambar")))
     ]
     for _, linha in linhas.iterrows():
-        ui.nota_armadilha(f"{linha['id']} · {linha['detalhe']}")
+        # Sem o id da regra ("A18 ·"): e rastreabilidade com docs/01_kpis.md, nao
+        # informacao para quem le o painel.
+        ui.nota_armadilha(str(linha["detalhe"]))
 
 
 # --------------------------------------------------------------------------

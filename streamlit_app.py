@@ -240,7 +240,7 @@ def barra_lateral(opcoes: dict[str, list[str]], clientes: pd.DataFrame, *, pagin
             for chave in (
                 "preset_periodo", "comp_ini", "comp_fim", "f_segmentos", "f_portes",
                 "f_ratings", "f_tipos_contrato", "f_clientes", "faixa_aging",
-                "meta_indicador", "meta_por_segmento",
+                "meta_segmento_indicador", "meta_por_segmento",
             ):
                 st.session_state.pop(chave, None)
             st.rerun()
