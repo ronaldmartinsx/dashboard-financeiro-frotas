@@ -173,9 +173,14 @@ def estilos(tema: Tema = "claro") -> None:
   background: var(--fv-superficie);
   border: 1px solid var(--fv-borda); border-radius: var(--fv-raio);
   border-left-width: 4px; border-left-style: solid;
-  padding: {esp['md']}px {esp['lg']}px; margin-bottom: {esp['sm']}px;
+  padding: {esp['md']}px {esp['lg']}px;
+  /* Respiro acima: o banner agora vem logo abaixo da faixa de KPIs e, sem esta
+     margem, encostava nos cards. */
+  margin: {esp['lg']}px 0 {esp['sm']}px;
   font-family: {theme.FONTE};
 }}
+/* Banners consecutivos nao repetem o respiro: so o primeiro se afasta dos cards. */
+.fv-banner + .fv-banner {{ margin-top: 0; }}
 .fv-banner__glifo {{ font-size: {tp['corpo']}px; line-height: 1.4; }}
 .fv-banner__corpo {{ display: flex; flex-direction: column; gap: 2px; min-width: 0; }}
 .fv-banner__titulo {{

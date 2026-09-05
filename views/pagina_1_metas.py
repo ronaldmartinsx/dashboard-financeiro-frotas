@@ -88,17 +88,16 @@ itens = []
 for tipo in metas.TIPOS_META:
     reg = base.linha_meta(comp, tipo)
     percentual = reg is not None and str(reg.get("unidade")) == "%"
-    janela = base.texto_periodo(reg.get("periodo_realizado")) if reg is not None else ""
     meta_alinhada = None if reg is None else reg.get("meta_alinhada")
     if reg is None:
         rodape_meta = None
         contexto_anual = None
     elif percentual:
-        rodape_meta = f"vs. meta {janela} = {fmt.percentual(meta_alinhada, 2)}"
+        rodape_meta = f"meta: {fmt.percentual(meta_alinhada, 2)}"
         contexto_anual = f"ano cheio: {fmt.pontos_percentuais(reg.get('variacao_abs_anual'))}"
     else:
-        rodape_meta = f"vs. meta {janela} = {fmt.moeda_compacta(meta_alinhada)}"
-        contexto_anual = f"meta do ano cheio: {fmt.moeda_compacta(reg.get('meta_anual'))}"
+        rodape_meta = f"meta: {fmt.moeda_compacta(meta_alinhada)}"
+        contexto_anual = f"ano cheio: {fmt.moeda_compacta(reg.get('meta_anual'))}"
     itens.append(
         {
             "rotulo": rot.valor(tipo),

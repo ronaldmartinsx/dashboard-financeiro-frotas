@@ -70,7 +70,7 @@ custo_total = base.soma(mensal, "custo_total")
 def _peso(valor: float | None) -> str | None:
     if valor is None or not custo_total:
         return None
-    return f"{fmt.percentual(valor / custo_total * 100, 1)} do custo do período"
+    return f"{fmt.percentual(valor / custo_total * 100, 1)} do custo"
 
 
 custo_fixo = base.soma(mensal, "custo_fixo")
@@ -84,7 +84,7 @@ base.faixa_kpis(
             "rotulo": "Custo de contratos" if escopo_contratos else "Custo operacional",
             "valor": custo_total, "unidade": "brl", "chave_direcao": "custo_operacional",
             "estado": "sem_meta" if custo_total is not None else "erro",
-            "nota": "no período selecionado",
+            "nota": None,
             "badges": badges_escopo,
             "ajuda": "Todo o custo do período, com depreciação e com o veículo parado. Com "
                      "recorte de cliente ou de contrato só entra o custo alocado a contrato.",
@@ -112,7 +112,7 @@ base.faixa_kpis(
             "valor": None if escopo_contratos else custo_ocioso, "unidade": "brl",
             "chave_direcao": "custo_ociosidade",
             "estado": "sem_dado" if escopo_contratos else "sem_meta",
-            "nota": ("não existe no escopo de contratos: veículo parado não tem cliente"
+            "nota": ("fora do escopo: veículo parado não tem cliente"
                      if escopo_contratos else _peso(custo_ocioso)),
             "badges": badges_escopo,
             "ajuda": "Custo das linhas sem contrato: pátio, seguro e depreciação do veículo "
@@ -212,7 +212,7 @@ with col_cat:
         base.barra_horizontal(
             fig, rot.valores(categorias["categoria_custo"]), list(categorias["custo_total"]),
             cores=cores, textos=textos, tema=ctx.tema,
-            hover=[f"{rot.valor(c)}<br>{fmt.moeda(v)}<br>{fmt.percentual(p, 1)} do custo do período"
+            hover=[f"{rot.valor(c)}<br>{fmt.moeda(v)}<br>{fmt.percentual(p, 1)} do custo"
                    for c, v, p in zip(categorias["categoria_custo"], categorias["custo_total"],
                                       categorias["participacao_pct"])],
         )
@@ -328,7 +328,7 @@ else:
                 row=1, col=1,
             )
         fig.update_layout(**theme.layout_grafico(ctx.tema))
-        fig.update_layout(height=440, showlegend=False, hovermode="x unified", bargap=0.3)
+        fig.update_layout(height=380, showlegend=False, hovermode="x unified", bargap=0.3)
         fig.update_yaxes(
             title_text="% da frota do mês", title_font_size=theme.TIPOGRAFIA["nota"],
             ticksuffix="%", rangemode="tozero", gridcolor=t.grade, linecolor=t.eixo, row=1, col=1,

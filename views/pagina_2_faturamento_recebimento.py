@@ -75,7 +75,7 @@ base.faixa_kpis(
             "rotulo": "Faturamento bruto",
             "valor": base.celula(resumo, "faturamento_bruto"),
             "unidade": "brl", "chave_direcao": "faturamento_bruto", "estado": "sem_meta",
-            "nota": "emitido no período, antes de impostos",
+            "nota": "antes de impostos",
             "ajuda": "Somado pelo mês de competência (o mês do serviço), não pela data de emissão.",
         },
         {
@@ -109,7 +109,7 @@ base.faixa_kpis(
             "rotulo": "Ticket médio",
             "valor": base.celula(resumo, "ticket_medio"),
             "unidade": "brl", "chave_direcao": "ticket_medio", "estado": "sem_meta",
-            "nota": f"{fmt.contagem(base.celula(resumo, 'qtd_titulos'))} faturas no período",
+            "nota": f"{fmt.contagem(base.celula(resumo, 'qtd_titulos'))} faturas",
             "ajuda": "Faturamento bruto dividido pela quantidade de faturas do período.",
         },
     ],
@@ -168,7 +168,7 @@ else:
             row=2, col=1,
         )
     fig.update_layout(**theme.layout_grafico(ctx.tema))
-    fig.update_layout(height=460, showlegend=False, hovermode="x unified", bargap=0.25)
+    fig.update_layout(height=390, showlegend=False, hovermode="x unified", bargap=0.25)
     for linha, titulo in ((1, "Mês de competência"), (2, "Mês do pagamento")):
         fig.update_xaxes(
             tickmode="array", tickvals=base.datas_de(meses), ticktext=base.rotulos_mensais(meses),

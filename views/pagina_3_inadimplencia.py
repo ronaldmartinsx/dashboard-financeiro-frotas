@@ -120,7 +120,7 @@ base.faixa_kpis(
             "rotulo": "Carteira em aberto",
             "valor": carteira, "unidade": "brl", "chave_direcao": "carteira_vencida",
             "estado": "sem_meta" if carteira is not None else "erro",
-            "nota": "tudo que ainda não foi pago, vencido ou a vencer",
+            "nota": "vencido ou a vencer",
             "badges": badge_foto,
             "ajuda": "Exclui faturas pagas, canceladas e baixadas até essa data.",
         },
@@ -137,7 +137,7 @@ base.faixa_kpis(
             "rotulo": "Vencido há mais de 180 dias",
             "valor": acima_180, "unidade": "brl", "chave_direcao": "carteira_vencida",
             "estado": "sem_meta" if acima_180 is not None else "erro",
-            "nota": "a regra baixa a fatura aos 365 dias de vencimento",
+            "nota": "vira baixa aos 365 dias",
             "badges": badge_foto,
             "ajuda": "A faixa mais antiga da carteira: é dela que sai a perda provável.",
         },
@@ -317,7 +317,7 @@ else:
     ordem_rating = ["A", "B", "C", "D"]
     cor_por_rating = dict(zip(ordem_rating, theme.rampa("neutra", ctx.tema, 4, ordinal=True)))
 
-    fig = base.nova_figura(ctx.tema, altura=420, hovermode="closest")
+    fig = base.nova_figura(ctx.tema, altura=360, hovermode="closest")
     maior_venc = base.maximo_da_coluna(risco_cli, "vencido_30d_mais", 1.0) or 1.0
     for nota_rating in ordem_rating:
         grupo = risco_cli[risco_cli["rating_credito"] == nota_rating]
