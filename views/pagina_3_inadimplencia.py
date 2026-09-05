@@ -253,7 +253,6 @@ with col_rat:
     else:
         rating = rating.sort_values("rating_credito")
         total_venc = float(pd.to_numeric(rating["vencido_30d_mais"], errors="coerce").sum()) or 1.0
-        passos = theme.rampa("neutra", ctx.tema, max(2, len(rating)), ordinal=True)
         fig = base.nova_figura(ctx.tema, altura=210, hovermode="closest",
                                margin={"l": 16, "r": 16, "t": 8, "b": 48})
         base.barra_empilhada_100(
@@ -262,8 +261,9 @@ with col_rat:
                 (f"Rating {linha['rating_credito']}",
                  float(linha["vencido_30d_mais"]) / total_venc * 100,
                  float(linha["vencido_30d_mais"]),
-                 passos[min(posicao, len(passos) - 1)])
-                for posicao, (_, linha) in enumerate(rating.iterrows())
+                 # Mesma escala do scatter e da fila: A verde ... D vermelho.
+                 theme.cor_rating(str(linha["rating_credito"]), ctx.tema))
+                for _, linha in rating.iterrows()
             ],
             tema=ctx.tema,
         )
@@ -362,8 +362,15 @@ else:
     fila = aging_cli.copy()
     for coluna in ("pct_vencido_30d", "uso_limite_pct"):
         fila[coluna] = pd.to_numeric(fila[coluna], errors="coerce")
+    # Com faixa escolhida, a fila passa a ser **daquela faixa**: filtra, ordena
+    # por ela e mostra a coluna correspondente. Antes o recorte so filtrava e a
+    # ordem seguia o vencido total -- com 47 clientes em "A vencer" e 20 em
+    # "180+d", o corte em 20 linhas devolvia quase a mesma lista, e clicar
+    # parecia nao fazer nada.
+    coluna_ordem = "vencido_30d_mais"
     if faixa_escolhida and faixa_escolhida in fila.columns:
         fila = fila[pd.to_numeric(fila[faixa_escolhida], errors="coerce").fillna(0) > 0]
+        coluna_ordem = faixa_escolhida
     ambar_a8, vermelho_a8 = base.limiares_de(df_alertas, "A8")
 
     def _uso_limite(valor: float | None) -> str:
@@ -380,7 +387,7 @@ else:
     fila["uso_limite_txt"] = fila["uso_limite_pct"].map(_uso_limite)
     fila["segmento"] = fila["segmento"].map(rot.valor)
     fila["porte"] = fila["porte"].map(rot.valor)
-    fila = fila.sort_values("vencido_30d_mais", ascending=False).head(20).reset_index(drop=True)
+    fila = fila.sort_values(coluna_ordem, ascending=False).head(20).reset_index(drop=True)
     selecao = ui.tabela_com_barra(
         fila,
         colunas={
@@ -395,6 +402,10 @@ else:
                 "Vencido", "brl_compacto",
                 ajuda="Valor vencido há mais de 30 dias e ainda não pago nessa data.",
             ),
+            **({faixa_escolhida: ui.ColunaSpec(
+                rot.faixa_aging(faixa_escolhida), "brl_compacto",
+                ajuda="Saldo do cliente na faixa escolhida acima, que ordena esta lista.",
+            )} if faixa_escolhida and faixa_escolhida in fila.columns else {}),
             "pct_vencido_30d": ui.ColunaSpec(
                 "% da receita", "pct",
                 ajuda="Quanto o vencido representa do que esse cliente faturou nos "
@@ -408,7 +419,7 @@ else:
         # A coluna de rating sai colorida: mesma escala do grafico acima.
         pintar={"rating_credito": [theme.RATING_NIVEL.get(str(r).strip().upper(), "neutro")
                                    for r in fila["rating_credito"]]},
-        barra="vencido_30d_mais",
+        barra=coluna_ordem,
         rotulo_barra="Peso",
         escala="risco",
         ordenar_por=None,
