@@ -46,13 +46,15 @@ st.markdown(
 ui.cabecalho_secao("Como navegar e usar os filtros?")
 st.markdown(
     f"""
-- **Período**: escolhe os meses que entram na conta do que foi faturado, recebido e gasto.
-- **Ver como estava em**: escolhe o dia da leitura, ou seja, o que ainda não tinha sido pago
-  naquela data. É independente do período e o padrão é
+- **A barra lateral muda conforme a página.** Cada uma mostra só os filtros que valem
+  para a análise dela, agrupados em **Quando** e **Recortes**.
+- **Quando**: escolhe o intervalo de tempo. Na maioria das páginas é um período de meses;
+  na de Metas é o ano do orçamento; na de Inadimplência é uma data única, porque ali a
+  pergunta é "como estava a carteira naquele dia". O padrão é sempre
   {fmt.data_br(config.DATA_EXTRACAO)}, o último dia com dados.
 - **Recortes**: segmento, porte, rating de crédito, tipo de contrato e cliente.
-- **O que está no topo da página** repete os filtros em uso, para você saber a que recorte
-  os números se referem sem precisar abrir a barra lateral.
+- **O topo da página repete os filtros em uso**, para você saber a que recorte os números
+  se referem sem precisar abrir a barra lateral.
 - **Cinza não é zero**: quando um bloco não se aplica ao recorte escolhido, ele aparece
   em cinza com o motivo. Cinza quer dizer "não se aplica", não "está bom".
 """
@@ -69,7 +71,7 @@ st.markdown(
 | **Faturamento** | Valor emitido, somado pelo **mês de competência** (o mês do serviço), antes de impostos. Inclui faturas que viriam a ser canceladas depois da data de referência. | Faturas já canceladas **naquela data**. O cancelamento é avaliado na data de referência, não pela situação atual da fatura. |
 | **Recebimento** | Dinheiro que entrou, somado pela **data de pagamento**, com juros e multa. | O faturamento do mesmo mês: a defasagem típica entre emitir e receber é de 1 a 3 meses. As duas séries não somam e nunca aparecem no mesmo eixo. |
 | **Inadimplência** | Valor vencido **há mais de 30 dias**, não pago e não cancelado **na data de referência**, dividido pelo faturamento bruto dos **12 meses de competência** que terminam nessa data. | Vencimentos de até 30 dias, faturas pagas e faturas canceladas até a data. Sem o corte de cancelamento na data, o indicador salta de 9,4% para 18,7%. |
-| **Meta** | A versão **vigente** do orçamento do ano. Em ano parcial, a comparação usa a soma das metas **dos mesmos meses** já realizados. | A versão substituída do orçamento (2026 tem duas; somar as duas dobraria o ano) e a meta do ano cheio como base de comparação de um ano incompleto. |
+| **Meta** | O orçamento **em vigor** do ano. Quando o ano ainda não fechou, a comparação usa só os meses já realizados: em agosto, o realizado de janeiro a agosto contra a meta de janeiro a agosto. | A meta do ano inteiro como base de comparação de um ano incompleto: ela faria oito meses de realizado parecerem muito abaixo do plano. |
 | **Custo** | Todo o custo operacional do mês, incluindo depreciação e o custo do **veículo parado**, que não tem contrato. | Nada, mas com recorte de cliente ou de contrato o pátio sai da conta e o indicador passa a se chamar Custo de Contratos. |
 """
 )

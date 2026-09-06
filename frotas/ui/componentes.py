@@ -874,6 +874,15 @@ def tabela_com_barra(
         config[spec.rotulo] = st.column_config.TextColumn(
             spec.rotulo, help=spec.ajuda, width=spec.largura
         )
+    # ``cor_barra``: a ProgressColumn nativa **nao** aceita cor -- ela usa o
+    # ``primaryColor`` do tema, igual em toda tabela. E CSS nao resolve: o
+    # ``st.dataframe`` desenha a grade em ``<canvas>`` (glide-data-grid), entao
+    # nao existe elemento no DOM para pintar. Com cor pedida, a barra passa a ser
+    # uma coluna de texto em blocos, colorida pelo Styler -- que e o mesmo caminho
+    # ja usado em ``pintar``/``pintar_fundo`` e funciona.
+    barras_em_texto = bool(cor_barra) and bool(colunas_barra)
+    pintadas_barra: dict[str, str] = {}
+
     for posicao, nome_col in enumerate(colunas_barra):
         if nome_col not in dados.columns:
             continue
@@ -895,6 +904,25 @@ def tabela_com_barra(
             else (spec_barra.rotulo if spec_barra else nome_col)
         )
         coluna_barra = f"{nome_barra} ▮"
+        if barras_em_texto:
+            proporcao = (
+                valores_barra.abs().clip(upper=100.0) / 100.0 if eh_percentual
+                else valores_barra.abs() / maximo
+            ).fillna(0.0)
+            saida[coluna_barra] = [
+                "█" * max(0, min(10, round(float(x) * 10)))
+                + "░" * (10 - max(0, min(10, round(float(x) * 10))))
+                for x in proporcao
+            ]
+            config[coluna_barra] = st.column_config.TextColumn(
+                coluna_barra,
+                help=("Barra na escala do proprio indicador, de 0% a 100%."
+                      if eh_percentual
+                      else f"Barra normalizada pelo maior valor visivel: {texto_max}."),
+                width="small",
+            )
+            pintadas_barra[coluna_barra] = cor_barra or ""
+            continue
         saida[coluna_barra] = (
             valores_barra.abs().clip(upper=100.0) if eh_percentual
             else valores_barra.abs() / maximo * 100
@@ -911,19 +939,6 @@ def tabela_com_barra(
             min_value=0.0,
             max_value=100.0,
         )
-    # ``cor_barra``: o ProgressColumn nao aceita cor -- ela vem do ``primaryColor``
-    # do tema, que e global. Escopar por ``st.container(key=...)``, que o Streamlit
-    # renderiza com a classe ``st-key-<key>``, permite dar a cada tabela a cor do
-    # indicador da sua pagina (custo laranja, inadimplencia vermelha) em vez do
-    # azul do tema em todas.
-    if cor_barra and chave:
-        st.markdown(
-            f"<style>.st-key-{chave}-barra [data-testid='stDataFrameResizable'] "
-            f"div[role='progressbar'] > div {{ background-color: {cor_barra} !important; }}"
-            f"</style>",
-            unsafe_allow_html=True,
-        )
-
     extras: dict[str, Any] = {}
     if altura:
         extras["height"] = altura
@@ -934,7 +949,7 @@ def tabela_com_barra(
     # ``pintar``: {coluna original: nivel por linha}. Serve para a coluna de
     # rating de credito, onde a cor **e** a informacao (A verde ... D vermelho).
     corpo: Any = saida
-    if pintar or pintar_fundo:
+    if pintar or pintar_fundo or pintadas_barra:
         mapa = {colunas[c].rotulo: list(n) for c, n in (pintar or {}).items() if c in colunas}
         mapa_fundo = {
             colunas[c].rotulo: list(n) for c, n in (pintar_fundo or {}).items() if c in colunas
@@ -951,6 +966,10 @@ def tabela_com_barra(
             # Fundo cheio: usado onde o valor e um rotulo curto (rating), em que a
             # celula inteira vira a marca. O texto vai na cor da superficie do
             # tema, para contrastar com a marca em qualquer nivel.
+            # Barra em blocos: a coluna inteira na cor do indicador da pagina.
+            for rotulo, cor in pintadas_barra.items():
+                if rotulo in estilo.columns:
+                    estilo[rotulo] = f"color: {cor}; letter-spacing: -1px"
             for rotulo, niveis in mapa_fundo.items():
                 if rotulo in estilo.columns and len(niveis) == len(estilo):
                     estilo[rotulo] = [
@@ -963,12 +982,6 @@ def tabela_com_barra(
 
         corpo = saida.style.apply(_pintar_colunas, axis=None)
 
-    if cor_barra and chave:
-        with st.container(key=f"{chave}-barra"):
-            return st.dataframe(
-                corpo, column_config=config, hide_index=True,
-                width="stretch", key=chave, **extras,
-            )
     return st.dataframe(
         corpo,
         column_config=config,
