@@ -329,20 +329,27 @@ else:
             )
     minimo_fat = float(pd.to_numeric(risco_cli["faturamento_bruto_12m"], errors="coerce").min() or 1)
     razao = base.maximo_da_coluna(risco_cli, "faturamento_bruto_12m", 1.0) / max(minimo_fat, 1.0)
+    # Titulos curtos: 62 caracteres deitados no eixo Y roubavam largura do grafico
+    # e obrigavam a ler de lado. A definicao completa esta no hover e na nota.
+    # nticks limitado porque a escala log amontoa marcas (1M, 2M, 5M, 10M...) e os
+    # numeros encostavam uns nos outros.
     fig.update_xaxes(
-        title_text="R$ faturado ao cliente nos últimos 12 meses",
+        title_text="Faturamento em 12 meses",
         title_font_size=theme.TIPOGRAFIA["nota"], tickformat=".2s",
         type="log" if razao > 100 else "linear",
+        nticks=6,
     )
     fig.update_yaxes(
-        title_text="Parcela do próprio faturamento de 12 meses vencida há mais de 30 dias",
+        title_text="% vencido do cliente",
         title_font_size=theme.TIPOGRAFIA["nota"], ticksuffix="%", rangemode="tozero",
+        nticks=6,
     )
     fig.update_layout(showlegend=True, legend={"orientation": "h", "y": 1.12, "x": 0})
     base.mostrar_grafico(
         fig, chave="p3_clientes",
-        nota="Tamanho da bolha é o valor vencido; anel vermelho marca quem passou do limiar "
-             "crítico da regra de crédito.",
+        nota="Tamanho da bolha é o valor vencido e a cor é o rating. O eixo vertical mostra "
+             "quanto do faturamento de 12 meses do próprio cliente está vencido há mais de "
+             "30 dias.",
         dados=risco_cli,
     )
 

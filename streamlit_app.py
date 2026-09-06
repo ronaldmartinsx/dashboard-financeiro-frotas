@@ -177,6 +177,19 @@ def barra_lateral(opcoes: dict[str, list[str]], clientes: pd.DataFrame, *, pagin
         if [c for c in ("periodo", "data") if c in exibidos]:
             st.caption("**Quando**")
 
+        if "ano" in exibidos:
+            anos = sorted({d.year for d in meses})
+            escolhido = st.selectbox(
+                "Exercício", options=anos,
+                index=anos.index(st.session_state.get("comp_fim", meses[-1]).year)
+                if st.session_state.get("comp_fim", meses[-1]).year in anos else len(anos) - 1,
+                key="ano_exercicio",
+                help="O ano orçado que a página compara: meta, realizado e série mensal.",
+            )
+            # O resto do app conversa em competencia; o ano vira o intervalo dele.
+            do_ano = [d for d in meses if d.year == escolhido]
+            comp_ini, comp_fim = do_ano[0], do_ano[-1]
+
         if "periodo" in exibidos:
             # Um seletor no lugar de seis opcoes empilhadas, e os campos De/Ate
             # so quando o usuario pede: antes eram tres controles sempre visiveis
@@ -246,7 +259,7 @@ def barra_lateral(opcoes: dict[str, list[str]], clientes: pd.DataFrame, *, pagin
         st.divider()
         if st.button("Limpar filtros", icon=":material/filter_alt_off:", width="stretch"):
             for chave in (
-                "preset_periodo", "comp_ini", "comp_fim", "f_segmentos", "f_portes",
+                "preset_periodo", "comp_ini", "comp_fim", "ano_exercicio", "f_segmentos", "f_portes",
                 "f_ratings", "f_tipos_contrato", "f_clientes", "faixa_aging",
                 "meta_segmento_indicador",
             ):

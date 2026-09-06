@@ -53,9 +53,11 @@ ficam no topo, e não num rodapé, porque contexto de apuração se lê antes do
 o recorte só existia na barra lateral, invisível com ela recolhida.
 
 **Cada página exibe apenas os filtros que mudam os números dela** (`FILTROS_DA_PAGINA` em
-`views/_comum.py`, derivado de `filtros.politica_filtros()`). Metas não lista porte, rating,
-tipo de contrato nem cliente, porque o orçamento só existe nos níveis Empresa e Segmento;
-Inadimplência não lista período, porque a página é uma leitura numa data. Filtro visível que
+`views/_comum.py`, derivado de `filtros.politica_filtros()`). Metas troca o período por um
+seletor de **exercício**, porque tudo ali é por ano, e não lista porte, rating, tipo de
+contrato nem cliente, porque o orçamento só existe nos níveis Empresa e Segmento;
+Inadimplência não lista período, porque a página é uma leitura numa data; Custos não lista
+data, porque seus números são todos por competência. Filtro visível que
 não faz nada é pior que filtro nenhum: o usuário mexe e conclui que o dashboard quebrou.
 
 Duas regras editoriais que o código sustenta: **uma pergunta central por página,

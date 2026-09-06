@@ -308,12 +308,20 @@ ui.tabela_com_barra(
         "nome_cliente": ui.ColunaSpec("Cliente", "texto", largura="large"),
         "segmento": ui.ColunaSpec("Segmento", "texto", largura="medium"),
         "porte": ui.ColunaSpec("Porte", "texto", largura="small"),
-        "rating_credito": ui.ColunaSpec("Rating de crédito", "texto", largura="small"),
+        "rating_credito": ui.ColunaSpec("Rating", "texto", largura="small"),
         "faturamento_bruto": ui.ColunaSpec("Faturamento bruto", "brl_compacto"),
         "receita_liquida": ui.ColunaSpec("Receita líquida", "brl_compacto"),
         "qtd_titulos": ui.ColunaSpec("Faturas", "num", largura="small"),
         "participacao_pct": ui.ColunaSpec("Participação", "pct", casas=2),
     },
+    # Mesma escala de rating da pagina de inadimplencia: a celula inteira vira a
+    # marca (A verde ... D vermelho). Um cliente grande com rating D e exatamente
+    # o que esta tabela existe para mostrar.
+    pintar_fundo=(
+        {"rating_credito": [theme.RATING_NIVEL.get(str(r).strip().upper(), "neutro")
+                            for r in top["rating_credito"]]}
+        if top is not None and "rating_credito" in top.columns else None
+    ),
     barra="faturamento_bruto",
     rotulo_barra="Peso",
     escala="neutra",

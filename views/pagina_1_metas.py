@@ -361,17 +361,22 @@ def _grafico_mensal(tipo: str, chave: str, *, altura: int, com_legenda: bool) ->
     base.mostrar_grafico(fig, chave=chave, dados=serie.drop(columns=["x"]))
 
 
-# Faturamento em largura inteira (e a serie que abre a leitura); os outros quatro
-# em duas linhas de dois, para caber num bater de olho sem rolar.
-_grafico_mensal(metas.TIPOS_META[0], "p1_mensal_0", altura=300, com_legenda=True)
+# Recebimento em largura inteira, nao faturamento: o dinheiro que **entrou** e o
+# que decide o mes. Faturar e promessa; a leitura central do dataset e que
+# faturamento e caixa vao bem e a crise e de credito -- e quem mostra o caixa e
+# esta serie. Os outros quatro ficam em duas linhas de dois.
+DESTAQUE = "Recebimento (Caixa)"
+ORDEM_MENSAL = [DESTAQUE] + [t for t in metas.TIPOS_META if t != DESTAQUE]
+
+_grafico_mensal(ORDEM_MENSAL[0], "p1_mensal_0", altura=300, com_legenda=True)
 for a, b in ((1, 2), (3, 4)):
     # gap largo: em "medium" os quatro graficos encostavam uns nos outros e a
     # faixa parecia um bloco so.
     col_a, col_b = st.columns(2, gap="large")
     with col_a:
-        _grafico_mensal(metas.TIPOS_META[a], f"p1_mensal_{a}", altura=250, com_legenda=False)
+        _grafico_mensal(ORDEM_MENSAL[a], f"p1_mensal_{a}", altura=250, com_legenda=False)
     with col_b:
-        _grafico_mensal(metas.TIPOS_META[b], f"p1_mensal_{b}", altura=250, com_legenda=False)
+        _grafico_mensal(ORDEM_MENSAL[b], f"p1_mensal_{b}", altura=250, com_legenda=False)
 ui.nota_armadilha(
     "A inadimplência é o valor do último dia de cada mês, não a soma dos meses. "
     "Meses ainda sem realizado ficam vazios, nunca zerados."

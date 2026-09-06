@@ -73,7 +73,11 @@ ROTAS: Mapping[int, str] = {
 #:   fatura de 2024 ainda vencida conta nela.
 FILTROS_DA_PAGINA: Mapping[int, tuple[str, ...]] = {
     0: (),
-    1: ("periodo", "segmento"),
+    # Metas usa "ano", nao "periodo": tudo na pagina e por exercicio (a meta e
+    # anual, a serie mensal cobre os 12 meses do ano, a matriz compara ano a ano).
+    # Com o filtro de periodo, trocar "Ultimos 12 meses" por "Todo o periodo"
+    # mantinha 2026 nos dois casos e nada mudava na tela -- parecia quebrado.
+    1: ("ano", "segmento"),
     2: ("periodo", "data", "segmento", "porte", "rating", "tipo_contrato", "cliente"),
     3: ("data", "segmento", "porte", "rating", "tipo_contrato", "cliente"),
     # Custos nao lista "data": os numeros da pagina sao todos por competencia, e a
@@ -169,7 +173,11 @@ def chips_contexto(
         chips = [f"Dados de {fmt.periodo(ini, fim)}"]
     else:
         ini, fim, quando = f.inicio, f.fim, ctx.data_ref
-        chips = [f"Período de {fmt.periodo(ini, fim)}"] if "periodo" in exibidos else []
+        chips = []
+        if "ano" in exibidos:
+            chips.append(f"Exercício {fim.year}")
+        elif "periodo" in exibidos:
+            chips.append(f"Período de {fmt.periodo(ini, fim)}")
         if "data" in exibidos:
             chips.append(f"Como estava em {fmt.data_br(quando)}")
     for chave, rotulo, valores in (
