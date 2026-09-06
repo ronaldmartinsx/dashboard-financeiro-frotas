@@ -148,13 +148,14 @@ else:
     # sao R$ na mesma escala, entao dividem o eixo sem distorcer -- e e justamente
     # a distancia entre a barra e a linha que interessa. O empilhado anterior
     # obrigava o olho a saltar entre dois paineis para comparar o mesmo mes.
+    rotulos_fat = base.rotulos_de_barra(fat["faturamento_bruto"])
     fig = base.nova_figura(ctx.tema, altura=380)
     fig.add_trace(
         go.Bar(
             x=base.datas_de(meses), y=fat["faturamento_bruto"], name="Faturado",
             marker={"color": theme.cor_indicador("Faturamento", ctx.tema),
                     "line": {"color": t.superficie, "width": theme.FOLGA_ENTRE_MARCAS}},
-            **base.rotulos_de_barra(fat["faturamento_bruto"]),
+            **rotulos_fat,
             hovertemplate="competência %{x|%b/%Y}: R$ %{y:,.0f}<extra>Faturado</extra>",
         )
     )
@@ -178,6 +179,9 @@ else:
     fig.update_yaxes(
         title_text="R$ no mês", title_font_size=theme.TIPOGRAFIA["nota"],
         tickformat=".2s", range=[0, teto * 1.15 if teto else 1],
+        # Com rotulo em cada barra o eixo repetiria a leitura; sem ele (muitos
+        # meses), o eixo volta a ser a unica referencia.
+        showticklabels=not rotulos_fat,
     )
     fig.update_layout(
         hovermode="x unified", bargap=0.25,

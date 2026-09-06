@@ -177,6 +177,7 @@ def moeda_compacta(
     casas: int | None = None,
     com_sinal: bool = False,
     vazio: str = VAZIO,
+    prefixo: bool = True,
 ) -> str:
     """Moeda abreviada. ``3_192_000`` -> ``R$ 3,19 mi``; ``655_000`` -> ``R$ 655,0 mil``.
 
@@ -188,11 +189,15 @@ def moeda_compacta(
     Abaixo de R$ 1.000 nao abrevia: ``R$ 847,20``. Zero exato sai ``R$ 0``, sem
     casas, para nao competir visualmente com valores reais.
     """
+    # ``prefixo=False`` omite o "R$": usado em rotulo de dado dentro de grafico
+    # cujo titulo de eixo ja diz a unidade ("R$ no mes"). Repetir o cifrao em cada
+    # marca so rouba espaco da barra.
+    marca = "R$ " if prefixo else ""
     if eh_vazio(valor):
         return vazio
     v = float(valor)
     if v == 0:
-        return "R$ 0"
+        return f"{marca}0" if prefixo else "0"
     absoluto = abs(v)
     for corte, sufixo, padrao in _ESCALAS:
         if absoluto >= corte:
@@ -200,8 +205,13 @@ def moeda_compacta(
             sinal, corpo = _partes(v / corte, n)
             if com_sinal and not sinal:
                 sinal = MAIS
-            return f"{sinal}R$ {corpo} {sufixo}"
-    return moeda(v, casas if casas is not None else 2, com_sinal=com_sinal)
+            return f"{sinal}{marca}{corpo} {sufixo}"
+    if prefixo:
+        return moeda(v, casas if casas is not None else 2, com_sinal=com_sinal)
+    sinal, corpo = _partes(v, casas if casas is not None else 2)
+    if com_sinal and not sinal:
+        sinal = MAIS
+    return f"{sinal}{corpo}"
 
 
 # --------------------------------------------------------------------------

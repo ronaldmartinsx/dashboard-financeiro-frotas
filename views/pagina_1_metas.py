@@ -300,6 +300,7 @@ def _grafico_mensal(tipo: str, chave: str, *, altura: int, com_legenda: bool) ->
         return
     percentual = str(serie.iloc[0].get("unidade")) == "%"
     serie["x"] = base.datas_de(serie["ano_mes"])
+    rotulos = {} if percentual else base.rotulos_de_barra(serie["realizado"])
     fig = base.nova_figura(ctx.tema, altura=altura)
     if percentual:
         fig.add_trace(
@@ -317,10 +318,9 @@ def _grafico_mensal(tipo: str, chave: str, *, altura: int, com_legenda: bool) ->
                 marker={"color": theme.cor_indicador(tipo, ctx.tema),
                         "line": {"color": t.superficie, "width": theme.FOLGA_ENTRE_MARCAS}},
                 # Rotulo direto em cada barra: dispensa ler o eixo para saber o valor.
-                text=[fmt.moeda_compacta(v) for v in serie["realizado"]],
-                textposition="outside",
-                textfont={"size": theme.TIPOGRAFIA["nota"], "color": t.tinta_secundaria},
-                cliponaxis=False,
+                # Sem "R$" na marca: o titulo do eixo ja diz a unidade. O helper
+                # devolve {} acima de 14 marcas, e ai o eixo volta a mostrar ticks.
+                **rotulos,
                 hovertemplate="%{x|%b/%Y}: R$ %{y:,.0f}<extra>Realizado</extra>",
             )
         )
@@ -335,7 +335,7 @@ def _grafico_mensal(tipo: str, chave: str, *, altura: int, com_legenda: bool) ->
     if percentual:
         base.rotular_ultimo_ponto(
             fig, serie["x"], serie["realizado"],
-            fmt.percentual(serie["realizado"].iloc[-1], 2),
+            lambda v: fmt.percentual(v, 2),
             theme.cor_indicador(tipo, ctx.tema), tema=ctx.tema,
         )
     base.eixo_mensal(fig, list(serie["ano_mes"]))
@@ -345,6 +345,11 @@ def _grafico_mensal(tipo: str, chave: str, *, altura: int, com_legenda: bool) ->
         ticksuffix="%" if percentual else None,
         tickformat=None if percentual else ".2s",
         rangemode="tozero",
+        # Onde cada marca traz o proprio numero, os ticks seriam a mesma leitura
+        # pela regua. Onde o rotulo nao coube (muitos meses), o eixo volta -- do
+        # contrario o grafico ficaria sem numero nenhum. O titulo fica sempre,
+        # porque e ele que diz a unidade.
+        showticklabels=not rotulos,
     )
     fig.update_layout(
         showlegend=com_legenda,
@@ -360,7 +365,9 @@ def _grafico_mensal(tipo: str, chave: str, *, altura: int, com_legenda: bool) ->
 # em duas linhas de dois, para caber num bater de olho sem rolar.
 _grafico_mensal(metas.TIPOS_META[0], "p1_mensal_0", altura=300, com_legenda=True)
 for a, b in ((1, 2), (3, 4)):
-    col_a, col_b = st.columns(2, gap="medium")
+    # gap largo: em "medium" os quatro graficos encostavam uns nos outros e a
+    # faixa parecia um bloco so.
+    col_a, col_b = st.columns(2, gap="large")
     with col_a:
         _grafico_mensal(metas.TIPOS_META[a], f"p1_mensal_{a}", altura=250, com_legenda=False)
     with col_b:

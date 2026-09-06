@@ -608,10 +608,16 @@ def rotulos_de_barra(valores: Sequence[Any], *, compacto: bool = True) -> dict[s
 
     Rotulo direto dispensa ler o eixo Y para saber o valor de cada mes -- que e o
     ponto de um dashboard. Acima de :data:`MAX_MARCAS_ROTULADAS` marcas ele sai.
+
+    Sem o "R$" em cada marca: a unidade ja esta no titulo do eixo, e repeti-la
+    doze vezes rouba largura da barra sem informar nada.
     """
     if len(valores) > MAX_MARCAS_ROTULADAS:
         return {}
-    formatar = fmt.moeda_compacta if compacto else (lambda v: fmt.numero(v, 0))
+    formatar = (
+        (lambda v: fmt.moeda_compacta(v, prefixo=False)) if compacto
+        else (lambda v: fmt.numero(v, 0))
+    )
     return {
         "text": [formatar(v) for v in valores],
         "textposition": "outside",
@@ -620,8 +626,19 @@ def rotulos_de_barra(valores: Sequence[Any], *, compacto: bool = True) -> dict[s
     }
 
 
+def eixo_sem_ticks(fig: go.Figure, **extras: Any) -> None:
+    """Tira os valores do eixo Y, mantendo titulo e grade.
+
+    Onde cada marca ja traz o proprio numero, os ticks passam a ser uma segunda
+    leitura do mesmo dado -- e a mais dificil, porque exige a regua. O titulo
+    continua ali para dizer a unidade.
+    """
+    fig.update_yaxes(showticklabels=False, **extras)
+
+
 def rotular_ultimo_ponto(
-    fig: go.Figure, x: Sequence[Any], y: Sequence[Any], texto: str, cor: str, *, tema: Tema
+    fig: go.Figure, x: Sequence[Any], y: Sequence[Any],
+    texto: str | Callable[[Any], str], cor: str, *, tema: Tema,
 ) -> None:
     """Escreve o valor **do ultimo ponto** de uma serie, ao lado do marcador.
 
@@ -629,10 +646,23 @@ def rotular_ultimo_ponto(
     linha competem com ela. O ultimo ponto e o que responde "quanto esta agora"
     sem obrigar a ler o eixo.
     """
-    if not len(x) or not len(y) or texto in ("", fmt.VAZIO):
+    # O ultimo ponto **com valor**, nao o ultimo da serie: o mes corrente costuma
+    # vir vazio, e ancorar nele fazia a anotacao sumir sem aviso (era o caso da
+    # serie de inadimplencia, que ficava sem rotulo nenhum).
+    pares = [(px, py) for px, py in zip(list(x), list(y)) if not fmt.eh_vazio(py)]
+    if not pares:
+        return
+    ancora_x, ancora_y = pares[-1]
+    # ``texto`` pode ser um formatador: assim o rotulo sai do **mesmo** ponto em
+    # que a anotacao e ancorada. Passar a string pronta obrigava o chamador a
+    # adivinhar qual era o ultimo ponto com valor, e quem usava ``iloc[-1]``
+    # acabava formatando um vazio e perdendo a anotacao inteira.
+    if callable(texto):
+        texto = texto(ancora_y)
+    if texto in ("", fmt.VAZIO):
         return
     fig.add_annotation(
-        x=list(x)[-1], y=list(y)[-1], text=texto, showarrow=False,
+        x=ancora_x, y=ancora_y, text=texto, showarrow=False,
         xanchor="left", yanchor="middle", xshift=8,
         font={"size": theme.TIPOGRAFIA["nota"], "color": cor},
         bgcolor=theme.tokens(tema).superficie, borderpad=2,

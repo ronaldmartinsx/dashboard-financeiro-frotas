@@ -152,6 +152,7 @@ if mensal is None:
     ui.erro_metrica("a série mensal de custo", base.falhou(dados, "mensal"))
 else:
     meses = list(mensal["ano_mes"])
+    rotulos_custo = base.rotulos_de_barra(mensal["custo_total"])
     fig = base.nova_figura(ctx.tema, altura=320)
     anos = sorted({str(m)[:4] for m in meses})
     for posicao, texto_ano in enumerate(anos):
@@ -170,7 +171,7 @@ else:
             x=base.datas_de(meses), y=mensal["custo_total"], name="Custo total",
             marker={"color": slot1,
                     "line": {"color": t.superficie, "width": theme.FOLGA_ENTRE_MARCAS}},
-            **base.rotulos_de_barra(mensal["custo_total"]),
+            **rotulos_custo,
             customdata=mensal[["custo_fixo", "custo_variavel", "custo_nao_caixa"]].to_numpy(),
             hovertemplate="competência %{x|%b/%Y}: R$ %{y:,.0f}<br>fixo R$ %{customdata[0]:,.0f}"
                           "<br>variável R$ %{customdata[1]:,.0f}"
@@ -179,6 +180,7 @@ else:
     )
     base.eixo_mensal(fig, meses)
     fig.update_yaxes(
+        showticklabels=not rotulos_custo,
         title_text="R$ no mês", title_font_size=theme.TIPOGRAFIA["nota"],
         tickformat=".2s", rangemode="tozero",
     )
