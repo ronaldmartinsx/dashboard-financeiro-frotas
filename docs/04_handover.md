@@ -333,6 +333,12 @@ entre 2,2 s e 3,1 s.
    próprio, é uma decisão de roteamento a tomar.
 4. **Fechar D1 com quem gerou o dataset** — ou remover 4/6/2% de qualquer material que
    cite esses números como referência.
-5. **Suíte de teste versionada** a partir do harness de §5, ligando `validar_metricas` e
-   `verificar_rotulos`.
+5. **Cobrir no `validar_metricas` as funções de métrica que alimentam tela sem checagem**:
+   `receita.faturamento_por_competencia`, `receita.yoy_mensal`, `receita.yoy_anual`,
+   `receita.top_clientes`, `metas.realizado_mensal` e `metas.comparativo_por_segmento`.
+   É o único risco da auditoria de 2026-09-06 que continua aberto (§1.6.1).
 6. **Autenticação**, se o app sair de uso interno.
+
+*Feito em 2026-09-06:* suíte versionada (`scripts/verificar_tudo.py`), verificador de
+rótulos cobrindo texto livre, e os dois documentos de escopo antigo marcados como
+históricos.
