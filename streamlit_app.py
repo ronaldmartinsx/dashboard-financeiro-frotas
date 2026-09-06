@@ -170,6 +170,13 @@ def barra_lateral(opcoes: dict[str, list[str]], clientes: pd.DataFrame, *, pagin
     with st.sidebar:
         st.markdown("### Filtros")
 
+        # Dois grupos com nome: "Quando" (periodo e data) e "Recortes" (as
+        # dimensoes). Sem eles a barra abria com "Filtros" e logo em seguida um
+        # seletor de data, que nao se le como filtro -- os filtros "de verdade"
+        # so vinham depois, e a lista parecia comecar no meio.
+        if [c for c in ("periodo", "data") if c in exibidos]:
+            st.caption("**Quando**")
+
         if "periodo" in exibidos:
             # Um seletor no lugar de seis opcoes empilhadas, e os campos De/Ate
             # so quando o usuario pede: antes eram tres controles sempre visiveis
@@ -198,7 +205,6 @@ def barra_lateral(opcoes: dict[str, list[str]], clientes: pd.DataFrame, *, pagin
                     comp_ini, comp_fim = comp_fim, comp_ini
 
         if "data" in exibidos:
-            st.divider()
             data_ref = ui.seletor_data_referencia(
                 valor=data_ref,
                 minimo=date(2024, 12, 31),
@@ -211,6 +217,7 @@ def barra_lateral(opcoes: dict[str, list[str]], clientes: pd.DataFrame, *, pagin
                     if c in exibidos]
         if recortes:
             st.divider()
+            st.caption("**Recortes**")
         if "segmento" in exibidos:
             segmentos = st.multiselect(
                 "Segmento", options=opcoes.get("segmentos", []), key="f_segmentos",

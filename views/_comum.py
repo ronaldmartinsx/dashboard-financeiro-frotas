@@ -76,7 +76,10 @@ FILTROS_DA_PAGINA: Mapping[int, tuple[str, ...]] = {
     1: ("periodo", "segmento"),
     2: ("periodo", "data", "segmento", "porte", "rating", "tipo_contrato", "cliente"),
     3: ("data", "segmento", "porte", "rating", "tipo_contrato", "cliente"),
-    4: ("periodo", "data", "segmento", "porte", "rating", "tipo_contrato", "cliente"),
+    # Custos nao lista "data": os numeros da pagina sao todos por competencia, e a
+    # data so mexia na avaliacao dos alertas de ociosidade. Um filtro cujo unico
+    # efeito visivel e mudar a cor de um alerta confunde mais do que serve.
+    4: ("periodo", "segmento", "porte", "rating", "tipo_contrato", "cliente"),
 }
 
 #: url_path -> numero da pagina. "" porque o Streamlit serve a default na raiz.
@@ -453,10 +456,22 @@ def alertas_da_pagina(
     """
     if df_alertas is None or df_alertas.empty:
         return []
-    disparados = ui.alertas_da_camada(df_alertas, paginas=[pagina], destinos=destinos)
+    # O recorte vem de :data:`ALERTAS_DA_PAGINA` -- o que **esta pagina** pediu para
+    # avaliar -- e nao do campo ``pagina`` do limiar. Uma regra pode interessar a mais
+    # de uma tela: eficiencia de cobranca (A4) e faturamento contra a meta (A3) valem
+    # tanto na pagina de metas quanto na de faturamento e recebimento. Enquanto o
+    # filtro olhava o campo, a pagina 2 pedia A3 e A4 e nao mostrava nenhum dos dois.
+    ids = ALERTAS_DA_PAGINA.get(pagina, ())
+    do_escopo = df_alertas[df_alertas["id"].isin(ids)] if ids else df_alertas.iloc[0:0]
+    # As regras de qualidade de dado (A18, A19) ficam fora do banner: quem as mostra
+    # e :func:`barra_qualidade`, em tom informativo, no fim da pagina. Sem esta
+    # linha elas apareceriam duas vezes na mesma tela.
+    if "pagina" in do_escopo.columns:
+        do_escopo = do_escopo[do_escopo["pagina"] != 0]
+    disparados = ui.alertas_da_camada(do_escopo, destinos=destinos)
     nao_aplicaveis = ui.alertas_da_camada(
-        df_alertas[df_alertas["nivel"] == "indisponivel"],
-        paginas=[pagina], destinos=destinos, incluir_ok=True,
+        do_escopo[do_escopo["nivel"] == "indisponivel"],
+        destinos=destinos, incluir_ok=True,
     )
     return disparados + nao_aplicaveis
 
@@ -469,7 +484,7 @@ def regras_da_pagina(df_alertas, pagina: int) -> int:
     """
     if df_alertas is None or df_alertas.empty:
         return 0
-    return int((df_alertas["pagina"] == pagina).sum())
+    return int(df_alertas["id"].isin(ALERTAS_DA_PAGINA.get(pagina, ())).sum())
 
 
 def barra_qualidade(df_alertas: pd.DataFrame | None, *, tema: Tema = "claro") -> None:

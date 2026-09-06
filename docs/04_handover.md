@@ -175,7 +175,7 @@ Nenhuma bloqueia o app. Todas estão marcadas como informativas no validador.
 
 | # | O que se esperava | O que o banco dá | Leitura |
 |---|---|---|---|
-| D1 | Cancelamentos 4,0 / 6,0 / 2,0% | 3,53 / 6,23 / 1,97% por competência; 1,22 / 5,45 / 5,88% por ano de cancelamento | Nenhuma definição reproduz 4,0% em 2024. Os valores absolutos conferem (R$ 1,051 / 2,182 / 0,486 mi) — é parâmetro do gerador, não métrica reconstituível. **Não publicar 4/6/2 no app.** |
+| D1 ✔ *encerrada em 2026-09-06* | Cancelamentos 4,0 / 6,0 / 2,0% | 3,53 / 6,23 / 1,97% por competência; 1,22 / 5,45 / 5,88% por ano de cancelamento | Nenhuma definição reproduz 4,0% em 2024. Os valores absolutos conferem (R$ 1,051 / 2,182 / 0,486 mi) — é parâmetro do gerador, não métrica reconstituível. O app nunca os publicou; `DICIONARIO_DADOS.md` passou a dizer explicitamente que não servem de referência, com as duas leituras testadas ao lado. Nada mais a fazer. |
 | D2 | A20 = 6 contratos de período parcial | 1 | O `docs/01_kpis.md` se contradiz: a regra de §7.1 acha 1; contando também os 13 sem receita nenhuma daria 14. Nenhuma leitura dá 6. Adotada a de §7.1. |
 | D3 | A17 = −10,1 p.p. | −10,05 p.p. | Diferença de apresentação: o −10,1 vem de subtrair valores já arredondados (24,2 − 34,3). |
 | D4 | Taxa de recuperação com corte de 90 dias | 78,2% em 93,4 dias | Os 73,6% em 92 dias publicados foram apurados **sem** o corte. Implementado como parâmetro `dias_maturidade`, padrão 0. |
@@ -328,17 +328,13 @@ entre 2,2 s e 3,1 s.
    aplicado em 2026-09-02. É o que falta para publicar.
 2. **Alertas devolverem valores estruturados** em vez de texto pronto (§0.1). É a dívida
    de camada que já produziu formatação americana e nome de coluna na tela.
-3. **Nenhum alerta roteado para a página 2** (faturamento e recebimento). A eficiência de
-   cobrança (A4) vive na página de metas; se a página de recebimento deve ter alerta
-   próprio, é uma decisão de roteamento a tomar.
-4. **Fechar D1 com quem gerou o dataset** — ou remover 4/6/2% de qualquer material que
-   cite esses números como referência.
-5. **Cobrir no `validar_metricas` as funções de métrica que alimentam tela sem checagem**:
+3. **Cobrir no `validar_metricas` as funções de métrica que alimentam tela sem checagem**:
    `receita.faturamento_por_competencia`, `receita.yoy_mensal`, `receita.yoy_anual`,
    `receita.top_clientes`, `metas.realizado_mensal` e `metas.comparativo_por_segmento`.
    É o único risco da auditoria de 2026-09-06 que continua aberto (§1.6.1).
-6. **Autenticação**, se o app sair de uso interno.
+4. **Autenticação**, se o app sair de uso interno.
 
 *Feito em 2026-09-06:* suíte versionada (`scripts/verificar_tudo.py`), verificador de
-rótulos cobrindo texto livre, e os dois documentos de escopo antigo marcados como
-históricos.
+rótulos cobrindo texto livre, os dois documentos de escopo antigo marcados como
+históricos, D1 encerrada no dicionário, alertas roteados para a página 2, filtro de
+data removido da página de custos e a barra lateral agrupada em "Quando" e "Recortes".

@@ -148,7 +148,7 @@ Reproduzidos exatamente contra o banco em 2026-08-31 — as definicoes nao estav
 
 - **Inadimplencia > 30 dias**: numerador = `valor_bruto` de titulos com `data_vencimento <= ref - 30`, nao pagos e nao cancelados *na data de referencia*; denominador = **faturamento bruto dos ultimos 12 meses de competencia**, tambem com filtro point-in-time de cancelamento. Nao e sobre a carteira vencida nem sobre o faturado acumulado.
 - **Receita liquida** da tabela de referencia (27,9 / 32,8 / 23,0 mi): `sum(valor_liquido)` **incluindo** titulos cancelados — e o denominador da margem publicada. Excluindo cancelados da 26,96 / 30,74 / 22,59 mi.
-- **Cancelamentos %** (4,0 / 6,0 / 2,0): contados por competencia dao 3,5 / 6,2 / 2,0 — provavelmente a referencia conta por ano de cancelamento. Os valores brutos batem; a diferenca e de definicao.
+- **Cancelamentos %** (4,0 / 6,0 / 2,0): **nao sao uma metrica reconstituivel** e nao devem ser usados como referencia. Duas definicoes foram testadas contra o banco e nenhuma os reproduz: por competencia da 3,53 / 6,23 / 1,97, por ano de cancelamento da 1,22 / 5,45 / 5,88. Os valores **absolutos** batem (R$ 1,051 / 2,182 / 0,486 mi), entao o que diverge e o percentual, provavelmente um parametro do gerador e nao uma conta refeita sobre os dados. O app adota a leitura por competencia, que e a unica coerente com o denominador de faturamento, e nao publica os 4/6/2 em lugar nenhum.
 - **Aging** e **faturamento bruto** conferem casa a casa com o publicado acima.
 
 ## Metas (orcamento)
