@@ -123,6 +123,42 @@ janela de 12 meses está completa. Em vez disso a função devolve um booleano
 
 ---
 
+## 1.6 Auditoria de 2026-09-06
+
+Varredura das cinco invariantes, segredos, guarda de SQL, cobertura dos verificadores e deriva de
+documentação. **Nenhum defeito de correção encontrado**: os números na tela batem, os validadores
+passam e o código respeita as cinco regras de arquitetura.
+
+Íntegro e conferido:
+
+- As cinco invariantes do README: zero SQL fora de `frotas/metrics/`, zero hex literal em `views/`,
+  zero limiar hardcoded, todo número por `frotas.ui.format`, nenhum nome de coluna na tela.
+- Segredos: `git log -p --all` não encontra DSN, JWT nem senha em **nenhum** commit; `.env` nunca
+  foi rastreado.
+- Guarda de SQL de leitura: rejeita `delete`, `insert`, `update`, `select 1; delete` e
+  `WITH x AS (DELETE ...) SELECT`. Aceita comentário antes do `SELECT`, o que é inofensivo.
+
+O que a auditoria encontrou está registrado como risco, não como defeito:
+
+1. **`verificar_rotulos.py` não instrumenta sete superfícies de texto**: `st.caption`, `st.markdown`,
+   `st.expander`, `subplot_titles`, `annotation_text`, `vazio_titulo`/`vazio_corpo` e `hovertemplate`.
+   Hoje todas estão limpas (verificado renderizando as cinco páginas), mas nada impede uma regressão.
+   Foi exatamente numa superfície não coberta que o bug do LaTeX sobreviveu.
+2. **29 das 50 funções públicas de `frotas/metrics/` não aparecem no validador** (58%). As de
+   `dimensoes` são listas de domínio, de baixo risco; as de `receita` e `metas`
+   (`faturamento_por_competencia`, `yoy_mensal`, `yoy_anual`, `top_clientes`, `realizado_mensal`,
+   `comparativo_por_segmento`) alimentam gráfico e tabela na tela.
+3. **`docs/01_kpis.md` e `docs/03_ux.md` são de 2026-09-01**, anteriores à redução de escopo. Citam
+   margem operacional (5 e 1 vezes) e curva ABC (4 vezes cada) como se existissem. São documentos de
+   projeto, não especificação viva: quem os ler hoje vai implementar o que foi removido. Marcar como
+   histórico ou atualizar.
+4. **Sem suíte versionada**: os dois verificadores rodam à mão. Nada os executa antes de um commit.
+
+Corrigido na hora: três badges órfãos (`periodo parcial`, `receita rateada`, `artefato de borda`)
+ainda no vocabulário fechado de `componentes.BADGES_CONHECIDOS`, sobra da página de margem removida.
+
+---
+
 ## 2. Divergências em aberto
 
 Nenhuma bloqueia o app. Todas estão marcadas como informativas no validador.

@@ -38,10 +38,7 @@ Escala = Literal["neutra", "risco", "divergente"]
 BADGES_CONHECIDOS: tuple[str, ...] = (
     "escopo: contratos",
     "Janela de 12 meses",
-    "periodo parcial",
-    "receita rateada",
     "janela de 12m incompleta",
-    "artefato de borda",
 )
 
 #: Traducao ``alertas.avaliar().nivel`` -> nivel visual de ``theme``.
