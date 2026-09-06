@@ -423,13 +423,19 @@ def cobertura_de_caixa(filtros: Filtros, data_ref: date | None = None) -> pd.Dat
     """Cobertura de caixa dos 12 meses moveis: caixa recebido / faturamento valido.
 
     Uma linha. Colunas: ``data_ref``, ``janela_ini``, ``janela_fim``,
-    ``recebimento_12m``, ``faturamento_valido_12m``, ``cobertura_pct``.
+    ``recebimento_12m`` (o caixa de verdade, **com** juros e multa),
+    ``recebimento_sem_juros_12m`` (o numerador da razao),
+    ``faturamento_valido_12m``, ``cobertura_pct``.
 
-    Definicao: recebimento = ``sum(valor_pago - valor_juros_multa)`` com
+    Definicao: a razao usa ``sum(valor_pago - valor_juros_multa)`` com
     ``data_pagamento`` nos 12 meses que terminam na data de referencia;
     faturamento valido = ``sum(valor_bruto)`` das 12 competencias que terminam no
     mes da referencia, com filtro point-in-time de cancelamento. Em ago/26:
     **92,5%** (32,490 / 35,120 mi), **abaixo** do piso de 93% da `Revisao 2026`.
+
+    Os dois recebimentos convivem de proposito: o caixa que entrou no banco tem
+    juros e multa e e ele que o cartao de "Recebimento em 12 meses" mostra; a
+    razao tira os juros, porque o denominador nao os tem.
 
     Juros e multa ficam **fora** do numerador de proposito. Eles nao existem no
     denominador nem na meta (o plano aplica a taxa sobre o faturado puro), entao
@@ -452,9 +458,13 @@ def cobertura_de_caixa(filtros: Filtros, data_ref: date | None = None) -> pd.Dat
            (date_trunc('month', cast(:ref as date))
             - interval '{config.MESES_JANELA_INADIMPLENCIA - 1} months')::date as janela_ini,
            date_trunc('month', cast(:ref as date))::date as janela_fim,
-           coalesce(sum(t.valor_pago - coalesce(t.valor_juros_multa, 0)) filter (
+           coalesce(sum(t.valor_pago) filter (
                where t.data_pagamento > (cast(:ref as date) - interval '1 year')::date
                  and t.data_pagamento <= cast(:ref as date)), 0)::float8 as recebimento_12m,
+           coalesce(sum(t.valor_pago - coalesce(t.valor_juros_multa, 0)) filter (
+               where t.data_pagamento > (cast(:ref as date) - interval '1 year')::date
+                 and t.data_pagamento <= cast(:ref as date)), 0)::float8
+               as recebimento_sem_juros_12m,
            coalesce(sum(t.valor_bruto) filter (
                where t.competencia > (date_trunc('month', cast(:ref as date))
                                       - interval '{config.MESES_JANELA_INADIMPLENCIA} months')::date
@@ -465,7 +475,7 @@ def cobertura_de_caixa(filtros: Filtros, data_ref: date | None = None) -> pd.Dat
     """
     df = db.consultar(sql, params, ttl=config.TTL_FATOS)
     df["cobertura_pct"] = (
-        100.0 * df["recebimento_12m"] / df["faturamento_valido_12m"].replace(0, pd.NA)
+        100.0 * df["recebimento_sem_juros_12m"] / df["faturamento_valido_12m"].replace(0, pd.NA)
     )
     return df
 

@@ -52,6 +52,9 @@ st.markdown(
   na de Metas é o ano do orçamento; na de Inadimplência é uma data única, porque ali a
   pergunta é "como estava a carteira naquele dia". O padrão é sempre
   {fmt.data_br(config.DATA_EXTRACAO)}, o último dia com dados.
+- **Agrupar o tempo por**: nos gráficos de série, troca o eixo entre mês, trimestre e ano.
+  Só isso muda, os totais do período continuam os mesmos. Não existe agrupamento por semana
+  porque faturamento, custo e meta nascem mensais no sistema de origem.
 - **Recortes**: segmento, porte, rating de crédito, tipo de contrato e cliente.
 - **O topo da página repete os filtros em uso**, para você saber a que recorte os números
   se referem sem precisar abrir a barra lateral.

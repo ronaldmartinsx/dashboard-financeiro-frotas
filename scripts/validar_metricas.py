@@ -415,8 +415,10 @@ def validar_cobranca(rel: Relatorio) -> None:
                float(cobertura.loc[0, "cobertura_pct"]), 0.05)
     rel.checar("cobranca", "cobertura: faturamento valido 12m (mi)", 35.120,
                float(cobertura.loc[0, "faturamento_valido_12m"]) / MI, 0.001)
-    rel.checar("cobranca", "cobertura: recebimento 12m sem juros (mi)", 32.490,
+    rel.checar("cobranca", "cobertura: recebimento 12m com juros (mi)", 32.958,
                float(cobertura.loc[0, "recebimento_12m"]) / MI, 0.001)
+    rel.checar("cobranca", "cobertura: recebimento 12m sem juros (mi)", 32.490,
+               float(cobertura.loc[0, "recebimento_sem_juros_12m"]) / MI, 0.001)
 
     # O recebimento anual e o realizado da meta de caixa: as duas leituras
     # (metrica de credito e realizado de meta) tem que fechar em 2025.

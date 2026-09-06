@@ -326,6 +326,25 @@ def competencia(valor: Any, *, longo: bool = False, vazio: str = VAZIO) -> str:
     return f"{MESES[d.month - 1]}/{ano}"
 
 
+def trimestre(valor: Any, *, longo: bool = False, vazio: str = VAZIO) -> str:
+    """Trimestre do mes. ``trimestre('2026-04')`` -> ``2º tri/26``.
+
+    Ordinal com "º" e nao "T2": o eixo e lido por gente de financas, nao por
+    quem escreve query. ``longo=True`` traz o ano com quatro digitos.
+    """
+    d = _para_data(valor)
+    if d is None:
+        return vazio
+    ano = f"{d.year}" if longo else f"{d.year % 100:02d}"
+    return f"{(d.month - 1) // 3 + 1}º tri/{ano}"
+
+
+def ano_civil(valor: Any, *, vazio: str = VAZIO) -> str:
+    """Ano do mes, para o eixo anual. ``ano_civil('2026-04')`` -> ``2026``."""
+    d = _para_data(valor)
+    return vazio if d is None else str(d.year)
+
+
 def competencia_extensa(valor: Any, *, vazio: str = VAZIO) -> str:
     """Competencia por extenso, para texto corrido. ``agosto de 2026``."""
     d = _para_data(valor)

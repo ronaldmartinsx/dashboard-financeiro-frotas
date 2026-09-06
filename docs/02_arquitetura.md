@@ -257,7 +257,7 @@ e uma foto em `data_ref`; a UI muda a data, nao plota a linha do tempo.
 | `titulos_do_cliente(f, id_cliente, data_ref=None)` | `id_titulo, id_contrato, tipo_receita, descricao, competencia, ano_mes, data_emissao, data_vencimento, valor_bruto, valor_liquido, data_pagamento, valor_pago, valor_juros_multa, dias_atraso, faixa, status_calculado, status_titulo_gravado, forma_pagamento, motivo_cancelamento, motivo_baixa` — **a unica funcao com grao de titulo** |
 | `titulos_em_risco_de_baixa(f, data_ref, dias_limite=300)` | `id_titulo, id_cliente, nome_cliente, segmento, rating_credito, competencia, data_vencimento, dias_vencido, valor_bruto` — alerta A12 |
 | `titulos_com_baixa_futura(f, data_ref=None)` | `id_titulo, id_cliente, nome_cliente, data_vencimento, data_baixa, motivo_baixa, valor_bruto` — alerta A18 |
-| `cobertura_de_caixa(f, data_ref=None)` | `data_ref, janela_ini, janela_fim, recebimento_12m, faturamento_valido_12m, cobertura_pct` — **92,5%**; e o KPI do **eixo 2**. Recebimento **sem** juros e multa: eles nao existem no denominador nem na meta |
+| `cobertura_de_caixa(f, data_ref=None)` | `data_ref, janela_ini, janela_fim, recebimento_12m, recebimento_sem_juros_12m, faturamento_valido_12m, cobertura_pct` — **92,5%**; e o KPI do **eixo 2**. `recebimento_12m` e o caixa de verdade (32,958 mi, **com** juros) e alimenta o cartao; a razao usa `recebimento_sem_juros_12m` (32,490 mi), porque o denominador nao tem juros |
 
 `janela_completa=False` antes de dez/2024: a janela de 12 meses do denominador
 ainda esta incompleta e o percentual sobe por construcao (armadilha 5). Marque

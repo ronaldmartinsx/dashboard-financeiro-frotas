@@ -174,7 +174,7 @@ def barra_lateral(opcoes: dict[str, list[str]], clientes: pd.DataFrame, *, pagin
         # dimensoes). Sem eles a barra abria com "Filtros" e logo em seguida um
         # seletor de data, que nao se le como filtro -- os filtros "de verdade"
         # so vinham depois, e a lista parecia comecar no meio.
-        if [c for c in ("periodo", "data") if c in exibidos]:
+        if [c for c in ("periodo", "data", "granularidade") if c in exibidos]:
             st.caption("**Quando**")
 
         if "ano" in exibidos:
@@ -216,6 +216,20 @@ def barra_lateral(opcoes: dict[str, list[str]], clientes: pd.DataFrame, *, pagin
                 if comp_ini > comp_fim:
                     st.warning("O mês inicial é posterior ao final; o intervalo foi invertido.")
                     comp_ini, comp_fim = comp_fim, comp_ini
+
+        if "granularidade" in exibidos:
+            # Em Metas o exercicio ja e um ano: agrupar por ano deixaria cada
+            # grafico com uma barra so, que e a leitura que a matriz de conferencia
+            # acima ja da. Sobram mes e trimestre.
+            graos = [g for g in base.GRAOS
+                     if not (g == "Ano" and "ano" in exibidos)]
+            st.selectbox(
+                "Agrupar o tempo por",
+                options=graos,
+                key="granularidade",
+                help="Muda o eixo dos gráficos de série. Semana não entra: faturamento, "
+                     "custo e meta nascem mensais no sistema de origem.",
+            )
 
         if "data" in exibidos:
             data_ref = ui.seletor_data_referencia(
@@ -259,7 +273,8 @@ def barra_lateral(opcoes: dict[str, list[str]], clientes: pd.DataFrame, *, pagin
         st.divider()
         if st.button("Limpar filtros", icon=":material/filter_alt_off:", width="stretch"):
             for chave in (
-                "preset_periodo", "comp_ini", "comp_fim", "ano_exercicio", "f_segmentos", "f_portes",
+                "preset_periodo", "comp_ini", "comp_fim", "ano_exercicio", "granularidade",
+                "f_segmentos", "f_portes",
                 "f_ratings", "f_tipos_contrato", "f_clientes", "faixa_aging",
                 "meta_segmento_indicador",
             ):

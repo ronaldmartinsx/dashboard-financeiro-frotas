@@ -43,6 +43,7 @@ base.abrir_pagina(ctx, "Estamos entregando a meta?", secao="Metas", pagina=PAGIN
 
 t = theme.tokens(ctx.tema)
 f, ref, ano = ctx.filtros, ctx.data_ref, ctx.ano
+grao = base.grao_atual()
 ANOS = list(range(config.COMPETENCIA_MIN.year, config.COMPETENCIA_MAX.year + 1))
 
 # O widget de segmento e lido do estado **antes** do carregamento: e ele que decide
@@ -299,6 +300,16 @@ def _grafico_mensal(tipo: str, chave: str, *, altura: int, com_legenda: bool) ->
         ui.estado_vazio(f"Sem série de {rot.valor(tipo)} neste ano")
         return
     percentual = str(serie.iloc[0].get("unidade")) == "%"
+    # Indicador em reais soma no balde; a inadimplencia e uma foto no ultimo dia,
+    # entao o trimestre dela e o valor do ultimo mes, nunca a soma dos tres. E a
+    # mesma regra que o orcamento usa (``tipo_agregacao = 'Fim de Periodo'``), que
+    # e por isso que realizado e meta seguem juntos aqui.
+    serie = base.reagrupar(
+        serie, grao=grao,
+        soma=[] if percentual else ["realizado", "meta"],
+        fim=["realizado", "meta"] if percentual else [],
+    )
+    serie["variacao_abs"] = serie["realizado"] - serie["meta"]
     serie["x"] = base.datas_de(serie["ano_mes"])
     rotulos = {} if percentual else base.rotulos_de_barra(serie["realizado"])
     fig = base.nova_figura(ctx.tema, altura=altura)
@@ -308,7 +319,10 @@ def _grafico_mensal(tipo: str, chave: str, *, altura: int, com_legenda: bool) ->
                 x=serie["x"], y=serie["realizado"], mode="lines+markers", name="Realizado",
                 line={"color": theme.cor_indicador(tipo, ctx.tema), "width": theme.ESPESSURA_LINHA},
                 marker={"size": theme.TAMANHO_MARCADOR},
-                hovertemplate="%{x|%b/%Y}: <b>%{y:.2f}%</b><extra>Realizado</extra>",
+                # O periodo do tooltip vem do rotulo do balde: fora do grao mensal a
+                # marca fica ancorada no primeiro mes e a data do eixo mentiria.
+                customdata=serie[["rotulo_periodo"]].to_numpy(),
+                hovertemplate="%{customdata[0]}: <b>%{y:.2f}%</b><extra>Realizado</extra>",
             )
         )
     else:
@@ -321,15 +335,17 @@ def _grafico_mensal(tipo: str, chave: str, *, altura: int, com_legenda: bool) ->
                 # Sem "R$" na marca: o titulo do eixo ja diz a unidade. O helper
                 # devolve {} acima de 14 marcas, e ai o eixo volta a mostrar ticks.
                 **rotulos,
-                hovertemplate="%{x|%b/%Y}: R$ %{y:,.0f}<extra>Realizado</extra>",
+                customdata=serie[["rotulo_periodo"]].to_numpy(),
+                hovertemplate="%{customdata[0]}: R$ %{y:,.0f}<extra>Realizado</extra>",
             )
         )
     fig.add_trace(
         go.Scatter(
             x=serie["x"], y=serie["meta"], mode="lines", name="Meta vigente",
             line={"color": t.marca_meta, "width": theme.ESPESSURA_LINHA, "dash": "dash"},
-            hovertemplate=("meta %{x|%b/%Y}: %{y:.2f}%<extra></extra>" if percentual
-                           else "meta %{x|%b/%Y}: R$ %{y:,.0f}<extra></extra>"),
+            customdata=serie[["rotulo_periodo"]].to_numpy(),
+            hovertemplate=("meta %{customdata[0]}: %{y:.2f}%<extra></extra>" if percentual
+                           else "meta %{customdata[0]}: R$ %{y:,.0f}<extra></extra>"),
         )
     )
     if percentual:
@@ -338,9 +354,10 @@ def _grafico_mensal(tipo: str, chave: str, *, altura: int, com_legenda: bool) ->
             lambda v: fmt.percentual(v, 2),
             theme.cor_indicador(tipo, ctx.tema), tema=ctx.tema,
         )
-    base.eixo_mensal(fig, list(serie["ano_mes"]))
+    base.eixo_temporal(fig, serie, grao=grao)
     fig.update_yaxes(
-        title_text="% no fim do mês" if percentual else "R$ no mês",
+        title_text=(f"% no fim {'do mês' if grao == 'mes' else base.NO_PERIODO[grao]}"
+                    if percentual else f"R$ {base.NO_PERIODO[grao]}"),
         title_font_size=theme.TIPOGRAFIA["nota"],
         ticksuffix="%" if percentual else None,
         tickformat=None if percentual else ".2s",

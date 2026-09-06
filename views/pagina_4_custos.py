@@ -36,6 +36,7 @@ t = theme.tokens(ctx.tema)
 # Cor do indicador que a pagina trata (ver theme.INDICADORES).
 slot1 = theme.cor_indicador("Custo Operacional", ctx.tema)
 f, ref = ctx.filtros, ctx.data_ref
+grao = base.grao_atual()
 # Armadilha 6: veiculo parado tem contrato nulo. Com recorte de cliente ou de
 # contrato o bloco fica **desabilitado**, nunca zerado.
 sem_ociosidade = bool(f.tem_recorte_cliente or f.tipos_contrato or f.status_contrato)
@@ -150,44 +151,46 @@ ui.cabecalho_secao("Como o custo se comporta ao longo do ano?", ancora="mensal")
 if mensal is None:
     ui.erro_metrica("a série mensal de custo", base.falhou(dados, "mensal"))
 else:
-    meses = list(mensal["ano_mes"])
-    rotulos_custo = base.rotulos_de_barra(mensal["custo_total"])
+    serie = base.reagrupar(mensal, grao=grao, soma=[
+        "custo_total", "custo_alocado", "custo_ocioso", "custo_fixo", "custo_variavel",
+        "custo_nao_caixa"], fim=["qtd_veiculos"])
+    meses = list(serie["ano_mes"])
+    rotulos_custo = base.rotulos_de_barra(serie["custo_total"])
     fig = base.nova_figura(ctx.tema, altura=320)
-    anos = sorted({str(m)[:4] for m in meses})
-    for posicao, texto_ano in enumerate(anos):
-        if f"{texto_ano}-01" not in meses:
-            continue
-        fig.add_vrect(
-            x0=pd.Timestamp(f"{texto_ano}-01-01"), x1=pd.Timestamp(f"{texto_ano}-02-28"),
-            fillcolor=t.superficie_fraca, opacity=1.0, layer="below", line_width=0,
-            annotation_text="IPVA e licenciamento" if posicao == len(anos) - 1 else "",
-            annotation_position="top left",
-            annotation_font_size=theme.TIPOGRAFIA["nota"],
-            annotation_font_color=t.tinta_fraca,
-        )
+    # Sem faixa sombreada em jan-fev. Ela dizia a mesma coisa que a nota de rodape
+    # logo abaixo, e o rotulo so aparecia no ultimo ano -- o que fazia o leitor
+    # entender que algo tinha acontecido naquele ano especifico, quando o IPVA
+    # pesa igual nos tres. Fundo claro sem numero nao e informacao, e ruido.
     fig.add_trace(
         go.Bar(
-            x=base.datas_de(meses), y=mensal["custo_total"], name="Custo total",
+            x=base.datas_de(meses), y=serie["custo_total"], name="Custo total",
             marker={"color": slot1,
                     "line": {"color": t.superficie, "width": theme.FOLGA_ENTRE_MARCAS}},
             **rotulos_custo,
-            customdata=mensal[["custo_fixo", "custo_variavel", "custo_nao_caixa"]].to_numpy(),
-            hovertemplate="competência %{x|%b/%Y}: R$ %{y:,.0f}<br>fixo R$ %{customdata[0]:,.0f}"
+            # O periodo do tooltip sai do rotulo do balde, nao da data do eixo: no
+            # trimestre a barra fica ancorada no primeiro mes, e "jan/2026" no hover
+            # de uma barra que vale o trimestre inteiro seria leitura errada.
+            customdata=serie[["custo_fixo", "custo_variavel", "custo_nao_caixa",
+                              "rotulo_periodo"]].to_numpy(),
+            hovertemplate="competência %{customdata[3]}: R$ %{y:,.0f}"
+                          "<br>fixo R$ %{customdata[0]:,.0f}"
                           "<br>variável R$ %{customdata[1]:,.0f}"
                           "<br>não caixa R$ %{customdata[2]:,.0f}<extra></extra>",
         )
     )
-    base.eixo_mensal(fig, meses)
+    base.eixo_temporal(fig, serie, grao=grao)
     fig.update_yaxes(
         showticklabels=not rotulos_custo,
-        title_text="R$ no mês", title_font_size=theme.TIPOGRAFIA["nota"],
+        title_text=f"R$ {base.NO_PERIODO[grao]}", title_font_size=theme.TIPOGRAFIA["nota"],
         tickformat=".2s", rangemode="tozero",
     )
     base.mostrar_grafico(
         fig, chave="p4_mensal",
-        nota="Janeiro e fevereiro carregam o IPVA e o licenciamento do ano inteiro: o pico não "
-             "é deterioração operacional.",
-        dados=mensal,
+        # Fora do grao mensal a ressalva perde o objeto: no trimestre o IPVA ja
+        # esta diluido dentro da propria barra e nao ha pico a explicar.
+        nota=("Janeiro e fevereiro carregam o IPVA e o licenciamento do ano inteiro: o pico "
+              "não é deterioração operacional." if grao == "mes" else None),
+        dados=serie,
         colunas_dados=["ano_mes", "custo_total", "custo_alocado", "custo_ocioso", "custo_fixo",
                        "custo_variavel", "custo_nao_caixa", "qtd_veiculos"],
     )
@@ -278,6 +281,13 @@ else:
     if ocio is None:
         ui.erro_metrica("a série de ociosidade", base.falhou(dados, "ociosidade"))
     else:
+        # A taxa nao se soma nem admite media simples: no trimestre ela e a razao
+        # entre veiculos-mes parados e veiculos-mes de frota, senao um mes de frota
+        # pequena pesaria igual a um de frota grande.
+        ocio = base.reagrupar(
+            ocio, grao=grao, soma=["custo_ocioso", "qtd_veiculos_ociosos", "qtd_veiculos_frota"],
+            razao={"taxa_ociosidade_pct": ("qtd_veiculos_ociosos", "qtd_veiculos_frota")},
+        )
         meses = list(ocio["ano_mes"])
         eixo_x = base.datas_de(meses)
         ambar_a15, vermelho_a15 = base.limiares_de(df_alertas, "A15")
@@ -312,9 +322,10 @@ else:
                     line={"color": slot1, "width": theme.ESPESSURA_LINHA},
                     marker={"size": theme.TAMANHO_MARCADOR + 2, "color": cores_ponto,
                             "line": {"color": t.superficie, "width": 1}},
-                    customdata=ocio[["qtd_veiculos_ociosos", "qtd_veiculos_frota"]].to_numpy(),
-                    hovertemplate="%{x|%b/%Y}: %{y:.1f}%<br>%{customdata[0]} de %{customdata[1]} "
-                                  "veículos parados<extra></extra>",
+                    customdata=ocio[["qtd_veiculos_ociosos", "qtd_veiculos_frota",
+                                     "rotulo_periodo"]].to_numpy(),
+                    hovertemplate="%{customdata[2]}: %{y:.1f}%<br>%{customdata[0]} de "
+                                  "%{customdata[1]} veículos parados<extra></extra>",
                 ),
             )
             pior = ocio.sort_values("taxa_ociosidade_pct", ascending=False).iloc[0]
@@ -330,9 +341,9 @@ else:
                     font={"size": theme.TIPOGRAFIA["nota"],
                           "color": theme.cor_nivel(nivel_pior, ctx.tema, uso="texto")},
                 )
-            base.eixo_mensal(fig, meses)
+            base.eixo_temporal(fig, ocio, grao=grao)
             fig.update_yaxes(
-                title_text="% da frota do mês", title_font_size=theme.TIPOGRAFIA["nota"],
+                title_text=f"% da frota {base.NO_PERIODO[grao]}", title_font_size=theme.TIPOGRAFIA["nota"],
                 ticksuffix="%", rangemode="tozero",
             )
             fig.update_layout(
@@ -357,12 +368,13 @@ else:
                     x=eixo_x, y=ocio["custo_ocioso"], name="Custo do veículo parado",
                     marker={"color": slot1, "line": {"color": t.superficie, "width": 1}},
                     **rotulos_ocio,
-                    hovertemplate="%{x|%b/%Y}: R$ %{y:,.0f}<extra></extra>",
+                    customdata=ocio[["rotulo_periodo"]].to_numpy(),
+                    hovertemplate="%{customdata[0]}: R$ %{y:,.0f}<extra></extra>",
                 ),
             )
-            base.eixo_mensal(fig, meses)
+            base.eixo_temporal(fig, ocio, grao=grao)
             fig.update_yaxes(
-                title_text="R$ no mês", title_font_size=theme.TIPOGRAFIA["nota"],
+                title_text=f"R$ {base.NO_PERIODO[grao]}", title_font_size=theme.TIPOGRAFIA["nota"],
                 tickformat=".2s", rangemode="tozero",
                 showticklabels=not rotulos_ocio,
             )

@@ -36,6 +36,7 @@ t = theme.tokens(ctx.tema)
 # Cor do indicador que a pagina trata (ver theme.INDICADORES).
 slot1 = theme.cor_indicador("Faturamento", ctx.tema)
 f, ref, ano = ctx.filtros, ctx.data_ref, ctx.ano
+grao = base.grao_atual()
 f_yoy = f.com(competencia_ini=date(ano - 1, 1, 1), competencia_fim=f.fim)
 
 with st.spinner("Apurando faturamento e caixa..."):
@@ -95,8 +96,8 @@ base.faixa_kpis(
             "valor": base.celula(cobertura, "recebimento_12m"),
             "unidade": "brl", "chave_direcao": "recebimento_caixa", "estado": "sem_meta",
             "nota": f"caixa de {janela_caixa}" if janela_caixa else None,
-            "ajuda": "Somado pela data de pagamento, sem juros e multa. Não soma com o "
-                     "faturamento do mesmo mês.",
+            "ajuda": "Somado pela data de pagamento, com juros e multa, que também são caixa. "
+                     "Não soma com o faturamento do mesmo mês.",
         },
         {
             "rotulo": "Cobertura de caixa",
@@ -106,8 +107,10 @@ base.faixa_kpis(
             "nota": (f"piso da meta: {fmt.percentual(piso_cobranca, 1)}"
                      if piso_cobranca is not None else None),
             "ajuda": "Quanto do faturado dos últimos 12 meses já virou caixa no mesmo intervalo. "
-                     "Não mede eficiência de cobrança: o caixa de um mês vem do faturamento de "
-                     "1 a 3 meses antes, então crescer no faturamento derruba a razão.",
+                     "Aqui os juros e multa saem da conta, porque o faturado do denominador "
+                     "também não os tem. Não mede eficiência de cobrança: o caixa de um mês vem "
+                     "do faturamento de 1 a 3 meses antes, então crescer no faturamento derruba "
+                     "a razão.",
         },
         {
             "rotulo": "Ticket médio",
@@ -145,6 +148,13 @@ else:
     meses = list(fat["ano_mes"])
     if caixa is not None:
         caixa = caixa[caixa["ano_mes"].isin(meses)]
+    # Faturado e recebido sao dois reais que se acumulam: no trimestre e no ano
+    # eles somam. Reagrupa antes de tudo, para o teto do eixo sair ja no grao certo.
+    fat = base.reagrupar(fat, grao=grao, soma=[
+        "faturamento_bruto", "faturamento_valido", "receita_liquida", "impostos",
+        "valor_cancelado", "qtd_titulos"])
+    if caixa is not None:
+        caixa = base.reagrupar(caixa, grao=grao, soma=["realizado", "meta"])
     teto = base.maximo_da_coluna(fat, "faturamento_bruto")
     if caixa is not None and not caixa.empty:
         teto = max(teto, base.maximo_da_coluna(caixa, "realizado"))
@@ -156,11 +166,15 @@ else:
     fig = base.nova_figura(ctx.tema, altura=380)
     fig.add_trace(
         go.Bar(
-            x=base.datas_de(meses), y=fat["faturamento_bruto"], name="Faturado",
+            x=base.datas_de(fat["ano_mes"]), y=fat["faturamento_bruto"], name="Faturado",
             marker={"color": theme.cor_indicador("Faturamento", ctx.tema),
                     "line": {"color": t.superficie, "width": theme.FOLGA_ENTRE_MARCAS}},
             **rotulos_fat,
-            hovertemplate="competência %{x|%b/%Y}: R$ %{y:,.0f}<extra>Faturado</extra>",
+            # O periodo do tooltip vem do rotulo do balde, nao da data do eixo: no
+            # trimestre a barra fica ancorada no primeiro mes, e "jan/2026" no hover
+            # de uma barra que vale o trimestre inteiro seria leitura errada.
+            customdata=fat[["rotulo_periodo"]].to_numpy(),
+            hovertemplate="competência %{customdata[0]}: R$ %{y:,.0f}<extra>Faturado</extra>",
         )
     )
     if caixa is not None and not caixa.empty:
@@ -168,20 +182,21 @@ else:
             go.Scatter(
                 x=base.datas_de(caixa["ano_mes"]), y=caixa["realizado"],
                 mode="lines+markers", name="Recebido",
+                customdata=caixa[["rotulo_periodo"]].to_numpy(),
                 # Preto (a tinta do tema), nao a cor do indicador: sobre as barras
                 # azuis o aqua nao destacava. A linha e a referencia de leitura.
                 line={"color": t.tinta, "width": theme.ESPESSURA_LINHA, "dash": "dash"},
                 marker={"size": theme.TAMANHO_MARCADOR, "color": t.tinta},
-                hovertemplate="pago em %{x|%b/%Y}: R$ %{y:,.0f}<extra>Recebido</extra>",
+                hovertemplate="pago em %{customdata[0]}: R$ %{y:,.0f}<extra>Recebido</extra>",
             )
         )
         base.rotular_ultimo_ponto(
             fig, base.datas_de(caixa["ano_mes"]), caixa["realizado"],
             fmt.moeda_compacta(caixa["realizado"].iloc[-1]), t.tinta, tema=ctx.tema,
         )
-    base.eixo_mensal(fig, meses)
+    base.eixo_temporal(fig, fat, grao=grao)
     fig.update_yaxes(
-        title_text="R$ no mês", title_font_size=theme.TIPOGRAFIA["nota"],
+        title_text=f"R$ {base.NO_PERIODO[grao]}", title_font_size=theme.TIPOGRAFIA["nota"],
         tickformat=".2s", range=[0, teto * 1.15 if teto else 1],
         # Com rotulo em cada barra o eixo repetiria a leitura; sem ele (muitos
         # meses), o eixo volta a ser a unica referencia.
@@ -255,6 +270,8 @@ with col_yoy:
         ui.erro_metrica("a comparação com o ano anterior", base.falhou(dados, "yoy_mensal"))
     else:
         yoy = yoy[yoy["ano"] == ano].sort_values("ano_mes")
+        yoy = base.reagrupar(yoy, grao=grao, soma=[
+            "faturamento_bruto", "faturamento_bruto_ano_anterior", "variacao_abs"])
         anterior = pd.to_numeric(yoy["faturamento_bruto_ano_anterior"], errors="coerce")
         fig = base.nova_figura(ctx.tema, altura=340)
         fig.add_trace(
@@ -262,17 +279,19 @@ with col_yoy:
                 x=base.datas_de(yoy["ano_mes"]), y=anterior, name=f"{ano - 1}",
                 marker={"color": theme.TRANSPARENTE,
                         "line": {"color": t.marca_neutro, "width": 1.5}},
-                hovertemplate=f"{ano - 1} %{{x|%b}}: R$ %{{y:,.0f}}<extra></extra>",
+                customdata=yoy[["rotulo_periodo"]].to_numpy(),
+                hovertemplate=f"{ano - 1}, %{{customdata[0]}}: R$ %{{y:,.0f}}<extra></extra>",
             )
         )
         fig.add_trace(
             go.Bar(
                 x=base.datas_de(yoy["ano_mes"]), y=yoy["faturamento_bruto"], name=f"{ano}",
                 marker={"color": slot1, "line": {"color": t.superficie, "width": 1}},
-                hovertemplate=f"{ano} %{{x|%b}}: R$ %{{y:,.0f}}<extra></extra>",
+                customdata=yoy[["rotulo_periodo"]].to_numpy(),
+                hovertemplate=f"{ano}, %{{customdata[0]}}: R$ %{{y:,.0f}}<extra></extra>",
             )
         )
-        base.eixo_mensal(fig, list(yoy["ano_mes"]))
+        base.eixo_temporal(fig, yoy, grao=grao)
         fig.update_yaxes(
             title_text="R$ por competência", title_font_size=theme.TIPOGRAFIA["nota"],
             tickformat=".2s", rangemode="tozero",

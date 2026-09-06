@@ -60,6 +60,14 @@ Inadimplência não lista período, porque a página é uma leitura numa data; C
 data, porque seus números são todos por competência. Filtro visível que
 não faz nada é pior que filtro nenhum: o usuário mexe e conclui que o dashboard quebrou.
 
+**Granularidade do eixo temporal**: as páginas com série (Metas, Faturamento e Recebimento,
+Custos) trazem **Agrupar o tempo por** — mês, trimestre ou ano. Cada coluna declara como se
+agrega (`reagrupar()` em `views/_comum.py`): reais somam, a inadimplência é fim de período
+(o trimestre é o valor do último mês, nunca a soma dos três) e a ociosidade é recalculada
+como veículos-mês parados sobre veículos-mês de frota. **Semana não existe** e não é
+omissão: `titulos_receber.competencia` e `custos.competencia` são sempre dia 1 do mês, e a
+meta é mensal por definição. Só `data_pagamento` tem grão diário.
+
 Duas regras editoriais que o código sustenta: **uma pergunta central por página,
 declarada no título**, e **no máximo um bloco curto de texto por página** — o resto é
 rótulo, nota de rodapé do visual ou tooltip.

@@ -299,7 +299,7 @@ def _a4(ctx: _Contexto) -> dict:
     valor = float(df.loc[0, "cobertura_pct"])
     return _linha(lim, _nivel(valor, lim), valor,
                   f"12 meses até {fmt.competencia(ctx.ano_mes)}: "
-                  f"{fmt.moeda_compacta(df.loc[0, 'recebimento_12m'])} recebidos sobre "
+                  f"{fmt.moeda_compacta(df.loc[0, 'recebimento_sem_juros_12m'])} recebidos sobre "
                   f"{fmt.moeda_compacta(df.loc[0, 'faturamento_valido_12m'])} faturados.")
 
 

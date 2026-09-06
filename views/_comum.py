@@ -77,13 +77,14 @@ FILTROS_DA_PAGINA: Mapping[int, tuple[str, ...]] = {
     # anual, a serie mensal cobre os 12 meses do ano, a matriz compara ano a ano).
     # Com o filtro de periodo, trocar "Ultimos 12 meses" por "Todo o periodo"
     # mantinha 2026 nos dois casos e nada mudava na tela -- parecia quebrado.
-    1: ("ano", "segmento"),
-    2: ("periodo", "data", "segmento", "porte", "rating", "tipo_contrato", "cliente"),
+    1: ("ano", "granularidade", "segmento"),
+    2: ("periodo", "granularidade", "data", "segmento", "porte", "rating", "tipo_contrato",
+        "cliente"),
     3: ("data", "segmento", "porte", "rating", "tipo_contrato", "cliente"),
     # Custos nao lista "data": os numeros da pagina sao todos por competencia, e a
     # data so mexia na avaliacao dos alertas de ociosidade. Um filtro cujo unico
     # efeito visivel e mudar a cor de um alerta confunde mais do que serve.
-    4: ("periodo", "segmento", "porte", "rating", "tipo_contrato", "cliente"),
+    4: ("periodo", "granularidade", "segmento", "porte", "rating", "tipo_contrato", "cliente"),
 }
 
 #: url_path -> numero da pagina. "" porque o Streamlit serve a default na raiz.
@@ -180,6 +181,10 @@ def chips_contexto(
             chips.append(f"Período de {fmt.periodo(ini, fim)}")
         if "data" in exibidos:
             chips.append(f"Como estava em {fmt.data_br(quando)}")
+        # So quando sai do padrao: um chip "Por mês" em toda tela seria ruido,
+        # mas trimestre ou ano mudam a magnitude de cada barra e precisam aparecer.
+        if "granularidade" in exibidos and grao_atual() != GRAO_PADRAO:
+            chips.append(f"Agrupado por {NOME_DO_GRAO[grao_atual()]}")
     for chave, rotulo, valores in (
         ("segmento", "Segmento", f.segmentos),
         ("porte", "Porte", f.portes),
@@ -545,6 +550,121 @@ def rotulos_mensais(meses: Sequence[str]) -> list[str]:
         rotulo = fmt.competencia(mes)
         textos.append(rotulo if str(mes)[5:7] == "01" else rotulo.split("/")[0])
     return textos
+
+
+#: Granularidade do eixo x nos graficos temporais. Rotulo -> chave interna.
+#:
+#: **Semana nao entra, e nao e esquecimento**: no banco, ``titulos_receber.competencia``
+#: e ``custos.competencia`` sao sempre dia 1 do mes -- o faturamento e o custo
+#: nascem mensais e nao existe semana para desagregar. So ``data_pagamento`` tem
+#: grao diario. Uma opcao "semana" entregaria o mes inteiro empilhado na primeira
+#: semana em quase todo grafico do app.
+GRAOS: Mapping[str, str] = {"Mês": "mes", "Trimestre": "trimestre", "Ano": "ano"}
+
+#: Grao usado quando a pagina nao oferece o seletor.
+GRAO_PADRAO = "mes"
+
+#: Sufixo do titulo do eixo Y: "R$ no mes" vira "R$ no trimestre". Um eixo que
+#: diz "no mes" com barras trimestrais mente sobre a magnitude.
+#: Nome do grao para o chip de contexto e para o titulo do eixo.
+NOME_DO_GRAO: Mapping[str, str] = {"mes": "mês", "trimestre": "trimestre", "ano": "ano"}
+
+NO_PERIODO: Mapping[str, str] = {
+    "mes": "no mês", "trimestre": "no trimestre", "ano": "no ano",
+}
+
+
+
+def grao_atual() -> str:
+    """Granularidade escolhida na barra lateral, ou ``mes``."""
+    return GRAOS.get(str(st.session_state.get("granularidade", "")), GRAO_PADRAO)
+
+
+def _inicio_do_balde(ano_mes: Any, grao: str) -> str:
+    """Primeiro mes do balde a que ``ano_mes`` pertence, em ``'YYYY-MM'``."""
+    texto = str(ano_mes)[:7]
+    ano, mes = int(texto[:4]), int(texto[5:7])
+    if grao == "trimestre":
+        mes = (mes - 1) // 3 * 3 + 1
+    elif grao == "ano":
+        mes = 1
+    return f"{ano:04d}-{mes:02d}"
+
+
+def reagrupar(
+    df: pd.DataFrame,
+    *,
+    grao: str,
+    soma: Sequence[str] = (),
+    fim: Sequence[str] = (),
+    razao: Mapping[str, tuple[str, str]] | None = None,
+    coluna: str = "ano_mes",
+) -> pd.DataFrame:
+    """Reagrupa uma serie mensal em trimestre ou ano, coluna a coluna.
+
+    Cada coluna precisa dizer **como** se agrega, porque nao existe regra unica:
+
+    - ``soma``: valores em reais e contagens, que se acumulam no periodo;
+    - ``fim``: indicador de fim de periodo (a inadimplencia e uma foto na data,
+      entao o trimestre e o valor do ultimo mes dele, nunca a soma dos tres);
+    - ``razao``: ``{coluna: (numerador, denominador)}`` -- a taxa e **recalculada**
+      sobre os totais do balde. A ociosidade trimestral e veiculos-mes parados
+      sobre veiculos-mes de frota, e nao a media das tres taxas mensais, que
+      pesaria igual um mes de frota pequena e um de frota grande.
+
+    Devolve ``coluna`` reescrita com o primeiro mes do balde (o eixo continua
+    temporal) e uma coluna ``rotulo_periodo`` com o texto do tick.
+    """
+    if df is None or df.empty:
+        return df
+    saida = df.copy().sort_values(coluna)
+    if grao != "mes":
+        saida[coluna] = [_inicio_do_balde(v, grao) for v in saida[coluna]]
+        agregacoes: dict[str, Any] = {c: "sum" for c in soma if c in saida.columns}
+        # ``min_count=1``: um balde sem nenhum realizado fica nulo, nao zero. O
+        # futuro de 2026 nao pode virar uma barra no chao.
+        for c in list(agregacoes):
+            agregacoes[c] = lambda x: x.sum(min_count=1)
+        for c in fim:
+            if c in saida.columns:
+                agregacoes[c] = lambda x: x.dropna().iloc[-1] if x.notna().any() else float("nan")
+        for _, (num, den) in (razao or {}).items():
+            for c in (num, den):
+                if c in saida.columns:
+                    agregacoes.setdefault(c, lambda x: x.sum(min_count=1))
+        # Colunas sem regra (unidade, tipo_agregacao) sao constantes na serie:
+        # o balde herda a primeira.
+        for c in saida.columns:
+            if c != coluna and c not in agregacoes:
+                agregacoes[c] = "first"
+        saida = saida.groupby(coluna, as_index=False, sort=True).agg(agregacoes)
+        for destino, (num, den) in (razao or {}).items():
+            if num in saida.columns and den in saida.columns:
+                saida[destino] = 100.0 * saida[num] / saida[den].replace(0, pd.NA)
+    formatar = {"mes": fmt.competencia, "trimestre": fmt.trimestre, "ano": fmt.ano_civil}[grao]
+    saida["rotulo_periodo"] = [formatar(v) for v in saida[coluna]]
+    return saida.reset_index(drop=True)
+
+
+def eixo_temporal(
+    fig: go.Figure, df: pd.DataFrame, *, grao: str,
+    titulo: str = "Mês de competência", coluna: str = "ano_mes",
+) -> None:
+    """Ticks e titulo do eixo x no grao escolhido.
+
+    O titulo muda junto: "Mês de competência" vira "Trimestre de competência". Um
+    eixo que diz "Mês" com barras trimestrais e pior que eixo sem titulo.
+    """
+    nome = NOME_DO_GRAO[grao].capitalize()
+    titulo_grao = titulo.replace("Mês", nome, 1) if titulo.startswith("Mês") else titulo
+    fig.update_xaxes(
+        tickmode="array",
+        tickvals=datas_de(df[coluna]),
+        ticktext=(list(df["rotulo_periodo"]) if "rotulo_periodo" in df.columns
+                  else rotulos_mensais(df[coluna])),
+        title_text=titulo_grao,
+        title_font_size=theme.TIPOGRAFIA["nota"],
+    )
 
 
 def eixo_mensal(fig: go.Figure, meses: Sequence[str], titulo: str = "Mês de competência") -> None:

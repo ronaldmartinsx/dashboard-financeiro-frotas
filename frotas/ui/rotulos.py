@@ -43,6 +43,8 @@ ROTULOS: dict[str, str] = {
     # -- tempo -----------------------------------------------------------
     "competencia": "Competência",
     "ano_mes": "Competência",
+    "rotulo_periodo": "Período",
+    "recebimento_sem_juros_12m": "Recebimento sem Juros e Multa",
     "ano_mes_num": "Competência (aaaammm)",
     "ano": "Ano",
     "mes": "Mês",
