@@ -43,7 +43,7 @@ with st.spinner("Apurando faturamento e caixa..."):
         {
             "alertas": lambda: base.avaliar_alertas(f, ref, base.ALERTAS_DA_PAGINA[PAGINA]),
             "resumo": lambda: receita.resumo(f),
-            "eficiencia": lambda: credito.eficiencia_cobranca(f, ref),
+            "cobertura": lambda: credito.cobertura_de_caixa(f, ref),
             "fat_comp": lambda: receita.faturamento_por_competencia(f),
             "caixa": lambda: metas.realizado_mensal("Recebimento (Caixa)"),
             "segmentos": lambda: receita.faturamento_por_dimensao(f, "segmento"),
@@ -55,7 +55,7 @@ with st.spinner("Apurando faturamento e caixa..."):
 
 df_alertas = base.obter(dados, "alertas")
 resumo = base.obter(dados, "resumo")
-eficiencia = base.obter(dados, "eficiencia")
+cobertura = base.obter(dados, "cobertura")
 
 
 # --------------------------------------------------------------------------
@@ -63,47 +63,51 @@ eficiencia = base.obter(dados, "eficiencia")
 # --------------------------------------------------------------------------
 piso_cobranca = base.limiares_de(df_alertas, "A4")[1]
 janela_caixa = ""
-if eficiencia is not None:
-    ini = base.texto_celula(eficiencia, "janela_ini")
-    fim = base.texto_celula(eficiencia, "janela_fim")
+if cobertura is not None:
+    ini = base.texto_celula(cobertura, "janela_ini")
+    fim = base.texto_celula(cobertura, "janela_fim")
     if ini and fim:
         janela_caixa = fmt.periodo(ini, fim)
+faturado = base.celula(resumo, "faturamento_bruto")
+impostos = base.celula(resumo, "impostos")
 
 base.faixa_kpis(
     [
         {
             "rotulo": "Faturamento bruto",
-            "valor": base.celula(resumo, "faturamento_bruto"),
+            "valor": faturado,
             "unidade": "brl", "chave_direcao": "faturamento_bruto", "estado": "sem_meta",
-            "nota": "antes de impostos",
-            "ajuda": "Somado pelo mês de competência (o mês do serviço), não pela data de emissão.",
+            "nota": f"receita líquida: {fmt.moeda_compacta(base.celula(resumo, 'receita_liquida'))}",
+            "ajuda": "Somado pelo mês de competência (o mês do serviço), não pela data de emissão. "
+                     "A receita líquida é o mesmo valor já sem impostos.",
         },
         {
-            "rotulo": "Receita líquida",
-            "valor": base.celula(resumo, "receita_liquida"),
-            "unidade": "brl", "chave_direcao": "receita_liquida", "estado": "sem_meta",
-            "nota": f"impostos: {fmt.moeda_compacta(base.celula(resumo, 'impostos'))}",
-            "ajuda": "Faturamento menos impostos, incluindo faturas canceladas. É a definição publicada.",
+            "rotulo": "Impostos sobre a receita",
+            "valor": impostos,
+            "unidade": "brl", "chave_direcao": "impostos", "estado": "sem_meta",
+            "nota": (f"{fmt.percentual(100.0 * impostos / faturado, 2)} do faturado"
+                     if not fmt.eh_vazio(impostos) and faturado else None),
+            "ajuda": "Alíquota de 3,65% na locação pura e 8,65% quando o contrato tem serviço "
+                     "ou motorista, por isso o percentual varia com o mix.",
         },
         {
             "rotulo": "Recebimento em 12 meses",
-            "valor": base.celula(eficiencia, "recebimento_12m"),
+            "valor": base.celula(cobertura, "recebimento_12m"),
             "unidade": "brl", "chave_direcao": "recebimento_caixa", "estado": "sem_meta",
             "nota": f"caixa de {janela_caixa}" if janela_caixa else None,
-            "badges": ["Janela de 12 meses"],
-            "ajuda": "Somado pela data de pagamento, com juros e multa. Não soma com o "
+            "ajuda": "Somado pela data de pagamento, sem juros e multa. Não soma com o "
                      "faturamento do mesmo mês.",
         },
         {
-            "rotulo": "Eficiência de cobrança",
-            "valor": base.celula(eficiencia, "eficiencia_pct"),
-            "unidade": "pct", "casas": 1, "chave_direcao": "eficiencia_cobranca",
+            "rotulo": "Cobertura de caixa",
+            "valor": base.celula(cobertura, "cobertura_pct"),
+            "unidade": "pct", "casas": 1, "chave_direcao": "cobertura_caixa",
             "estado": "sem_meta",
             "nota": (f"piso da meta: {fmt.percentual(piso_cobranca, 1)}"
                      if piso_cobranca is not None else None),
-            "badges": ["Janela de 12 meses"],
-            "ajuda": "Caixa recebido dividido pelo faturamento válido, ambos na mesma janela "
-                     "de 12 meses.",
+            "ajuda": "Quanto do faturado dos últimos 12 meses já virou caixa no mesmo intervalo. "
+                     "Não mede eficiência de cobrança: o caixa de um mês vem do faturamento de "
+                     "1 a 3 meses antes, então crescer no faturamento derruba a razão.",
         },
         {
             "rotulo": "Ticket médio",
@@ -306,13 +310,11 @@ if top is not None:
 ui.tabela_com_barra(
     top if top is not None else pd.DataFrame(),
     colunas={
-        "nome_cliente": ui.ColunaSpec("Cliente", "texto", largura="large"),
-        "segmento": ui.ColunaSpec("Segmento", "texto", largura="medium"),
-        "porte": ui.ColunaSpec("Porte", "texto", largura="small"),
-        "rating_credito": ui.ColunaSpec("Rating", "texto", largura="small"),
+        "nome_cliente": ui.ColunaSpec("Cliente", "texto"),
+        "segmento": ui.ColunaSpec("Segmento", "texto"),
+        "porte": ui.ColunaSpec("Porte", "texto"),
+        "rating_credito": ui.ColunaSpec("Rating", "texto"),
         "faturamento_bruto": ui.ColunaSpec("Faturamento bruto", "brl_compacto"),
-        "receita_liquida": ui.ColunaSpec("Receita líquida", "brl_compacto"),
-        "qtd_titulos": ui.ColunaSpec("Faturas", "num", largura="small"),
         "participacao_pct": ui.ColunaSpec("Participação", "pct", casas=2),
     },
     # Mesma escala de rating da pagina de inadimplencia: a celula inteira vira a
@@ -325,7 +327,6 @@ ui.tabela_com_barra(
     ),
     barra="faturamento_bruto",
     rotulo_barra="Peso",
-    cor_barra=theme.cor_indicador("Faturamento", ctx.tema),
     escala="neutra",
     ordenar_por="faturamento_bruto",
     limite=10,

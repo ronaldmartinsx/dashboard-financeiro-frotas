@@ -763,6 +763,26 @@ class ColunaSpec:
     largura: Literal["small", "medium", "large"] | None = None
 
 
+#: Largura de coluna em pixels. O ``st.dataframe`` so tem "small" (75), "medium"
+#: (200) e "large" (400), e os tres desperdicam espaco: um nome de cliente de 32
+#: caracteres cabe em 249 px, nao em 400. Com a soma das colunas abaixo da largura
+#: do container o Streamlit distribui a sobra igualmente, entao **subestimar e
+#: seguro** e superestimar e o que empurra a tabela para a rolagem horizontal.
+_PX_POR_CARACTERE = 7.1
+_PX_POR_CARACTERE_CABECALHO = 7.6   # cabecalho e negrito e reserva o icone de menu
+_LARGURA_MINIMA = 60
+_LARGURA_MAXIMA = 280
+
+
+def _largura_px(rotulo: str, valores: Sequence[Any] | None = None) -> int:
+    """Largura que a coluna precisa para caber cabecalho e conteudo, sem sobra."""
+    largura = len(rotulo) * _PX_POR_CARACTERE_CABECALHO + 30
+    if valores is not None and len(valores):
+        maior = max((len(str(v)) for v in valores), default=0)
+        largura = max(largura, maior * _PX_POR_CARACTERE + 22)
+    return int(max(_LARGURA_MINIMA, min(_LARGURA_MAXIMA, largura)))
+
+
 def _formatar_coluna(serie: pd.Series, spec: ColunaSpec) -> pd.Series:
     tipo = spec.tipo
     if tipo == "texto":
@@ -807,7 +827,6 @@ def tabela_com_barra(
     pintar: Mapping[str, Sequence[str]] | None = None,
     pintar_fundo: Mapping[str, Sequence[str]] | None = None,
     tipos_barra: Mapping[str, str] | None = None,
-    cor_barra: str | None = None,
     rotulo_barra: str | Sequence[str] | None = None,
     escala: Escala = "neutra",
     ordenar_por: str | None = None,
@@ -872,17 +891,15 @@ def tabela_com_barra(
             continue
         saida[spec.rotulo] = _formatar_coluna(dados[nome], spec)
         config[spec.rotulo] = st.column_config.TextColumn(
-            spec.rotulo, help=spec.ajuda, width=spec.largura
+            spec.rotulo, help=spec.ajuda,
+            width=spec.largura or _largura_px(spec.rotulo, saida[spec.rotulo]),
         )
-    # ``cor_barra``: a ProgressColumn nativa **nao** aceita cor -- ela usa o
-    # ``primaryColor`` do tema, igual em toda tabela. E CSS nao resolve: o
-    # ``st.dataframe`` desenha a grade em ``<canvas>`` (glide-data-grid), entao
-    # nao existe elemento no DOM para pintar. Com cor pedida, a barra passa a ser
-    # uma coluna de texto em blocos, colorida pelo Styler -- que e o mesmo caminho
-    # ja usado em ``pintar``/``pintar_fundo`` e funciona.
-    barras_em_texto = bool(cor_barra) and bool(colunas_barra)
-    pintadas_barra: dict[str, str] = {}
-
+    # A barra e a ``ProgressColumn`` nativa, e ela sai sempre na ``primaryColor``
+    # do tema -- a cor do indicador nao chega ate aqui. Ja tentamos: CSS nao
+    # alcanca (o ``st.dataframe`` desenha a grade em ``<canvas>``, via
+    # glide-data-grid, sem elemento no DOM para pintar) e a versao em blocos de
+    # texto aceitava cor mas lia muito pior que a barra de verdade. Entre cor
+    # certa e leitura boa, fica a leitura.
     for posicao, nome_col in enumerate(colunas_barra):
         if nome_col not in dados.columns:
             continue
@@ -904,25 +921,6 @@ def tabela_com_barra(
             else (spec_barra.rotulo if spec_barra else nome_col)
         )
         coluna_barra = f"{nome_barra} ▮"
-        if barras_em_texto:
-            proporcao = (
-                valores_barra.abs().clip(upper=100.0) / 100.0 if eh_percentual
-                else valores_barra.abs() / maximo
-            ).fillna(0.0)
-            saida[coluna_barra] = [
-                "█" * max(0, min(10, round(float(x) * 10)))
-                + "░" * (10 - max(0, min(10, round(float(x) * 10))))
-                for x in proporcao
-            ]
-            config[coluna_barra] = st.column_config.TextColumn(
-                coluna_barra,
-                help=("Barra na escala do proprio indicador, de 0% a 100%."
-                      if eh_percentual
-                      else f"Barra normalizada pelo maior valor visivel: {texto_max}."),
-                width="small",
-            )
-            pintadas_barra[coluna_barra] = cor_barra or ""
-            continue
         saida[coluna_barra] = (
             valores_barra.abs().clip(upper=100.0) if eh_percentual
             else valores_barra.abs() / maximo * 100
@@ -938,6 +936,7 @@ def tabela_com_barra(
             format="%.1f%%" if eh_percentual else "%.0f%%",
             min_value=0.0,
             max_value=100.0,
+            width=_largura_px(coluna_barra),
         )
     extras: dict[str, Any] = {}
     if altura:
@@ -949,7 +948,7 @@ def tabela_com_barra(
     # ``pintar``: {coluna original: nivel por linha}. Serve para a coluna de
     # rating de credito, onde a cor **e** a informacao (A verde ... D vermelho).
     corpo: Any = saida
-    if pintar or pintar_fundo or pintadas_barra:
+    if pintar or pintar_fundo:
         mapa = {colunas[c].rotulo: list(n) for c, n in (pintar or {}).items() if c in colunas}
         mapa_fundo = {
             colunas[c].rotulo: list(n) for c, n in (pintar_fundo or {}).items() if c in colunas
@@ -966,10 +965,6 @@ def tabela_com_barra(
             # Fundo cheio: usado onde o valor e um rotulo curto (rating), em que a
             # celula inteira vira a marca. O texto vai na cor da superficie do
             # tema, para contrastar com a marca em qualquer nivel.
-            # Barra em blocos: a coluna inteira na cor do indicador da pagina.
-            for rotulo, cor in pintadas_barra.items():
-                if rotulo in estilo.columns:
-                    estilo[rotulo] = f"color: {cor}; letter-spacing: -1px"
             for rotulo, niveis in mapa_fundo.items():
                 if rotulo in estilo.columns and len(niveis) == len(estilo):
                     estilo[rotulo] = [
@@ -1028,7 +1023,11 @@ def matriz_status(
     st.dataframe(
         renomeado.style.apply(_pintar, axis=None),
         column_config={
-            rotulo: st.column_config.TextColumn(rotulo, help=ajudas.get(original))
+            rotulo: st.column_config.TextColumn(
+                rotulo, help=ajudas.get(original),
+                width=_largura_px(rotulo, renomeado[rotulo]
+                                  if rotulo in renomeado.columns else None),
+            )
             for original, rotulo in colunas.items()
         },
         hide_index=True,

@@ -75,9 +75,9 @@ LIMIARES: dict[str, Limiar] = {
     "A3": Limiar("A3", "empresa", 1, "Faturamento abaixo da meta", "% da meta",
                  "menor_pior", 95.0, 90.0,
                  "Faturamento realizado do período dividido pela soma das metas mensais vigentes dos mesmos meses."),
-    "A4": Limiar("A4", "empresa", 1, "Eficiência de cobrança", "%",
+    "A4": Limiar("A4", "empresa", 1, "Cobertura de caixa", "%",
                  "menor_pior", 95.0, 93.0,
-                 "Recebimento em caixa dos últimos 12 meses dividido pelo faturamento válido das mesmas 12 competências."),
+                 "Recebimento em caixa dos últimos 12 meses, sem juros e multa, dividido pelo faturamento válido das mesmas 12 competências."),
     "A6": Limiar("A6", "empresa", 1, "Custo acima da meta do mês", "% da meta",
                  "maior_pior", 105.0, 110.0,
                  "Custo operacional do mês da data de referência dividido pela meta mensal vigente."),
@@ -295,8 +295,8 @@ def _a3(ctx: _Contexto) -> dict:
 
 def _a4(ctx: _Contexto) -> dict:
     lim = LIMIARES["A4"]
-    df = credito.eficiencia_cobranca(ctx.f_foto, ctx.ref)
-    valor = float(df.loc[0, "eficiencia_pct"])
+    df = credito.cobertura_de_caixa(ctx.f_foto, ctx.ref)
+    valor = float(df.loc[0, "cobertura_pct"])
     return _linha(lim, _nivel(valor, lim), valor,
                   f"12 meses até {fmt.competencia(ctx.ano_mes)}: "
                   f"{fmt.moeda_compacta(df.loc[0, 'recebimento_12m'])} recebidos sobre "

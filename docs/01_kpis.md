@@ -151,8 +151,11 @@ liberar a serie a partir de **jan/2025**. Jan-mar/2026 tem desvio zero **por con
 sum(T.valor_pago) where T.data_pagamento between :ini and :fim   -- juros e multa INCLUIDOS
 ```
 Realizado: 24,461 (2024) · 30,601 (2025) · 22,804 mi (2026-8m). Sem juros: 24,242 / 30,252 / 22,469 mi
-(a versao **com** juros e a que reproduz o desvio publicado). **Eficiencia de cobranca 12m** (set/25-ago/26) =
-32,958 / 35,120 = **93,8%** — acima do piso de 93% da `Revisao 2026`, abaixo dos 97% do orcamento original.
+(a versao **com** juros e a que reproduz o desvio publicado da serie de caixa). **Cobertura de caixa 12m**
+(set/25-ago/26) = 32,491 / 35,120 = **92,5%** — **abaixo** do piso de 93% da `Revisao 2026` e dos 97% do
+orcamento original. O numerador aqui e **sem** juros e multa: a meta aplica a taxa sobre o faturado puro,
+entao incluir juros somava 1,3 p.p. contra um denominador que nao os tem, e mantinha A4 em ambar
+escondendo o rompimento do piso.
 
 ### 3.5 Aging da carteira (foto em `:ref`)
 ```sql
@@ -341,7 +344,7 @@ e nao tem alavanca propria; virou secundaria como denominador da margem).
 | Aging por faixa | §3.5 | 4,471 / 0,761 / 0,437 / 0,403 / 0,770 / 0,821 mi | BRL | ↓ nas faixas altas | Exclui baixados e cancelados |
 | Taxa de recuperacao de vencidos | Dos titulos que passaram de 30d de atraso, quanto foi pago. | R$ 9,822 mi de R$ 13,342 mi = **73,6%**, em media **92 dias** de atraso | % e dias | ↑ | Titulos recentes ainda nao tiveram tempo: filtrar `data_vencimento <= :ref - 90` |
 | Atraso medio ponderado | Media de `dias_atraso_pagamento` ponderada por `valor_bruto`, dos pagos no periodo. | **20,9 dias** (12m); prazo emissao→pagamento **43,0 dias** | dias | ↓ | So ve quem pagou — melhora artificialmente quando os piores param de pagar |
-| Eficiencia de cobranca | Recebimento 12m ÷ Faturamento valido 12m. | 32,958 / 35,120 = **93,8%** | % | ↑ | Descasamento temporal: caixa de m reflete faturamento de m−1 a m−3 |
+| Cobertura de caixa | Recebimento 12m **sem juros e multa** ÷ Faturamento valido 12m. | 32,491 / 35,120 = **92,5%** | % | ↑ | Descasamento temporal: caixa de m reflete faturamento de m−1 a m−3, entao crescer no faturamento derruba a razao. **Nao** e eficiencia de cobranca: para isso seria preciso safra por competencia, fora de escopo |
 | Juros e multa recuperados | `sum(valor_juros_multa)` | **R$ 902,7 mil** no historico | BRL | ↑ | Receita nao recorrente; nao entra em `titulos_receber.valor_bruto` |
 | Baixas por motivo | `sum(valor_baixa)` por `motivo_baixa`. | Perda Cobravel **R$ 664 mil** (21) · Glosa 207 (5) · Baixa Caixa 196 (7) · Cortesia 22 (2) | BRL | ↓ | 4 titulos (R$ 182 mil) tem `data_baixa` **futura** a REF |
 | Cancelamentos por motivo | `sum(valor_bruto)` por `motivo_cancelamento`. | Renegociacao **R$ 1,280 mi** · Fat. Indevido 1,177 · Erro de Emissao 597 · Acordo 347 · Troca de Veiculo 319 | BRL | ↓ | "Faturamento Indevido" + "Erro de Emissao" = **R$ 1,774 mi de falha de processo**, nao de comercial |
@@ -365,7 +368,7 @@ e nao tem alavanca propria; virou secundaria como denominador da margem).
 |---|---|---|---|---|---|
 | **1** | **Visao Executiva** | "Estamos entregando o plano? Se nao, onde exatamente quebrou?" | **CFO** | P1-P6 com realizado, meta vigente e desvio; serie mensal de faturamento e margem; ponte realizado→meta; toggle `Orcamento Original` x `Revisao 2026` (2026) | Levar ao board a leitura correta: receita e caixa acima do plano, credito fora de controle. Decidir se o reforecast de 2026 precisa de nova revisao. |
 | **2** | **Receita e Carteira** | "De onde vem a receita, quanto ela esta concentrada e onde o mix desviou do orcamento?" | **Controller** / CFO | P1, P4, Receita Liquida, Cancelamentos %, mix por `tipo_receita`, curva ABC, faturamento x meta **por segmento** (com aviso de mix), YoY 2024→2025, MRR contratado, churn | Priorizar carteira comercial; atacar os R$ 1,774 mi de cancelamento por erro de emissao/faturamento indevido; corrigir a premissa de mix do proximo orcamento. |
-| **3** | **Credito e Cobranca** | "Quem nao esta pagando, ha quanto tempo, quanto pesa e o que ainda da para recuperar?" | **Gerente de credito e cobranca** | P3, P6, aging por faixa, inadimplencia PIT por segmento/rating/porte, taxa de recuperacao (73,6% / 92 dias), atraso medio ponderado (20,9 d), eficiencia de cobranca (93,8%), uso do limite de credito, ranking de devedores, baixas por motivo | Suspender faturamento de cliente acima do limite; escalar cobranca dos 10 maiores devedores (56,8% do vencido); pedir garantia adicional em Construcao Civil e ratings C/D. |
+| **3** | **Credito e Cobranca** | "Quem nao esta pagando, ha quanto tempo, quanto pesa e o que ainda da para recuperar?" | **Gerente de credito e cobranca** | P3, P6, aging por faixa, inadimplencia PIT por segmento/rating/porte, taxa de recuperacao (73,6% / 92 dias), atraso medio ponderado (20,9 d), cobertura de caixa (92,5%), uso do limite de credito, ranking de devedores, baixas por motivo | Suspender faturamento de cliente acima do limite; escalar cobranca dos 10 maiores devedores (56,8% do vencido); pedir garantia adicional em Construcao Civil e ratings C/D. |
 | **4** | **Margem e Contratos** | "Quais contratos destroem valor e por que?" | **Controller** / gerente de operacao | P2, P5, margem por contrato (periodo casado), por tipo de contrato, por segmento, contratos negativos e a lista dos <20%, % de corretiva por contrato, RL vs custo | Renegociar ou encerrar contrato deficitario; repactuar preco em Terceirizacao de Frota (30,0%) e Varejo (24,2%). |
 | **5** | **Frota e Ociosidade** | "Quanto custa a frota parada e a frota velha?" | **Gerente de operacao e frota** | Custo de ociosidade (R$ 612 mil/12m), taxa de ociosidade mensal, custo por categoria de custo e tipo (Fixo/Variavel/Nao Caixa), corretiva por faixa de idade, custo e ociosidade por categoria de veiculo, idade media, margem ex-Nao Caixa | Aprovar renovacao dos 45 veiculos de 7+ anos (~R$ 644 mil/ano de corretiva evitavel); realocar ou vender os 15 veiculos parados em ago/26. |
 
@@ -413,7 +416,7 @@ Regras objetivas, avaliadas na data de referencia. Cada uma vem com o resultado 
 | **A1** | Inadimplencia PIT do mes **vs. meta do mesmo `ano_mes`** | ≥ +1,0 p.p. | ≥ +2,0 p.p. | **10,02% vs 8,80% = +1,22 p.p. → AMBAR** |
 | **A2** | Inadimplencia PIT sobe ≥ 1,5 p.p. em 3 meses | — | atingido | jun→ago/26: 9,37 → 10,02 = +0,65 p.p. → ok |
 | **A3** | Faturamento do mes vs. meta mensal vigente | < 95% | < 90% | 2026 (8m): 102,9% → ok |
-| **A4** | Eficiencia de cobranca 12m (§3.4) | < 95% | < 93% | **93,8% → AMBAR** |
+| **A4** | Cobertura de caixa 12m (§3.4) | < 95% | < 93% | **92,5% → VERMELHO** |
 | **A5** | Margem 12m vs. meta ponderada do periodo | ≤ −1,0 p.p. | ≤ −2,0 p.p. | 2026(8m) +1,70 p.p. → ok |
 | **A6** | Custo mensal > meta mensal vigente | > 105% | > 110% | acompanhar jan-fev (pico de IPVA) |
 

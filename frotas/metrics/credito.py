@@ -419,21 +419,30 @@ def titulos_do_cliente(
     return db.consultar(sql, params, ttl=config.TTL_FATOS)
 
 
-def eficiencia_cobranca(filtros: Filtros, data_ref: date | None = None) -> pd.DataFrame:
-    """Eficiencia de cobranca dos 12 meses moveis: caixa recebido / faturamento valido.
+def cobertura_de_caixa(filtros: Filtros, data_ref: date | None = None) -> pd.DataFrame:
+    """Cobertura de caixa dos 12 meses moveis: caixa recebido / faturamento valido.
 
     Uma linha. Colunas: ``data_ref``, ``janela_ini``, ``janela_fim``,
-    ``recebimento_12m``, ``faturamento_valido_12m``, ``eficiencia_pct``.
+    ``recebimento_12m``, ``faturamento_valido_12m``, ``cobertura_pct``.
 
-    Definicao: recebimento = ``sum(valor_pago)`` com ``data_pagamento`` nos 12
-    meses que terminam na data de referencia; faturamento valido = ``sum(valor_bruto)``
-    das 12 competencias que terminam no mes da referencia, com filtro
-    point-in-time de cancelamento. Reproduz os **93,8%** publicados
-    (32,958 / 35,120 mi em ago/26) -- acima do piso de 93% da `Revisao 2026`,
-    abaixo dos 97% do orcamento original.
+    Definicao: recebimento = ``sum(valor_pago - valor_juros_multa)`` com
+    ``data_pagamento`` nos 12 meses que terminam na data de referencia;
+    faturamento valido = ``sum(valor_bruto)`` das 12 competencias que terminam no
+    mes da referencia, com filtro point-in-time de cancelamento. Em ago/26:
+    **92,5%** (32,490 / 35,120 mi), **abaixo** do piso de 93% da `Revisao 2026`.
 
-    Armadilha: ha descasamento temporal de proposito (o caixa do mes reflete o
-    faturamento de m-1 a m-3). Por isso a janela e de 12 meses, nao mensal.
+    Juros e multa ficam **fora** do numerador de proposito. Eles nao existem no
+    denominador nem na meta (o plano aplica a taxa sobre o faturado puro), entao
+    inclui-los somava 1,3 p.p. -- e fazia cliente que atrasa e paga com juros
+    *melhorar* o indicador. Com eles o numero publicado era 93,8%, o que mantinha
+    o alerta em ambar e escondia que o piso ja tinha sido rompido.
+
+    Nao e uma medida de eficiencia de cobranca, e por isso nao se chama assim: o
+    numerador e o denominador nao sao a mesma populacao. O caixa do mes reflete o
+    faturamento de m-1 a m-3, entao empresa crescendo derruba a razao mesmo com
+    cobranca perfeita, e queda de faturamento a levanta sozinha. A leitura honesta
+    e "o caixa acompanha o faturado?". Cobranca de verdade se mede por safra de
+    competencia, que esta fora do escopo dos cinco eixos.
     """
     ref = data_ref or filtros.ref
     cond, params = condicoes_titulos(filtros, com_periodo=False, com_cancelados=True)
@@ -443,7 +452,7 @@ def eficiencia_cobranca(filtros: Filtros, data_ref: date | None = None) -> pd.Da
            (date_trunc('month', cast(:ref as date))
             - interval '{config.MESES_JANELA_INADIMPLENCIA - 1} months')::date as janela_ini,
            date_trunc('month', cast(:ref as date))::date as janela_fim,
-           coalesce(sum(t.valor_pago) filter (
+           coalesce(sum(t.valor_pago - coalesce(t.valor_juros_multa, 0)) filter (
                where t.data_pagamento > (cast(:ref as date) - interval '1 year')::date
                  and t.data_pagamento <= cast(:ref as date)), 0)::float8 as recebimento_12m,
            coalesce(sum(t.valor_bruto) filter (
@@ -455,7 +464,7 @@ def eficiencia_cobranca(filtros: Filtros, data_ref: date | None = None) -> pd.Da
     where 1=1{cond}
     """
     df = db.consultar(sql, params, ttl=config.TTL_FATOS)
-    df["eficiencia_pct"] = (
+    df["cobertura_pct"] = (
         100.0 * df["recebimento_12m"] / df["faturamento_valido_12m"].replace(0, pd.NA)
     )
     return df

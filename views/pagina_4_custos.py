@@ -18,7 +18,6 @@ from __future__ import annotations
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-from plotly.subplots import make_subplots
 
 from frotas.metrics import custos
 from frotas.ui import componentes as ui
@@ -284,86 +283,99 @@ else:
         ambar_a15, vermelho_a15 = base.limiares_de(df_alertas, "A15")
         niveis = [base.nivel_do_valor(df_alertas, "A15", v) for v in ocio["taxa_ociosidade_pct"]]
         cores_ponto = [theme.cor_nivel(n, ctx.tema) if n != "neutro" else slot1 for n in niveis]
-        fig = make_subplots(
-            rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.12,
-            subplot_titles=("Parcela da frota sem contrato", "Custo do veículo parado"),
-        )
-        teto_taxa = base.maximo_da_coluna(ocio, "taxa_ociosidade_pct", 1.0)
-        for limiar, nivel in ((ambar_a15, "atencao"), (vermelho_a15, "critico")):
-            if limiar is not None:
-                fig.add_hrect(
-                    y0=limiar, y1=max(teto_taxa * 1.2, limiar * 1.4),
-                    fillcolor=theme.cor_nivel(nivel, ctx.tema), opacity=0.08, line_width=0,
-                    layer="below", row=1, col=1,
-                )
-        fig.add_trace(
-            go.Scatter(
-                x=eixo_x, y=ocio["taxa_ociosidade_pct"], mode="lines+markers",
-                name="Parcela da frota parada",
-                line={"color": slot1, "width": theme.ESPESSURA_LINHA},
-                marker={"size": theme.TAMANHO_MARCADOR + 2, "color": cores_ponto,
-                        "line": {"color": t.superficie, "width": 1}},
-                customdata=ocio[["qtd_veiculos_ociosos", "qtd_veiculos_frota"]].to_numpy(),
-                hovertemplate="%{x|%b/%Y}: %{y:.1f}%<br>%{customdata[0]} de %{customdata[1]} "
-                              "veículos parados<extra></extra>",
-            ),
-            row=1, col=1,
-        )
-        fig.add_trace(
-            go.Bar(
-                x=eixo_x, y=ocio["custo_ocioso"], name="Custo do veículo parado",
-                marker={"color": slot1, "line": {"color": t.superficie, "width": 1}},
-                **base.rotulos_de_barra(ocio["custo_ocioso"]),
-                hovertemplate="%{x|%b/%Y}: R$ %{y:,.0f}<extra></extra>",
-            ),
-            row=2, col=1,
-        )
-        pior = ocio.sort_values("taxa_ociosidade_pct", ascending=False).iloc[0]
-        nivel_pior = base.nivel_do_valor(df_alertas, "A15", pior["taxa_ociosidade_pct"])
-        if nivel_pior != "neutro":
-            fig.add_annotation(
-                x=pd.Timestamp(str(pior["ano_mes"]) + "-01"),
-                y=float(pior["taxa_ociosidade_pct"]),
-                text=(f"{theme.ICONE_NIVEL[nivel_pior]} "
-                      f"{fmt.competencia(pior['ano_mes'], longo=True)}: "
-                      f"{fmt.percentual(pior['taxa_ociosidade_pct'], 1)}"),
-                showarrow=False, yshift=18, xanchor="center",
-                font={"size": theme.TIPOGRAFIA["nota"],
-                      "color": theme.cor_nivel(nivel_pior, ctx.tema, uso="texto")},
-                row=1, col=1,
+        # Dois graficos lado a lado, nao um dividido em dois paineis. Sao duas
+        # perguntas distintas -- quanto da frota esta parada e quanto isso custa --
+        # e cada uma tem sua unidade e sua escala. Empilhados, o eixo x compartilhado
+        # sugeria uma leitura vertical mes a mes que nenhuma das duas pede, e o
+        # painel de baixo ficava com metade da altura util.
+        col_taxa, col_custo = st.columns([6, 6], gap="medium")
+
+        # Titulo no proprio grafico, alinhado a esquerda e no tamanho de rotulo --
+        # o mesmo padrao dos cinco graficos da pagina de metas.
+        titulo_lado = {"x": 0, "xanchor": "left", "y": 0.97, "yanchor": "top",
+                       "font": {"size": theme.TIPOGRAFIA["rotulo"]}}
+
+        with col_taxa:
+            fig = base.nova_figura(ctx.tema, altura=320)
+            teto_taxa = base.maximo_da_coluna(ocio, "taxa_ociosidade_pct", 1.0)
+            for limiar, nivel in ((ambar_a15, "atencao"), (vermelho_a15, "critico")):
+                if limiar is not None:
+                    fig.add_hrect(
+                        y0=limiar, y1=max(teto_taxa * 1.2, limiar * 1.4),
+                        fillcolor=theme.cor_nivel(nivel, ctx.tema), opacity=0.08, line_width=0,
+                        layer="below",
+                    )
+            fig.add_trace(
+                go.Scatter(
+                    x=eixo_x, y=ocio["taxa_ociosidade_pct"], mode="lines+markers",
+                    name="Parcela da frota parada",
+                    line={"color": slot1, "width": theme.ESPESSURA_LINHA},
+                    marker={"size": theme.TAMANHO_MARCADOR + 2, "color": cores_ponto,
+                            "line": {"color": t.superficie, "width": 1}},
+                    customdata=ocio[["qtd_veiculos_ociosos", "qtd_veiculos_frota"]].to_numpy(),
+                    hovertemplate="%{x|%b/%Y}: %{y:.1f}%<br>%{customdata[0]} de %{customdata[1]} "
+                                  "veículos parados<extra></extra>",
+                ),
             )
-        fig.update_layout(**theme.layout_grafico(ctx.tema))
-        fig.update_layout(height=380, showlegend=False, hovermode="x unified", bargap=0.3)
-        fig.update_yaxes(
-            title_text="% da frota do mês", title_font_size=theme.TIPOGRAFIA["nota"],
-            ticksuffix="%", rangemode="tozero", gridcolor=t.grade, linecolor=t.eixo, row=1, col=1,
-        )
-        fig.update_yaxes(
-            title_text="R$ no mês", title_font_size=theme.TIPOGRAFIA["nota"], tickformat=".2s",
-            rangemode="tozero", gridcolor=t.grade, linecolor=t.eixo, row=2, col=1,
-            showticklabels=not base.rotulos_de_barra(ocio["custo_ocioso"]),
-        )
-        fig.update_xaxes(
-            tickmode="array", tickvals=eixo_x, ticktext=base.rotulos_mensais(meses),
-            title_text="Mês de competência", title_font_size=theme.TIPOGRAFIA["nota"],
-            gridcolor=t.grade, linecolor=t.eixo, row=2, col=1,
-        )
-        fig.update_xaxes(gridcolor=t.grade, linecolor=t.eixo, row=1, col=1)
-        # Titulo de subplot alinhado a esquerda, como todo titulo do app. Centralizado
-        # ele flutuava sobre o grafico e disputava com a legenda.
-        for anotacao in fig.layout.annotations[:2]:
-            anotacao.font.size = theme.TIPOGRAFIA["nota"]
-            anotacao.font.color = t.tinta_secundaria
-            anotacao.x = 0
-            anotacao.xanchor = "left"
-        base.mostrar_grafico(
-            fig, chave="p4_ociosidade",
-            nota="As faixas horizontais marcam a partir de quanto a ociosidade entra em "
-                 "atenção e em alerta.",
-            dados=ocio,
-            colunas_dados=["ano_mes", "taxa_ociosidade_pct", "qtd_veiculos_ociosos",
-                           "qtd_veiculos_frota", "custo_ocioso", "pct_do_custo_total"],
-        )
+            pior = ocio.sort_values("taxa_ociosidade_pct", ascending=False).iloc[0]
+            nivel_pior = base.nivel_do_valor(df_alertas, "A15", pior["taxa_ociosidade_pct"])
+            if nivel_pior != "neutro":
+                fig.add_annotation(
+                    x=pd.Timestamp(str(pior["ano_mes"]) + "-01"),
+                    y=float(pior["taxa_ociosidade_pct"]),
+                    text=(f"{theme.ICONE_NIVEL[nivel_pior]} "
+                          f"{fmt.competencia(pior['ano_mes'], longo=True)}: "
+                          f"{fmt.percentual(pior['taxa_ociosidade_pct'], 1)}"),
+                    showarrow=False, yshift=18, xanchor="center",
+                    font={"size": theme.TIPOGRAFIA["nota"],
+                          "color": theme.cor_nivel(nivel_pior, ctx.tema, uso="texto")},
+                )
+            base.eixo_mensal(fig, meses)
+            fig.update_yaxes(
+                title_text="% da frota do mês", title_font_size=theme.TIPOGRAFIA["nota"],
+                ticksuffix="%", rangemode="tozero",
+            )
+            fig.update_layout(
+                showlegend=False, hovermode="x unified",
+                title={"text": "Parcela da frota sem contrato", **titulo_lado},
+                margin={"t": 46},
+            )
+            base.mostrar_grafico(
+                fig, chave="p4_ociosidade_taxa",
+                nota="As faixas horizontais marcam a partir de quanto a ociosidade entra em "
+                     "atenção e em alerta.",
+                dados=ocio,
+                colunas_dados=["ano_mes", "taxa_ociosidade_pct", "qtd_veiculos_ociosos",
+                               "qtd_veiculos_frota"],
+            )
+
+        with col_custo:
+            rotulos_ocio = base.rotulos_de_barra(ocio["custo_ocioso"])
+            fig = base.nova_figura(ctx.tema, altura=320)
+            fig.add_trace(
+                go.Bar(
+                    x=eixo_x, y=ocio["custo_ocioso"], name="Custo do veículo parado",
+                    marker={"color": slot1, "line": {"color": t.superficie, "width": 1}},
+                    **rotulos_ocio,
+                    hovertemplate="%{x|%b/%Y}: R$ %{y:,.0f}<extra></extra>",
+                ),
+            )
+            base.eixo_mensal(fig, meses)
+            fig.update_yaxes(
+                title_text="R$ no mês", title_font_size=theme.TIPOGRAFIA["nota"],
+                tickformat=".2s", rangemode="tozero",
+                showticklabels=not rotulos_ocio,
+            )
+            fig.update_layout(
+                showlegend=False, hovermode="x unified", bargap=0.3,
+                title={"text": "Custo do veículo parado", **titulo_lado},
+                margin={"t": 46},
+            )
+            base.mostrar_grafico(
+                fig, chave="p4_ociosidade_custo",
+                dados=ocio,
+                colunas_dados=["ano_mes", "custo_ocioso", "pct_do_custo_total"],
+            )
 
 # --------------------------------------------------------------------------
 # Qual categoria de veiculo custa mais?
@@ -375,7 +387,7 @@ if por_veiculo is not None:
 ui.tabela_com_barra(
     por_veiculo if por_veiculo is not None else pd.DataFrame(),
     colunas={
-        "categoria": ui.ColunaSpec("Categoria", "texto", largura="large"),
+        "categoria": ui.ColunaSpec("Categoria", "texto"),
         "custo_total": ui.ColunaSpec("Custo total", "brl_compacto"),
         "custo_fixo": ui.ColunaSpec("Custo fixo", "brl_compacto"),
         "custo_variavel": ui.ColunaSpec("Custo variável", "brl_compacto"),
@@ -388,7 +400,6 @@ ui.tabela_com_barra(
     },
     barra="custo_total",
     rotulo_barra="Peso",
-    cor_barra=theme.cor_indicador("Custo Operacional", ctx.tema),
     escala="neutra",
     ordenar_por="custo_total",
     limite=None,

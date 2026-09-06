@@ -257,7 +257,7 @@ e uma foto em `data_ref`; a UI muda a data, nao plota a linha do tempo.
 | `titulos_do_cliente(f, id_cliente, data_ref=None)` | `id_titulo, id_contrato, tipo_receita, descricao, competencia, ano_mes, data_emissao, data_vencimento, valor_bruto, valor_liquido, data_pagamento, valor_pago, valor_juros_multa, dias_atraso, faixa, status_calculado, status_titulo_gravado, forma_pagamento, motivo_cancelamento, motivo_baixa` — **a unica funcao com grao de titulo** |
 | `titulos_em_risco_de_baixa(f, data_ref, dias_limite=300)` | `id_titulo, id_cliente, nome_cliente, segmento, rating_credito, competencia, data_vencimento, dias_vencido, valor_bruto` — alerta A12 |
 | `titulos_com_baixa_futura(f, data_ref=None)` | `id_titulo, id_cliente, nome_cliente, data_vencimento, data_baixa, motivo_baixa, valor_bruto` — alerta A18 |
-| `eficiencia_cobranca(f, data_ref=None)` | `data_ref, janela_ini, janela_fim, recebimento_12m, faturamento_valido_12m, eficiencia_pct` — **93,8%**; e o KPI do **eixo 2** |
+| `cobertura_de_caixa(f, data_ref=None)` | `data_ref, janela_ini, janela_fim, recebimento_12m, faturamento_valido_12m, cobertura_pct` — **92,5%**; e o KPI do **eixo 2**. Recebimento **sem** juros e multa: eles nao existem no denominador nem na meta |
 
 `janela_completa=False` antes de dez/2024: a janela de 12 meses do denominador
 ainda esta incompleta e o percentual sobe por construcao (armadilha 5). Marque
@@ -343,7 +343,7 @@ A14) sairam com o escopo.
 
 Situacao em 2026-08-31 sem filtro, conferida pelo validador: **4 vermelhos**
 (A7 com 8 clientes, A8 com 13, A12, A15 com ociosidade de 6,3%), **7 ambar**
-(A1 +1,22 p.p., A4 93,8%, A9 1,84x, A10, A16 2,7%, A18, A19 1,98%) e **2 ok**
+(A1 +1,22 p.p., A4 92,5%, A9 1,84x, A10, A16 2,7%, A18, A19 1,98%) e **2 ok**
 (A3, A6).
 
 **Como ler `variacao`**: metrica em `BRL` -> use `variacao_pct` (%); metrica em
@@ -665,7 +665,7 @@ Cobertura, por eixo:
 | Eixo | O que o validador prende |
 |---|---|
 | 1 · Faturamento | faturamento bruto e receita liquida por ano (29,8 / 35,0 / 24,6 e 27,9 / 32,8 / 23,0 mi), 2026 marcado parcial, `faturamento_valido = bruto − cancelado` na data ref, cancelamentos por ano (`INFO`), rateio por categoria de veiculo preservando o total, segmentos somando o total |
-| 2 · Recebimento | eficiencia de cobranca 12m **93,8%** (32,958 / 35,120 mi), 12 meses de caixa realizado em 2025 |
+| 2 · Recebimento | cobertura de caixa 12m **92,5%** (32,491 / 35,120 mi, recebido sem juros), 12 meses de caixa realizado em 2025 |
 | 3 · Inadimplencia (foto) | point-in-time em dez/24 **3,56%**, jun/25 **6,47%**, dez/25 **10,20%**, jun/26 **9,37%**; aging em 2026-08-31 (4,47 / 0,76 / 0,44 / 0,40 / 0,77 / 0,82 mi) fechando com a carteira `Em Aberto` (7,6622 mi); contraprova da armadilha 1 (**18,70%** sem o filtro point-in-time); rating e segmento somando o vencido da empresa; o drill ate o titulo de `CLI0001` (159,5 mil, 62 linhas) |
 | 4 · Metas | 2024/2025/2026 de Faturamento, Recebimento e Inadimplencia — em especial **2025 +6,8%**, **−2,9%** e **+7,20 p.p.**; meta jan-ago/2026 de 23,92 mi (armadilha 7); as duas versoes de orcamento de 2026 (armadilha 3); Margem Operacional **ausente** do comparativo |
 | 5 · Custos | custo operacional por ano (18,3 / 21,5 / 15,6 mi) com ocioso incluido; troca de fonte com recorte de cliente (`escopo='contratos'`); ociosidade dos 4 picos e R$ 612 mil em 12 meses; categorias somando o total |

@@ -408,15 +408,15 @@ _F12 = Filtros.criar(competencia_ini=date(2025, 9, 1), competencia_fim=date(2026
 
 
 def validar_cobranca(rel: Relatorio) -> None:
-    """Eixo 2 (recebimento): eficiencia de cobranca dos 12 meses moveis."""
-    # §3.4 / §8 A4: eficiencia de cobranca 93,8%.
-    eficiencia = credito.eficiencia_cobranca(Filtros(), config.DATA_EXTRACAO)
-    rel.checar("cobranca", "eficiencia de cobranca 12m (%)", 93.8,
-               float(eficiencia.loc[0, "eficiencia_pct"]), 0.05)
-    rel.checar("cobranca", "eficiencia: faturamento valido 12m (mi)", 35.120,
-               float(eficiencia.loc[0, "faturamento_valido_12m"]) / MI, 0.001)
-    rel.checar("cobranca", "eficiencia: recebimento 12m (mi)", 32.958,
-               float(eficiencia.loc[0, "recebimento_12m"]) / MI, 0.001)
+    """Eixo 2 (recebimento): cobertura de caixa dos 12 meses moveis."""
+    # §3.4 / §8 A4: cobertura de caixa 92,5% (recebido sem juros sobre faturado valido).
+    cobertura = credito.cobertura_de_caixa(Filtros(), config.DATA_EXTRACAO)
+    rel.checar("cobranca", "cobertura de caixa 12m (%)", 92.5,
+               float(cobertura.loc[0, "cobertura_pct"]), 0.05)
+    rel.checar("cobranca", "cobertura: faturamento valido 12m (mi)", 35.120,
+               float(cobertura.loc[0, "faturamento_valido_12m"]) / MI, 0.001)
+    rel.checar("cobranca", "cobertura: recebimento 12m sem juros (mi)", 32.490,
+               float(cobertura.loc[0, "recebimento_12m"]) / MI, 0.001)
 
     # O recebimento anual e o realizado da meta de caixa: as duas leituras
     # (metrica de credito e realizado de meta) tem que fechar em 2025.
@@ -450,7 +450,7 @@ def validar_frota(rel: Relatorio) -> None:
 #: Situacao esperada de cada alerta em escopo em 2026-08-31 (docs/01_kpis.md §8).
 #: A2, A5, A11, A13, A14, A17 e A20 sairam com a reducao de escopo.
 REFERENCIA_ALERTAS = {
-    "A1": "ambar", "A3": "ok", "A4": "ambar", "A6": "ok",
+    "A1": "ambar", "A3": "ok", "A4": "vermelho", "A6": "ok",
     "A7": "vermelho", "A8": "vermelho", "A9": "ambar", "A10": "ambar",
     "A12": "vermelho", "A15": "vermelho", "A16": "ambar", "A18": "ambar",
     "A19": "ambar",

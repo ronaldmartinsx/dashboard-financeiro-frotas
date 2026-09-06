@@ -83,7 +83,7 @@ ROTULOS: dict[str, str] = {
 
     # -- recebimento -----------------------------------------------------
     "recebimento_12m": "Recebimento dos Últimos 12 Meses",
-    "eficiencia_pct": "Eficiência de Cobrança",
+    "cobertura_pct": "Cobertura de Caixa",
     "valor_pago": "Valor Pago",
     "data_pagamento": "Pagamento",
     "forma_pagamento": "Forma de Pagamento",

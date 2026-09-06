@@ -405,9 +405,8 @@ else:
     selecao = ui.tabela_com_barra(
         fila,
         colunas={
-            "nome_cliente": ui.ColunaSpec("Cliente", "texto", largura="large"),
-            "segmento": ui.ColunaSpec("Segmento", "texto", largura="medium"),
-            "rating_credito": ui.ColunaSpec("Rating", "texto", largura="small"),
+            "nome_cliente": ui.ColunaSpec("Cliente", "texto"),
+            "rating_credito": ui.ColunaSpec("Rating", "texto"),
             "carteira_total": ui.ColunaSpec(
                 "Em aberto", "brl_compacto",
                 ajuda="Tudo que ainda não foi pago, vencido ou a vencer.",
@@ -447,8 +446,7 @@ else:
         # faturou. O rotulo antigo descrevia a metrica de risco_por_cliente, que
         # e outra conta e vive no grafico acima.
         barra=[coluna_ordem, "pct_vencido_30d"],
-        rotulo_barra=["Peso", "% da carteira vencida"],
-        cor_barra=theme.cor_indicador("Inadimplencia > 30d", ctx.tema),
+        rotulo_barra=["Peso", "% da carteira"],
         tipos_barra={"pct_vencido_30d": "pct"},
         escala="risco",
         ordenar_por=None,
@@ -477,7 +475,8 @@ else:
                     f"**Vencido há mais de 30 dias** "
                     f"{fmt.sem_latex(fmt.moeda(cliente['vencido_30d_mais']))}  \n"
                     f"**Uso do limite de crédito** {cliente['uso_limite_txt']}  \n"
-                    f"**Rating** {cliente['rating_credito']} · **Porte** {cliente['porte']}"
+                    f"**Rating** {cliente['rating_credito']} · **Porte** {cliente['porte']} · "
+                    f"**Segmento** {cliente['segmento']}"
                 )
                 st.dataframe(
                     pd.DataFrame(
@@ -512,11 +511,11 @@ else:
                         pintar={"dias_atraso": [nivel_por_faixa.get(str(x), "neutro")
                                                 for x in visao["faixa"]]},
                         colunas={
-                            "id_titulo": ui.ColunaSpec("Fatura", "texto", largura="small"),
+                            "id_titulo": ui.ColunaSpec("Fatura", "texto"),
                             "competencia": ui.ColunaSpec("Competência", "competencia"),
                             "data_vencimento": ui.ColunaSpec("Vencimento", "data"),
                             "dias_atraso": ui.ColunaSpec("Dias", "dias", ajuda="Dias de atraso na data escolhida."),
-                            "faixa": ui.ColunaSpec("Atraso", "texto", largura="small"),
+                            "faixa": ui.ColunaSpec("Atraso", "texto"),
                             "valor_bruto": ui.ColunaSpec("Valor", "brl"),
                             "status_calculado": ui.ColunaSpec(
                                 "Situação", "texto",
