@@ -420,9 +420,11 @@ else:
                 x=["Meta dos mesmos meses"] + rot.valores(ponte["segmento"]) + ["Realizado"],
                 y=[float(ponte["meta_alinhada"].sum())]
                 + [float(v) for v in ponte["variacao_abs"]] + [0.0],
-                text=[fmt.moeda_compacta(ponte["meta_alinhada"].sum())]
-                + [fmt.moeda_compacta(v, com_sinal=True) for v in ponte["variacao_abs"]]
-                + [fmt.moeda_compacta(ponte["realizado"].sum())],
+                # Sem "R$" na marca: o eixo ja diz "R$ acumulado no periodo".
+                text=[fmt.moeda_compacta(ponte["meta_alinhada"].sum(), prefixo=False)]
+                + [fmt.moeda_compacta(v, com_sinal=True, prefixo=False)
+                   for v in ponte["variacao_abs"]]
+                + [fmt.moeda_compacta(ponte["realizado"].sum(), prefixo=False)],
                 textposition="outside",
                 textfont={"size": theme.TIPOGRAFIA["nota"], "color": t.tinta_secundaria},
                 connector={"line": {"color": t.grade, "width": 1}},

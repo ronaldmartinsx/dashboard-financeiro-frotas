@@ -230,7 +230,8 @@ with col_seg:
             # aqui competiam com as cores dos indicadores, que sao as que atravessam
             # o relatorio inteiro.
             cores=[theme.cor_indicador("Faturamento", ctx.tema)] * len(seg),
-            textos=[f"{fmt.percentual(p, 1)}  {fmt.moeda_compacta(v)}"
+            # Sem "R$" na marca: o eixo ja diz "R$ faturado no periodo".
+            textos=[f"{fmt.percentual(p, 1)}  {fmt.moeda_compacta(v, prefixo=False)}"
                     for p, v in zip(seg["participacao_pct"], seg["faturamento_bruto"])],
             tema=ctx.tema,
             hover=[f"{rot.valor(s)}<br>{fmt.moeda(v)}<br>{fmt.percentual(p, 1)} do faturamento"
@@ -324,6 +325,7 @@ ui.tabela_com_barra(
     ),
     barra="faturamento_bruto",
     rotulo_barra="Peso",
+    cor_barra=theme.cor_indicador("Faturamento", ctx.tema),
     escala="neutra",
     ordenar_por="faturamento_bruto",
     limite=10,

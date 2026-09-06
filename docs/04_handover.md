@@ -321,6 +321,25 @@ entre 2,2 s e 3,1 s.
 
 ---
 
+## 5.1 Verificação de encerramento — 2026-09-06
+
+Última varredura antes de pausar o projeto. Tudo verde:
+
+| Verificação | Resultado |
+|---|---|
+| `scripts/verificar_tudo.py` | as 4 passam (pyflakes, métricas 110/110, rótulos, render) |
+| SQL fora de `frotas/metrics/` | zero |
+| Hex literal em `views/` | zero |
+| Segredo em todo o histórico do git | zero |
+| Travessão em prosa | zero |
+| Cifrão duplicado (eixo + rótulo) em gráfico | zero |
+| 6 cenários de filtro × 4 páginas | 24/24 sem exceção |
+
+Os cenários incluem os que já quebraram antes: todo o período, um mês só, segmento
+único, cliente único e um ano fechado com recorte de rating.
+
+---
+
 ## 6. Próximos passos, em ordem de valor
 
 1. **Criar o papel `app_leitura`** (§3.1, junto com as policies que ele exige) e
@@ -332,7 +351,14 @@ entre 2,2 s e 3,1 s.
    `receita.faturamento_por_competencia`, `receita.yoy_mensal`, `receita.yoy_anual`,
    `receita.top_clientes`, `metas.realizado_mensal` e `metas.comparativo_por_segmento`.
    É o único risco da auditoria de 2026-09-06 que continua aberto (§1.6.1).
-4. **Autenticação**, se o app sair de uso interno.
+4. **Otimizar o carregamento dos gráficos.** É a única pendência de produto que o
+   dono deixou em aberto. O gargalo é conhecido e está medido em §1.4: o pooler
+   entrega ~200 linhas/s com 9-10 colunas, e o piso por consulta é ~490 ms. A página
+   de metas roda ~12 s (dispara 5 séries mensais + 3 comparativos anuais + a quebra
+   por segmento, que sozinha custa ~13 s); as outras ficam em ~2 s. Caminhos, do mais
+   barato ao mais caro: cache persistente entre sessões; pré-agregar a quebra por
+   segmento numa tabela materializada; reduzir colunas trafegadas.
+5. **Autenticação**, se o app sair de uso interno.
 
 *Feito em 2026-09-06:* suíte versionada (`scripts/verificar_tudo.py`), verificador de
 rótulos cobrindo texto livre, os dois documentos de escopo antigo marcados como

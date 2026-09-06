@@ -448,6 +448,7 @@ else:
         # e outra conta e vive no grafico acima.
         barra=[coluna_ordem, "pct_vencido_30d"],
         rotulo_barra=["Peso", "% da carteira vencida"],
+        cor_barra=theme.cor_indicador("Inadimplencia > 30d", ctx.tema),
         tipos_barra={"pct_vencido_30d": "pct"},
         escala="risco",
         ordenar_por=None,

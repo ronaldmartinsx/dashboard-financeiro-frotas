@@ -807,6 +807,7 @@ def tabela_com_barra(
     pintar: Mapping[str, Sequence[str]] | None = None,
     pintar_fundo: Mapping[str, Sequence[str]] | None = None,
     tipos_barra: Mapping[str, str] | None = None,
+    cor_barra: str | None = None,
     rotulo_barra: str | Sequence[str] | None = None,
     escala: Escala = "neutra",
     ordenar_por: str | None = None,
@@ -910,6 +911,19 @@ def tabela_com_barra(
             min_value=0.0,
             max_value=100.0,
         )
+    # ``cor_barra``: o ProgressColumn nao aceita cor -- ela vem do ``primaryColor``
+    # do tema, que e global. Escopar por ``st.container(key=...)``, que o Streamlit
+    # renderiza com a classe ``st-key-<key>``, permite dar a cada tabela a cor do
+    # indicador da sua pagina (custo laranja, inadimplencia vermelha) em vez do
+    # azul do tema em todas.
+    if cor_barra and chave:
+        st.markdown(
+            f"<style>.st-key-{chave}-barra [data-testid='stDataFrameResizable'] "
+            f"div[role='progressbar'] > div {{ background-color: {cor_barra} !important; }}"
+            f"</style>",
+            unsafe_allow_html=True,
+        )
+
     extras: dict[str, Any] = {}
     if altura:
         extras["height"] = altura
@@ -949,6 +963,12 @@ def tabela_com_barra(
 
         corpo = saida.style.apply(_pintar_colunas, axis=None)
 
+    if cor_barra and chave:
+        with st.container(key=f"{chave}-barra"):
+            return st.dataframe(
+                corpo, column_config=config, hide_index=True,
+                width="stretch", key=chave, **extras,
+            )
     return st.dataframe(
         corpo,
         column_config=config,

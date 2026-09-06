@@ -388,6 +388,7 @@ ui.tabela_com_barra(
     },
     barra="custo_total",
     rotulo_barra="Peso",
+    cor_barra=theme.cor_indicador("Custo Operacional", ctx.tema),
     escala="neutra",
     ordenar_por="custo_total",
     limite=None,
