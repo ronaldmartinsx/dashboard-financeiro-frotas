@@ -199,14 +199,15 @@ with col_seg:
         for valor in risco_seg["inadimplencia_pct"]:
             razao = None if (empresa in (None, 0) or fmt.eh_vazio(valor)) else float(valor) / empresa
             niveis.append(base.nivel_do_valor(df_alertas, "A9", razao))
-        # O assunto do grafico e atraso, entao a barra usa a cor da inadimplencia,
-        # nao a identidade do segmento: aqui o segmento e o eixo, ja rotulado.
-        # Quem estoura o limiar da regra continua ganhando a cor do alerta.
-        cor_base = theme.cor_indicador("Inadimplencia > 30d", ctx.tema)
-        cores = [
-            theme.cor_nivel(n, ctx.tema) if n != "neutro" else cor_base
-            for n in niveis
-        ]
+        # Rampa de risco por posicao: a lista ja vem ordenada da pior inadimplencia
+        # para a melhor, entao quanto mais alto na barra, mais escuro o vermelho.
+        #
+        # Antes a barra usava a cor da inadimplencia como base e a cor do alerta
+        # para quem estoura o limiar -- so que o ambar do alerta e mais claro que
+        # o vermelho da base, e os dois **piores** segmentos saiam amarelos no meio
+        # de barras vermelhas. A escala aparecia invertida.
+        passos = theme.rampa("risco", ctx.tema, max(2, len(risco_seg)), ordinal=True)
+        cores = [passos[min(i, len(passos) - 1)] for i in range(len(risco_seg))][::-1]
         fig = base.nova_figura(ctx.tema, altura=340, margin={"l": 180, "r": 90, "t": 16, "b": 48})
         base.barra_horizontal(
             fig,

@@ -351,12 +351,16 @@ def _grafico_mensal(tipo: str, chave: str, *, altura: int, com_legenda: bool) ->
         # porque e ele que diz a unidade.
         showticklabels=not rotulos,
     )
+    # Com legenda, o topo abriga duas linhas: titulo em cima, legenda logo abaixo.
+    # Com margem de 46px as duas se sobrepunham e o nome do indicador se misturava
+    # com "Realizado / Meta vigente".
     fig.update_layout(
         showlegend=com_legenda,
-        legend={"orientation": "h", "y": 1.18, "x": 0} if com_legenda else None,
-        title={"text": rot.valor(tipo), "x": 0, "xanchor": "left",
-               "font": {"size": theme.TIPOGRAFIA["rotulo"]}},
-        margin={"t": 46},
+        legend=({"orientation": "h", "y": 1.13, "x": 0, "yanchor": "bottom"}
+                if com_legenda else None),
+        title={"text": rot.valor(tipo), "x": 0, "xanchor": "left", "y": 0.97,
+               "yanchor": "top", "font": {"size": theme.TIPOGRAFIA["rotulo"]}},
+        margin={"t": 84 if com_legenda else 46},
     )
     base.mostrar_grafico(fig, chave=chave, dados=serie.drop(columns=["x"]))
 

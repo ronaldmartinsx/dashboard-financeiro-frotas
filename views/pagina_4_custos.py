@@ -313,6 +313,7 @@ else:
             go.Bar(
                 x=eixo_x, y=ocio["custo_ocioso"], name="Custo do veículo parado",
                 marker={"color": slot1, "line": {"color": t.superficie, "width": 1}},
+                **base.rotulos_de_barra(ocio["custo_ocioso"]),
                 hovertemplate="%{x|%b/%Y}: R$ %{y:,.0f}<extra></extra>",
             ),
             row=2, col=1,
@@ -340,6 +341,7 @@ else:
         fig.update_yaxes(
             title_text="R$ no mês", title_font_size=theme.TIPOGRAFIA["nota"], tickformat=".2s",
             rangemode="tozero", gridcolor=t.grade, linecolor=t.eixo, row=2, col=1,
+            showticklabels=not base.rotulos_de_barra(ocio["custo_ocioso"]),
         )
         fig.update_xaxes(
             tickmode="array", tickvals=eixo_x, ticktext=base.rotulos_mensais(meses),
@@ -347,13 +349,17 @@ else:
             gridcolor=t.grade, linecolor=t.eixo, row=2, col=1,
         )
         fig.update_xaxes(gridcolor=t.grade, linecolor=t.eixo, row=1, col=1)
+        # Titulo de subplot alinhado a esquerda, como todo titulo do app. Centralizado
+        # ele flutuava sobre o grafico e disputava com a legenda.
         for anotacao in fig.layout.annotations[:2]:
             anotacao.font.size = theme.TIPOGRAFIA["nota"]
             anotacao.font.color = t.tinta_secundaria
+            anotacao.x = 0
+            anotacao.xanchor = "left"
         base.mostrar_grafico(
             fig, chave="p4_ociosidade",
-            nota="As faixas marcam os limiares publicados da regra de ociosidade. A UI não "
-                 "conhece o corte, ela o lê da camada de alertas.",
+            nota="As faixas horizontais marcam a partir de quanto a ociosidade entra em "
+                 "atenção e em alerta.",
             dados=ocio,
             colunas_dados=["ano_mes", "taxa_ociosidade_pct", "qtd_veiculos_ociosos",
                            "qtd_veiculos_frota", "custo_ocioso", "pct_do_custo_total"],
