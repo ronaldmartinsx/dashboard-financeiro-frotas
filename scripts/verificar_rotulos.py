@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -64,13 +65,16 @@ class Coleta:
     cabecalhos: list[tuple[str, str]] = field(default_factory=list)   # (texto, onde)
     eixos: list[tuple[str, str]] = field(default_factory=list)
     outros: list[tuple[str, str]] = field(default_factory=list)
+    #: Texto livre (legenda, markdown, expansor). Verificado por **busca dentro**
+    #: da frase, nao por igualdade: "valor_bruto do vencido" nunca casaria inteiro.
+    prosa: list[tuple[str, str]] = field(default_factory=list)
     #: Falhas da propria instrumentacao. Nunca podem passar em silencio: uma
     #: coleta que quebra faz o teste parecer verde sem ter olhado nada.
     problemas: list[str] = field(default_factory=list)
 
     @property
     def total(self) -> int:
-        return len(self.cabecalhos) + len(self.eixos) + len(self.outros)
+        return len(self.cabecalhos) + len(self.eixos) + len(self.outros) + len(self.prosa)
 
     def tudo(self) -> list[tuple[str, str, str]]:
         return (
@@ -127,8 +131,17 @@ def _instrumentar(coleta: Coleta) -> list[tuple[Any, str, Any]]:
     Nao ha outra forma de ler titulo de eixo: o ``AppTest`` entrega o proto do
     grafico, nao a figura. Devolve o que precisa ser restaurado depois.
     """
-    originais = [(st, "plotly_chart", st.plotly_chart), (st, "dataframe", st.dataframe)]
-    contador = {"fig": 0, "df": 0}
+    originais = [
+        (st, "plotly_chart", st.plotly_chart),
+        (st, "dataframe", st.dataframe),
+        # Superficies de texto livre. Sem elas o verificador ficava cego justamente
+        # onde o app escreve frase: foi numa dessas que o bug do cifrao-vira-LaTeX
+        # sobreviveu ate um usuario reportar.
+        (st, "caption", st.caption),
+        (st, "markdown", st.markdown),
+        (st, "expander", st.expander),
+    ]
+    contador = {"fig": 0, "df": 0, "txt": 0}
 
     def plotly_chart(figure_or_data: Any, *args: Any, **kwargs: Any) -> Any:
         contador["fig"] += 1
@@ -159,8 +172,36 @@ def _instrumentar(coleta: Coleta) -> list[tuple[Any, str, Any]]:
             coleta.problemas.append(f"falha ao ler a tabela #{contador['df']}: {exc}")
         return originais[1][2](data, *args, **kwargs)
 
+    def _texto_livre(bruto: Any, onde: str) -> None:
+        """Registra prosa renderizada: nome de coluna, travessao e cifrao cru."""
+        contador["txt"] += 1
+        try:
+            texto = _texto(bruto)
+            if not texto:
+                return
+            limpo = re.sub(r"<style>.*?</style>", "", texto, flags=re.S)
+            limpo = re.sub(r"<[^>]+>", " ", limpo)
+            coleta.prosa.append((limpo, f"{onde} #{contador['txt']}"))
+        except Exception as exc:  # noqa: BLE001
+            coleta.problemas.append(f"falha ao ler texto de {onde}: {exc}")
+
+    def caption(body: Any = "", *args: Any, **kwargs: Any) -> Any:
+        _texto_livre(body, "legenda")
+        return originais[2][2](body, *args, **kwargs)
+
+    def markdown(body: Any = "", *args: Any, **kwargs: Any) -> Any:
+        _texto_livre(body, "texto")
+        return originais[3][2](body, *args, **kwargs)
+
+    def expander(label: Any = "", *args: Any, **kwargs: Any) -> Any:
+        _texto_livre(label, "expansor")
+        return originais[4][2](label, *args, **kwargs)
+
     st.plotly_chart = plotly_chart  # type: ignore[assignment]
     st.dataframe = dataframe        # type: ignore[assignment]
+    st.caption = caption            # type: ignore[assignment]
+    st.markdown = markdown          # type: ignore[assignment]
+    st.expander = expander          # type: ignore[assignment]
     return originais
 
 
@@ -202,6 +243,23 @@ def coletar(caminho: Path) -> tuple[Coleta, list[str], float]:
 def violacoes(coleta: Coleta) -> list[tuple[str, str, str, str]]:
     """(texto, onde, tipo, motivo) de todo rotulo que ainda e nome de coluna."""
     achados = []
+    # Prosa: procura nome de coluna DENTRO da frase, e os dois defeitos que ja
+    # escaparam por aqui -- travessao em texto corrido e cifrao cru (dois "$" na
+    # mesma string viram formula LaTeX no Markdown do Streamlit).
+    conhecidas = sorted((c for c in rot.ROTULOS if "_" in c), key=len, reverse=True)
+    for texto, onde in coleta.prosa:
+        for coluna in conhecidas:
+            if re.search(rf"\b{re.escape(coluna)}\b", texto):
+                achados.append((coluna, f"{onde} (dentro do texto)", "prosa",
+                                "nome de coluna do banco escrito no meio da frase"))
+                break
+        if re.search(r"\w\s+—\s+\w", texto):
+            achados.append((texto[:60], onde, "prosa",
+                            "travessão em texto corrido (só format.VAZIO pode)"))
+        if texto.count("$") >= 2:
+            achados.append((texto[:60], onde, "prosa",
+                            "dois cifrões crus: o Markdown do Streamlit vira LaTeX"))
+
     for texto, onde, tipo in coleta.tudo():
         if texto in rot.ROTULOS:
             achados.append((texto, onde, tipo, "é uma coluna do dicionário, exibida sem traduzir"))

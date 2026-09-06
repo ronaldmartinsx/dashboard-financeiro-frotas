@@ -138,7 +138,8 @@ passam e o código respeita as cinco regras de arquitetura.
 - Guarda de SQL de leitura: rejeita `delete`, `insert`, `update`, `select 1; delete` e
   `WITH x AS (DELETE ...) SELECT`. Aceita comentário antes do `SELECT`, o que é inofensivo.
 
-O que a auditoria encontrou está registrado como risco, não como defeito:
+**Os quatro riscos foram fechados no mesmo dia** (ver abaixo o que era cada um e o que
+foi feito). O que segue fica como registro do que a auditoria encontrou:
 
 1. **`verificar_rotulos.py` não instrumenta sete superfícies de texto**: `st.caption`, `st.markdown`,
    `st.expander`, `subplot_titles`, `annotation_text`, `vazio_titulo`/`vazio_corpo` e `hovertemplate`.
@@ -153,6 +154,15 @@ O que a auditoria encontrou está registrado como risco, não como defeito:
    projeto, não especificação viva: quem os ler hoje vai implementar o que foi removido. Marcar como
    histórico ou atualizar.
 4. **Sem suíte versionada**: os dois verificadores rodam à mão. Nada os executa antes de um commit.
+
+### 1.6.1 O que foi feito com cada risco
+
+| Risco | Encaminhamento |
+|---|---|
+| Verificador cego a sete superfícies de texto | `verificar_rotulos.py` passou a instrumentar `st.caption`, `st.markdown` e `st.expander`, e a verificar **prosa por busca dentro da frase** (antes comparava a string inteira, então "o valor_bruto do cliente" passava). Ganhou também as duas checagens dos defeitos que já escaparam: travessão em texto corrido e cifrão cru. Cobertura foi de 132 para 235 rótulos, e os três canários são pegos. |
+| 58% das funções de métrica sem cobertura | Segue aberto. As de `dimensoes` são listas de domínio; as de `receita`/`metas` que alimentam tela (`faturamento_por_competencia`, `yoy_mensal`, `yoy_anual`, `top_clientes`, `realizado_mensal`, `comparativo_por_segmento`) merecem checagem no `validar_metricas.py`. |
+| Docs anteriores à redução de escopo | `docs/01_kpis.md` e `docs/03_ux.md` abrem com aviso de documento histórico, dizendo o que foi removido e para onde ir. |
+| Sem suíte versionada | `scripts/verificar_tudo.py`: roda pyflakes, métricas, rótulos e o render das cinco páginas, devolvendo 0 só se as quatro passarem. É o comando a chamar antes de commitar. |
 
 Corrigido na hora: três badges órfãos (`periodo parcial`, `receita rateada`, `artefato de borda`)
 ainda no vocabulário fechado de `componentes.BADGES_CONHECIDOS`, sobra da página de margem removida.

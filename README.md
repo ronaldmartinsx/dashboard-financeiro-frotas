@@ -79,12 +79,20 @@ frotas/
     componentes.py        tiles, banners, tabelas, seletores
 views/                    guia + uma página por pergunta, mais _comum.py
 scripts/
+  verificar_tudo.py       roda as quatro verificações; use antes de commitar
   validar_metricas.py     110 verificações contra os números publicados
-  verificar_rotulos.py    falha se qualquer nome de coluna chegar à tela
+  verificar_rotulos.py    falha se nome de coluna, travessão ou cifrão cru chegar à tela
 docs/                     00 briefing · 01 KPIs · 02 arquitetura · 03 UX · 04 handover
 ```
 
 ## Validação
+
+```bash
+python3 scripts/verificar_tudo.py
+```
+
+Roda tudo de uma vez e só devolve 0 se as quatro passarem: `pyflakes`, as métricas,
+os rótulos e o render das cinco páginas. **Chame antes de commitar.**
 
 ```bash
 python3 scripts/validar_metricas.py
@@ -103,7 +111,10 @@ python3 scripts/verificar_rotulos.py
 ```
 
 Renderiza todas as páginas e **falha se qualquer nome de coluna do banco chegar à tela** —
-cabeçalho de tabela, título de eixo, legenda, colorbar, anotação ou rótulo de widget.
+cabeçalho de tabela, título de eixo, legenda, colorbar, anotação, rótulo de widget e o
+**texto livre** de `st.caption`, `st.markdown` e `st.expander`. Na prosa ele também pega
+travessão em texto corrido e cifrão cru (dois `$` na mesma string viram LaTeX no Streamlit)
+— os dois defeitos que já escaparam para a tela.
 
 ## Regras de arquitetura
 

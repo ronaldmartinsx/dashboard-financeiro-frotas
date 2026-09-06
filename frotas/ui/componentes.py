@@ -1044,38 +1044,19 @@ def seletor_data_referencia(
     opcoes = fins_de_mes(minimo, maximo)
     if valor not in opcoes:
         valor = opcoes[-1]
-    chave_data, chave_preset = f"{chave}_data", f"{chave}_preset"
+    chave_data = f"{chave}_data"
     if chave_data not in st.session_state:
         st.session_state[chave_data] = valor
     elif st.session_state[chave_data] not in opcoes:
         st.session_state[chave_data] = opcoes[-1]
 
-    presets = {
-        f"Mais recente ({fmt.data_br(maximo)})": maximo,
-        "Fim de 2025": date(2025, 12, 31),
-        "Fim de 2024": date(2024, 12, 31),
-    }
-    presets = {k: v for k, v in presets.items() if v in opcoes}
-
-    def _aplicar_preset() -> None:
-        escolhido = st.session_state.get(chave_preset)
-        if escolhido in presets:
-            st.session_state[chave_data] = presets[escolhido]
-
-    st.radio(
-        "Atalhos de data",
-        options=list(presets),
-        index=None,
-        horizontal=True,
-        key=chave_preset,
-        on_change=_aplicar_preset,
-        label_visibility="collapsed",
-    )
+    # Um controle so. Antes eram tres para uma unica escolha: uma linha de atalhos
+    # sem rotulo (que aparecia solta), o seletor, e uma legenda repetindo a data que
+    # o proprio seletor ja mostrava. A lista ja abre na data mais recente, entao os
+    # atalhos nao economizavam clique nenhum.
     escolhida = st.selectbox(rotulo, options=opcoes, format_func=fmt.data_br, key=chave_data)
-    st.caption(
-        f"Como estava em {fmt.data_br(escolhida)}"
-        + (f" · {TEXTO_DATA_BLOQUEADA}" if horizontal else "")
-    )
+    if horizontal:
+        st.caption(TEXTO_DATA_BLOQUEADA)
     return escolhida
 
 

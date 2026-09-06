@@ -45,13 +45,16 @@ TITULO = ui.NOME_APP
 #: Presets do periodo de competencia (docs/01_kpis.md 7). O padrao sao os 12
 #: meses moveis fechados: e a janela em que a inadimplencia e comparavel.
 PRESETS_PERIODO: dict[str, tuple[date, date]] = {
-    "Ultimos 12m": (date(2025, 9, 1), date(2026, 8, 1)),
-    "2026 YTD (8m)": (date(2026, 1, 1), date(2026, 8, 1)),
+    "Últimos 12 meses": (date(2025, 9, 1), date(2026, 8, 1)),
+    "2026 (até agosto)": (date(2026, 1, 1), date(2026, 8, 1)),
     "2025": (date(2025, 1, 1), date(2025, 12, 1)),
     "2024": (date(2024, 1, 1), date(2024, 12, 1)),
-    "Tudo": (config.COMPETENCIA_MIN, config.COMPETENCIA_MAX),
-    "Personalizado": (date(2025, 9, 1), date(2026, 8, 1)),
+    "Todo o período": (config.COMPETENCIA_MIN, config.COMPETENCIA_MAX),
+    "Escolher os meses": (date(2025, 9, 1), date(2026, 8, 1)),
 }
+
+#: A opcao que abre os campos De/Ate. As demais ja definem o intervalo.
+PRESET_LIVRE = "Escolher os meses"
 
 _SEM_RATING = "(sem rating)"
 
@@ -124,8 +127,8 @@ def tela_sem_banco(mensagem: str) -> None:
 
 
 def _aplicar_preset() -> None:
-    escolha = st.session_state.get("preset_periodo", "Ultimos 12m")
-    if escolha == "Personalizado":
+    escolha = st.session_state.get("preset_periodo", "Últimos 12 meses")
+    if escolha == PRESET_LIVRE:
         return
     ini, fim = PRESETS_PERIODO[escolha]
     st.session_state["comp_ini"] = ini
@@ -144,7 +147,7 @@ def barra_lateral(opcoes: dict[str, list[str]], clientes: pd.DataFrame, *, pagin
     """
     meses = _meses_disponiveis()
     if "comp_ini" not in st.session_state:
-        st.session_state["comp_ini"], st.session_state["comp_fim"] = PRESETS_PERIODO["Ultimos 12m"]
+        st.session_state["comp_ini"], st.session_state["comp_fim"] = PRESETS_PERIODO["Últimos 12 meses"]
 
     # "" porque o Streamlit serve a pagina default na raiz, com url_path vazio.
     if pagina in ("guia", ""):
@@ -168,27 +171,31 @@ def barra_lateral(opcoes: dict[str, list[str]], clientes: pd.DataFrame, *, pagin
         st.markdown("### Filtros")
 
         if "periodo" in exibidos:
-            st.radio(
+            # Um seletor no lugar de seis opcoes empilhadas, e os campos De/Ate
+            # so quando o usuario pede: antes eram tres controles sempre visiveis
+            # para escolher um periodo que, em 5 dos 6 casos, ja vinha pronto.
+            st.selectbox(
                 "Período",
                 options=list(PRESETS_PERIODO),
                 key="preset_periodo",
                 on_change=_aplicar_preset,
-                help="Recorta o mês de competência dos valores faturados e dos custos.",
+                help="Recorta o mês dos valores faturados e dos custos.",
             )
-            col_ini, col_fim = st.columns(2)
-            with col_ini:
-                comp_ini = st.selectbox(
-                    "De", options=meses, key="comp_ini",
-                    format_func=lambda d: fmt.competencia(d, longo=True),
-                )
-            with col_fim:
-                comp_fim = st.selectbox(
-                    "Até", options=meses, key="comp_fim",
-                    format_func=lambda d: fmt.competencia(d, longo=True),
-                )
-            if comp_ini > comp_fim:
-                st.warning("O mês inicial é posterior ao final; o intervalo foi invertido.")
-                comp_ini, comp_fim = comp_fim, comp_ini
+            if st.session_state.get("preset_periodo") == PRESET_LIVRE:
+                col_ini, col_fim = st.columns(2)
+                with col_ini:
+                    comp_ini = st.selectbox(
+                        "De", options=meses, key="comp_ini",
+                        format_func=lambda d: fmt.competencia(d, longo=True),
+                    )
+                with col_fim:
+                    comp_fim = st.selectbox(
+                        "Até", options=meses, key="comp_fim",
+                        format_func=lambda d: fmt.competencia(d, longo=True),
+                    )
+                if comp_ini > comp_fim:
+                    st.warning("O mês inicial é posterior ao final; o intervalo foi invertido.")
+                    comp_ini, comp_fim = comp_fim, comp_ini
 
         if "data" in exibidos:
             st.divider()

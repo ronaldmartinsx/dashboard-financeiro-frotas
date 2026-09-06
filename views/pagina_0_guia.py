@@ -21,9 +21,8 @@ ctx = base.contexto()
 base.abrir_pagina(ctx, "Como ler este dashboard?", secao="Guia", pagina=0, periodo_total=True)
 
 ui.frase(
-    "Este relatório responde a quatro perguntas de negócio, uma por página. "
-    "Os números saem sempre da mesma camada de definições, a mesma que o validador "
-    "confere contra os valores publicados."
+    "Este relatório responde a quatro perguntas, uma por página. Todas as páginas usam "
+    "as mesmas definições de faturamento, recebimento, inadimplência e custo."
 )
 
 # --------------------------------------------------------------------------
@@ -47,8 +46,6 @@ st.markdown(
 ui.cabecalho_secao("Como navegar e usar os filtros?")
 st.markdown(
     f"""
-- **Cada página mostra só os filtros que mudam os números dela.** Se um filtro não
-  aparece na barra lateral, é porque ele não teria efeito naquela análise.
 - **Período**: escolhe os meses que entram na conta do que foi faturado, recebido e gasto.
 - **Ver como estava em**: escolhe o dia da leitura, ou seja, o que ainda não tinha sido pago
   naquela data. É independente do período e o padrão é

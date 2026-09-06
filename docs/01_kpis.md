@@ -1,5 +1,16 @@
 # 01 — Definicao de negocio, KPIs e estrutura do app
 
+> [!WARNING]
+> **Documento histórico, de 2026-09-01. Não é especificação do app atual.**
+>
+> Ele descreve o escopo original, anterior à redução de 2026-09-02. Cita margem
+> operacional, curva ABC, séries retroativas de inadimplência, análise de contratos
+> e de frota — tudo isso **foi removido**. Quem tratar este texto como requisito vai
+> reimplementar o que saiu de propósito.
+>
+> Para o que existe hoje: `README.md` (escopo e páginas), `docs/02_arquitetura.md`
+> (contrato das funções) e `docs/04_handover.md` §0 (o que saiu e por quê).
+
 **Autor:** Lider de Negocios e KPIs · **Data:** 2026-09-01 · **Fonte:** Supabase `public`, leitura direta (PG_DSN)
 **Data de referencia do dataset:** `2026-08-31` (`REF`). Competencias de `2024-01-01` a `2026-08-01`.
 **Pre-requisitos:** `docs/00_briefing_tecnico.md` (esquema) e `DICIONARIO_DADOS.md` (regras). Este documento e a fonte
