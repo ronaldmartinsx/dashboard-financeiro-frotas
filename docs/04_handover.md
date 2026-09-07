@@ -392,3 +392,45 @@ quem religar a conexao um dia.
 
 **Como regerar o snapshot:** `pip install -r requirements-dev.txt` e
 `python3 scripts/exportar_dados.py`.
+
+## 8. Bancada: o visual, e tres defeitos que ele revelou
+
+**2026-09-07.** O app passou a vestir a camada de dados do Bancada, o design system do
+portfolio (commit `10bd79b`). A superficie e `#F4F6F8`, o mesmo `--artefato` que a moldura
+do portfolio espera: a captura de tela le como janela acesa por construcao, 16,8:1 contra
+o fundo `#0C1620` do site.
+
+A troca coube em `theme.py` porque a invariante "a UI nao inventa cor" ja tinha posto toda
+a cor num arquivo. **Nenhuma view mudou de cor.** O tema escuro saiu, era codigo morto.
+
+**Separacao para daltonismo melhorou:** pior par dos indicadores subiu de DeltaE 9,2 para
+**20,0** (deuteranopia) e 21,9 (protanopia). O pior texto passou de 4,5:1 para 5,08:1, e a
+pior marca esta em 3,23:1 -- antes o ambar de marca estava em **1,77:1** e so sobrevivia
+por nunca aparecer sozinho.
+
+**Metrica de fonte medida antes de trocar:** IBM Plex Sans da 7,02 px/caractere a 14px
+contra os 7,10 que `_largura_px` assume. Nenhuma coluna truncou; as quatro tabelas
+mantiveram 585 / 925 / 878 / 987 px.
+
+### Defeitos encontrados no caminho
+
+| Defeito | Onde | Consequencia |
+|---|---|---|
+| `var(--fv-marca)` referenciada e nunca definida | `componentes.py` | a barra da leitura executiva saia na cor do texto |
+| escala divergente indexada por literal (`escala[5]`) | `pagina_1_metas.py` | teria quebrado em silencio ao mudar o tamanho da escala, que mudou |
+| rampa devolvia cor repetida quando `n` > passos | `theme.py` | duas faixas de aging sairiam identicas |
+| parametro sobrando derrubava a consulta | `db.py` | grafico de comparacao anual morto (o SQLAlchemy ignorava, o DuckDB recusa) |
+| eixo plotava `pct_vencido_30d` com limiar de `inadimplencia_pct` | `pagina_3_inadimplencia.py` | 34 de 53 clientes acima da linha vermelha, quando o alerta aponta 8 |
+
+### Dois portoes novos, porque os dois ultimos defeitos passaram em silencio
+
+`scripts/verificar_tema.py` (o **sexto** portao) checa hex fora do tema, o espelho do
+`config.toml`, os pisos de contraste, a lista de alivio contra a medicao, e o daltonismo
+com a matriz que o proprio Bancada publica. E o portao de render passou a reprovar em
+`st.warning`, que e o canal de `ui.erro_metrica`: antes uma metrica quebrada passava como
+"pagina que renderiza", e foi exatamente assim que o grafico anual chegou a producao.
+
+**Desvio deliberado registrado:** a celula de rating pinta bloco cheio, e o Bancada diz
+"o sinal como veu, nunca bloco cheio". O motivo dele (o bloco derruba o contraste do
+texto) nao se aplica porque invertemos o texto; o formato foi pedido pelo dono. O portao
+mede os quatro pares para o desvio nao virar defeito.

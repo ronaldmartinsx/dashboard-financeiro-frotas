@@ -274,6 +274,31 @@ def estilos(tema: Tema = "claro") -> None:
   font-family: var(--fv-fonte);
 }}
 .fv-frase b {{ color: var(--fv-tinta); font-weight: 600; }}
+/* Rodape de assinatura. Separado do conteudo por **fio**, nunca por inversao de
+   fundo -- regra do Footer do Bancada. Acromatico: a cor pertence ao dado. */
+.fv-rodape {{
+  border-top: 1px solid var(--fv-borda);
+  margin-top: {esp['xxl']}px; padding-top: {esp['lg']}px; padding-bottom: {esp['lg']}px;
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: {esp['lg']}px; flex-wrap: wrap;
+  font-family: var(--fv-fonte-mono);
+  font-size: {tp['nota']}px; line-height: 1.5; color: var(--fv-tinta-3);
+}}
+.fv-rodape__bloco {{ display: flex; flex-direction: column; gap: {esp['xs']}px; min-width: 0; }}
+.fv-rodape__linha {{ display: flex; flex-wrap: wrap; gap: {esp['xs']}px {esp['sm']}px; }}
+.fv-rodape strong {{ color: var(--fv-tinta-2); font-weight: 500; }}
+/* Link sem cromatico: sobe para a tinta do titulo e sublinha no fio de controle,
+   como o --link da camada de dados manda. */
+.fv-rodape a {{
+  color: var(--fv-tinta); text-decoration: none;
+  border-bottom: 1px solid var(--fv-eixo);
+}}
+.fv-rodape a:hover {{ border-bottom-color: var(--fv-marca); }}
+.fv-rodape__ressalva {{
+  font-family: var(--fv-fonte); max-width: 62ch;
+}}
+.fv-rodape__sinal {{ flex: none; color: var(--fv-tinta-2); margin-top: 2px; }}
+
 /* Todo numero desta folha e tabular: e o que alinha coluna e faixa de KPI. */
 .fv-tile__valor, .fv-tile__delta, .fv-tile__nota,
 .fv-banner__detalhe, .fv-leitura__selo {{
@@ -1169,6 +1194,59 @@ def leitura_gerada(texto: str, *, rodape: str, tema: Tema = "claro") -> None:
     )
 
 
+#: Autoria e contato. Ficam aqui, e nao numa view, porque o rodape e do app.
+AUTOR: str = "Ronald Martins"
+AUTOR_DESCRICAO: str = "Profissional de dados · Manaus, AM"
+PORTFOLIO: str = "rmartinsdev.com.br"
+
+#: O sinal secundario da marca, `r |>`, desenhado em curvas como no Bancada:
+#: nenhum glifo depende de fonte carregada, e nada aqui e cromatico. O "r" leva
+#: a tinta corrente; o pipe e a seta ficam um passo atras.
+_SINAL_MARCA = """\
+<svg viewBox="0 0 94 64" height="16" role="img" aria-label="Ronald Martins" \
+style="display:block">
+  <rect fill="currentColor" x="11" y="20" width="4.8" height="32"/>
+  <path d="M13.4 29A9.6 9.6 0 0 1 23.6 20.6" fill="none" stroke="currentColor" \
+stroke-width="4.8"/>
+  <rect x="38" y="20" width="4.6" height="32" fill="currentColor" opacity=".55"/>
+  <path d="M54 25.5 64.5 34 54 42.5" fill="none" stroke="currentColor" \
+stroke-width="4.6" opacity=".55"/>
+</svg>"""
+
+
+def rodape() -> None:
+    """Assinatura do app: quem fez, onde encontrar, e a ressalva sobre os dados.
+
+    Chamado uma vez no entrypoint, depois de ``pagina.run()``, para aparecer em
+    todas as paginas sem cada view precisar lembrar.
+
+    Segue o ``Footer`` do Bancada: separado do conteudo por **fio**, nunca por
+    inversao de fundo; rotulo em mono; acromatico, porque a cor pertence ao dado.
+    A ressalva sobre o dataset sintetico vive aqui, e nao so no Guia, porque quem
+    abre um link direto para a pagina de inadimplencia nunca passou pelo Guia.
+    """
+    ano = date.today().year
+    st.markdown(
+        f'<div class="fv-rodape">'
+        f'<div class="fv-rodape__bloco">'
+        f'<div class="fv-rodape__linha">'
+        f"<span><strong>{_e(AUTOR)}</strong></span>"
+        f"<span>{_e(AUTOR_DESCRICAO)}</span>"
+        f'<span><a href="https://{PORTFOLIO}" target="_blank" rel="noopener">'
+        f"{_e(PORTFOLIO)}</a></span>"
+        f"</div>"
+        f'<div class="fv-rodape__ressalva">'
+        f"Projeto de demonstração com dados sintéticos: nomes de cliente, valores e "
+        f"histórias são fictícios e não representam nenhuma operação real. "
+        f"{ano}."
+        f"</div>"
+        f"</div>"
+        f'<div class="fv-rodape__sinal">{_SINAL_MARCA}</div>'
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+
+
 def bloco_desabilitado(texto: str, *, acao: str | None = None) -> None:
     """Bloco desabilitado (secao 6.6): nao e vazio, nao e zero -- e inaplicavel."""
     estado_vazio("Bloco indisponivel neste recorte", texto, acao)
@@ -1191,4 +1269,5 @@ __all__ = [
     "cabecalho_secao", "tile_kpi", "alertas_da_camada", "banner_alerta",
     "tabela_com_barra", "estado_vazio", "seletor_data_referencia", "fins_de_mes",
     "frase", "bloco_desabilitado", "erro_metrica",
+    "rodape", "AUTOR", "PORTFOLIO",
 ]

@@ -359,6 +359,9 @@ def main() -> None:
 
     barra_lateral(opcoes, clientes, pagina=pagina.url_path)
     pagina.run()
+    # Uma chamada so, aqui: o rodape e do app, nao de cada pagina. Nenhuma view
+    # precisa lembrar dele, e nao ha como uma esquecer.
+    ui.rodape()
 
 
 main()

@@ -111,6 +111,12 @@ uma inadimplência que subiu).
 
 **Um tema só.** O app é claro por tese, não por gosto.
 
+O rodapé leva a assinatura do autor, o link do portfólio e a ressalva sobre o dataset
+sintético. Ele é chamado **uma vez** no entrypoint, depois de `pagina.run()`: o rodapé é
+do app, não de cada página, e assim não há como uma esquecer. Segue o `Footer` do Bancada
+— separado do conteúdo por fio, nunca por inversão de fundo, e acromático, porque a cor
+pertence ao dado.
+
 ## Escopo — cinco eixos
 
 Faturamento · Recebimento · **Inadimplência na posição atual** · Metas · Custos.
