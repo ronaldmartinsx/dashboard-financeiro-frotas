@@ -207,7 +207,17 @@ def _linha(
     qtd_vermelho: int = 0,
     qtd_ambar: int = 0,
     entidades: tuple[str, ...] = (),
+    valor_exibido: float | None = None,
+    unidade_exibida: str | None = None,
 ) -> dict:
+    """Uma linha de alerta.
+
+    ``valor_exibido``/``unidade_exibida`` existem para quando a **regra** e em uma
+    unidade e a **leitura util** e em outra. O caso e o A8: a regra dispara em
+    percentual do limite de credito, mas "282,6%" nao diz quanto dinheiro esta
+    exposto -- o titulo mostra os reais, e os limiares publicados seguem em
+    percentual, que e como a regra foi escrita.
+    """
     return {
         "id": lim.id,
         "categoria": lim.categoria,
@@ -216,6 +226,8 @@ def _linha(
         "nivel": nivel,
         "valor": valor,
         "unidade": lim.unidade,
+        "valor_exibido": valor if valor_exibido is None else valor_exibido,
+        "unidade_exibida": lim.unidade if unidade_exibida is None else unidade_exibida,
         "limiar_ambar": lim.ambar,
         "limiar_vermelho": lim.vermelho,
         "direcao": lim.direcao,
@@ -227,11 +239,43 @@ def _linha(
     }
 
 
+def _contagem(vermelhos: int, ambares: int, total: int, entidade: str) -> str:
+    """Quantos exigem acao e quantos pedem atencao, sem nome de cor.
+
+    "13 em nivel vermelho e 1 em ambar de 49 avaliados" e a frase escrita por quem
+    implementou o semaforo, nao por quem le o painel: vermelho e ambar sao a cor da
+    pastilha, nao o que se deve fazer. Aqui a contagem diz **a acao**.
+    """
+    exige = "exige" if vermelhos == 1 else "exigem"
+    pede = "pede" if ambares == 1 else "pedem"
+    if vermelhos and ambares:
+        return (f"{vermelhos} de {total} {entidade} {exige} ação agora, "
+                f"e {ambares} {pede} atenção.")
+    if vermelhos:
+        return f"{vermelhos} de {total} {entidade} {exige} ação agora."
+    if ambares:
+        return f"{ambares} de {total} {entidade} {pede} atenção."
+    return f"Os {total} {entidade} avaliados estão dentro da regra."
+
+
 def _por_entidade(
     lim: Limiar, df: pd.DataFrame, coluna_valor: str, coluna_nome: str,
     formatar: Callable[[float], str],
+    *,
+    entidade: str = "avaliados",
+    coluna_ordem: str | None = None,
+    resumo: Callable[[pd.DataFrame], tuple[float, str]] | None = None,
 ) -> dict:
-    """Avalia uma regra que vale por linha (cliente, contrato, veiculo, segmento)."""
+    """Avalia uma regra que vale por linha (cliente, contrato, veiculo, segmento).
+
+    ``coluna_ordem`` ordena a lista de citados por outra coluna que nao a do
+    limiar -- serve quando a prioridade de acao nao e a mesma coisa que a
+    gravidade da regra (no A8, atacar quem tem mais dinheiro exposto rende mais
+    do que atacar quem tem o maior percentual).
+
+    ``resumo`` calcula o numero do titulo a partir das linhas que dispararam,
+    quando a leitura util nao e o pior valor individual.
+    """
     if df.empty:
         return _linha(lim, "ok", None, "Nenhuma entidade no recorte atual.")
     # Colunas de percentual usam pd.NA (divisao por zero) e viram dtype object;
@@ -246,21 +290,25 @@ def _por_entidade(
     ambares = df[niveis == "ambar"]
     pior = _pior(niveis.tolist())
     criticos = vermelhos if not vermelhos.empty else ambares
+    ordem = coluna_ordem if coluna_ordem and coluna_ordem in df.columns else coluna_valor
     if lim.direcao == "menor_pior":
-        criticos = criticos.nsmallest(5, coluna_valor)
+        criticos = criticos.nsmallest(5, ordem)
         extremo = serie.min()
     else:
-        criticos = criticos.nlargest(5, coluna_valor)
+        criticos = criticos.nlargest(5, ordem)
         extremo = serie.max()
     nomes = tuple(
         f"{n} ({formatar(float(v))})"
-        for n, v in zip(criticos[coluna_nome], criticos[coluna_valor])
+        for n, v in zip(criticos[coluna_nome], criticos[ordem])
     )
-    detalhe = (
-        f"{len(vermelhos)} em nível vermelho e {len(ambares)} em âmbar "
-        f"de {len(df)} avaliados."
-    )
-    return _linha(lim, pior, float(extremo), detalhe, len(vermelhos), len(ambares), nomes)
+    detalhe = _contagem(len(vermelhos), len(ambares), len(df), entidade)
+    exibido, unidade_exibida = (None, None)
+    if resumo is not None:
+        disparados = pd.concat([vermelhos, ambares]) if not ambares.empty else vermelhos
+        if not disparados.empty:
+            exibido, unidade_exibida = resumo(disparados)
+    return _linha(lim, pior, float(extremo), detalhe, len(vermelhos), len(ambares), nomes,
+                  valor_exibido=exibido, unidade_exibida=unidade_exibida)
 
 
 # --------------------------------------------------------------------------
@@ -321,14 +369,31 @@ def _a6(ctx: _Contexto) -> dict:
 
 def _a7(ctx: _Contexto) -> dict:
     return _por_entidade(LIMIARES["A7"], ctx.risco_clientes, "inadimplencia_pct",
-                         "nome_cliente", lambda v: fmt.percentual(v, 1))
+                         "nome_cliente", lambda v: fmt.percentual(v, 1),
+                         entidade="clientes")
 
 
 def _a8(ctx: _Contexto) -> dict:
+    """Uso do limite de credito, com o titulo em reais.
+
+    A regra dispara em percentual do limite, e e assim que ela esta publicada. Mas
+    "282,6%" nao diz quanto dinheiro esta exposto: o limite de cada cliente e
+    diferente, entao o percentual sozinho nao tem magnitude. O titulo mostra o
+    **total em aberto acima dos limites aprovados**, e a lista cita os clientes
+    ordenados por esse excesso -- atacar quem tem mais dinheiro exposto rende mais
+    do que atacar quem tem o maior percentual.
+    """
     df = ctx.aging_clientes
     df = df[df["uso_limite_pct"].notna()] if not df.empty else df
-    return _por_entidade(LIMIARES["A8"], df, "uso_limite_pct",
-                         "nome_cliente", lambda v: fmt.percentual(v, 0))
+    if not df.empty:
+        df = df.assign(excesso_limite=(df["carteira_total"] - df["limite_credito"]).clip(lower=0))
+    return _por_entidade(
+        LIMIARES["A8"], df, "uso_limite_pct", "nome_cliente",
+        lambda v: fmt.moeda_compacta(v),
+        entidade="clientes",
+        coluna_ordem="excesso_limite",
+        resumo=lambda d: (float(d["excesso_limite"].sum()), "R$"),
+    )
 
 
 def _a9(ctx: _Contexto) -> dict:
@@ -340,7 +405,7 @@ def _a9(ctx: _Contexto) -> dict:
     if df.empty or not empresa:
         return _linha(lim, INDISPONIVEL, None, "Sem base para comparar.")
     df = df.assign(razao=df["inadimplencia_pct"] / empresa)
-    linha = _por_entidade(lim, df, "razao", "segmento", fmt.vezes)
+    linha = _por_entidade(lim, df, "razao", "segmento", fmt.vezes, entidade="segmentos")
     linha["detalhe"] += f" Inadimplência da empresa: {fmt.percentual(empresa, 2)}."
     return linha
 
@@ -353,7 +418,8 @@ def _a10(ctx: _Contexto) -> dict:
     df = df[df["180+d"] > 0]
     if df.empty:
         return _linha(lim, "ok", 0.0, "Nenhum saldo vencido há mais de 180 dias.")
-    linha = _por_entidade(lim, df, "180+d", "nome_cliente", lambda v: fmt.moeda(v, casas=0))
+    linha = _por_entidade(lim, df, "180+d", "nome_cliente", lambda v: fmt.moeda(v, casas=0),
+                          entidade="clientes")
     linha["detalhe"] += f" Total vencido há mais de 180 dias: {fmt.moeda_compacta(df['180+d'].sum())}."
     return linha
 

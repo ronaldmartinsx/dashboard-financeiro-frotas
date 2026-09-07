@@ -240,6 +240,24 @@ def coletar(caminho: Path) -> tuple[Coleta, list[str], float]:
     return coleta, erros, duracao
 
 
+#: Token de icone do Streamlit (``:material/nome:``). E markup, nao texto.
+_ICONE = re.compile(r":material/[a-z0-9_]+:")
+
+#: Palavras de bastidor que nao podem chegar a prosa da tela, com o motivo.
+#: "13 em nivel vermelho e 1 em ambar" era a frase escrita por quem implementou o
+#: semaforo: vermelho e ambar sao a cor da pastilha, nao o que se deve fazer.
+_JARGAO: dict[str, str] = {
+    "nível vermelho": "cor da pastilha, não a ação: diga o que fazer",
+    "nivel vermelho": "cor da pastilha, não a ação: diga o que fazer",
+    "em âmbar": "cor da pastilha, não a ação: diga o que fazer",
+    "em ambar": "cor da pastilha, não a ação: diga o que fazer",
+    "limiar": "termo de implementação; na tela é 'a partir de quanto'",
+    "point-in-time": "termo técnico; na tela é 'na data de referência'",
+    "flag": "termo técnico em inglês",
+    "dataframe": "termo técnico em inglês",
+}
+
+
 def violacoes(coleta: Coleta) -> list[tuple[str, str, str, str]]:
     """(texto, onde, tipo, motivo) de todo rotulo que ainda e nome de coluna."""
     achados = []
@@ -247,7 +265,10 @@ def violacoes(coleta: Coleta) -> list[tuple[str, str, str, str]]:
     # escaparam por aqui -- travessao em texto corrido e cifrao cru (dois "$" na
     # mesma string viram formula LaTeX no Markdown do Streamlit).
     conhecidas = sorted((c for c in rot.ROTULOS if "_" in c), key=len, reverse=True)
-    for texto, onde in coleta.prosa:
+    for bruto, onde in coleta.prosa:
+        # ":material/flag:" e o nome de um icone do Streamlit, nao prosa: ele nunca
+        # chega a tela como texto. Sai antes da varredura para nao acusar "flag".
+        texto = _ICONE.sub(" ", bruto)
         for coluna in conhecidas:
             if re.search(rf"\b{re.escape(coluna)}\b", texto):
                 achados.append((coluna, f"{onde} (dentro do texto)", "prosa",
@@ -259,6 +280,9 @@ def violacoes(coleta: Coleta) -> list[tuple[str, str, str, str]]:
         if texto.count("$") >= 2:
             achados.append((texto[:60], onde, "prosa",
                             "dois cifrões crus: o Markdown do Streamlit vira LaTeX"))
+        for termo in _JARGAO:
+            if re.search(rf"\b{termo}\b", texto, re.IGNORECASE):
+                achados.append((termo, onde, "prosa", _JARGAO[termo]))
 
     for texto, onde, tipo in coleta.tudo():
         if texto in rot.ROTULOS:

@@ -284,8 +284,10 @@ def estilos(tema: Tema = "claro") -> None:
   font-family: var(--fv-fonte-mono);
   font-size: {tp['nota']}px; line-height: 1.5; color: var(--fv-tinta-3);
 }}
-.fv-rodape__bloco {{ display: flex; flex-direction: column; gap: {esp['xs']}px; min-width: 0; }}
-.fv-rodape__linha {{ display: flex; flex-wrap: wrap; gap: {esp['xs']}px {esp['sm']}px; }}
+.fv-rodape__linha {{
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: {esp['xs']}px {esp['lg']}px; min-width: 0;
+}}
 .fv-rodape strong {{ color: var(--fv-tinta-2); font-weight: 500; }}
 /* Link sem cromatico: sobe para a tinta do titulo e sublinha no fio de controle,
    como o --link da camada de dados manda. */
@@ -294,8 +296,10 @@ def estilos(tema: Tema = "claro") -> None:
   border-bottom: 1px solid var(--fv-eixo);
 }}
 .fv-rodape a:hover {{ border-bottom-color: var(--fv-marca); }}
-.fv-rodape__ressalva {{
-  font-family: var(--fv-fonte); max-width: 62ch;
+/* Glifo de plataforma: acompanha o nome, herda a tinta e nao entra em circulo
+   preenchido -- as tres regras que o Bancada poe sobre marca de terceiro. */
+.fv-rodape__plataforma {{
+  display: inline-flex; align-items: center; gap: {esp['xs']}px;
 }}
 .fv-rodape__sinal {{ flex: none; color: var(--fv-tinta-2); margin-top: 2px; }}
 
@@ -689,7 +693,13 @@ def alertas_da_camada(
     alertas: list[Alerta] = []
     for _, linha in recorte.iterrows():
         nivel = NIVEL_ALERTA.get(str(linha["nivel"]), "neutro")
-        texto_valor = _valor_alerta(linha.get("valor"), str(linha.get("unidade", "")))
+        # O titulo usa o valor de **exibicao** da camada semantica, que pode estar
+        # em outra unidade que a da regra: o A8 dispara em percentual do limite e
+        # mostra reais, porque percentual de limites diferentes nao tem magnitude.
+        texto_valor = _valor_alerta(
+            linha.get("valor_exibido", linha.get("valor")),
+            str(linha.get("unidade_exibida") or linha.get("unidade", "")),
+        )
         titulo = str(linha["titulo"])
         if texto_valor:
             titulo = f"{titulo}: {texto_valor}"
@@ -1196,12 +1206,12 @@ def leitura_gerada(texto: str, *, rodape: str, tema: Tema = "claro") -> None:
 
 #: Autoria e contato. Ficam aqui, e nao numa view, porque o rodape e do app.
 AUTOR: str = "Ronald Martins"
-AUTOR_DESCRICAO: str = "Profissional de dados · Manaus, AM"
 PORTFOLIO: str = "rmartinsdev.com.br"
+GITHUB: str = "https://github.com/ronaldmartinsx"
+LINKEDIN: str | None = None  # o handle ainda nao foi informado; sem ele o link nao entra
 
 #: O sinal secundario da marca, `r |>`, desenhado em curvas como no Bancada:
-#: nenhum glifo depende de fonte carregada, e nada aqui e cromatico. O "r" leva
-#: a tinta corrente; o pipe e a seta ficam um passo atras.
+#: nenhum glifo depende de fonte carregada, e nada aqui e cromatico.
 _SINAL_MARCA = """\
 <svg viewBox="0 0 94 64" height="16" role="img" aria-label="Ronald Martins" \
 style="display:block">
@@ -1213,34 +1223,49 @@ stroke-width="4.8"/>
 stroke-width="4.6" opacity=".55"/>
 </svg>"""
 
+#: Glifos oficiais de GitHub e LinkedIn, copiados de
+#: ``assets/icones-terceiros/`` do Bancada. O sistema e explicito: **nao
+#: desenhe a mao** e **nunca use a cor de marca da plataforma** -- o azul do
+#: LinkedIn seria o quarto cromatico de um sistema que tem tres. Aqui eles
+#: herdam ``currentColor``, e o nome da plataforma acompanha sempre: link so
+#: com icone e um alvo sem nome para leitor de tela.
+_GLIFOS_PLATAFORMA: Mapping[str, str] = {
+    "github": '<svg viewBox="0 0 24 24" width="13" height="13" '
+              'fill="currentColor" aria-hidden="true" style="flex:none">'
+              '<path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>',
+    "linkedin": '<svg viewBox="0 0 448 512" width="13" height="13" '
+                'fill="currentColor" aria-hidden="true" style="flex:none">'
+                '<path d="M100.28 448H7.4V148.9h92.88zM53.79 108.1C24.09 108.1 0 83.5 0 53.8a53.79 53.79 0 0 1 107.58 0c0 29.7-24.1 54.3-53.79 54.3zM447.9 448h-92.68V302.4c0-34.7-.7-79.2-48.29-79.2-48.29 0-55.69 37.7-55.69 76.7V448h-92.78V148.9h89.08v40.8h1.3c12.4-23.5 42.69-48.3 87.88-48.3 94 0 111.28 61.9 111.28 142.3V448z"/></svg>',
+}
+
+
+def _link_plataforma(plataforma: str, href: str, rotulo: str) -> str:
+    return (
+        f'<a class="fv-rodape__plataforma" href="{_e(href)}" target="_blank" '
+        f'rel="noopener">{_GLIFOS_PLATAFORMA[plataforma]}{_e(rotulo)}</a>'
+    )
+
 
 def rodape() -> None:
-    """Assinatura do app: quem fez, onde encontrar, e a ressalva sobre os dados.
+    """Assinatura do app: quem fez e onde encontrar.
 
     Chamado uma vez no entrypoint, depois de ``pagina.run()``, para aparecer em
     todas as paginas sem cada view precisar lembrar.
 
     Segue o ``Footer`` do Bancada: separado do conteudo por **fio**, nunca por
-    inversao de fundo; rotulo em mono; acromatico, porque a cor pertence ao dado.
-    A ressalva sobre o dataset sintetico vive aqui, e nao so no Guia, porque quem
-    abre um link direto para a pagina de inadimplencia nunca passou pelo Guia.
+    inversao de fundo; mono; acromatico, porque a cor pertence ao dado.
     """
-    ano = date.today().year
+    partes = [
+        f"<span><strong>{_e(AUTOR)}</strong></span>",
+        f'<span><a href="https://{PORTFOLIO}" target="_blank" rel="noopener">'
+        f"{_e(PORTFOLIO)}</a></span>",
+        f'<span>{_link_plataforma("github", GITHUB, "GitHub")}</span>',
+    ]
+    if LINKEDIN:
+        partes.append(f'<span>{_link_plataforma("linkedin", LINKEDIN, "LinkedIn")}</span>')
     st.markdown(
         f'<div class="fv-rodape">'
-        f'<div class="fv-rodape__bloco">'
-        f'<div class="fv-rodape__linha">'
-        f"<span><strong>{_e(AUTOR)}</strong></span>"
-        f"<span>{_e(AUTOR_DESCRICAO)}</span>"
-        f'<span><a href="https://{PORTFOLIO}" target="_blank" rel="noopener">'
-        f"{_e(PORTFOLIO)}</a></span>"
-        f"</div>"
-        f'<div class="fv-rodape__ressalva">'
-        f"Projeto de demonstração com dados sintéticos: nomes de cliente, valores e "
-        f"histórias são fictícios e não representam nenhuma operação real. "
-        f"{ano}."
-        f"</div>"
-        f"</div>"
+        f'<div class="fv-rodape__linha">{"".join(partes)}</div>'
         f'<div class="fv-rodape__sinal">{_SINAL_MARCA}</div>'
         f"</div>",
         unsafe_allow_html=True,
