@@ -754,15 +754,24 @@ def leitura_executiva(ctx: Contexto, *, comp: pd.DataFrame | None,
     import json as _json
 
     if not ia.disponivel():
-        # Nao e "indisponivel neste recorte": e um recurso opcional que nao foi
-        # ligado. O texto diz o que ele faz e o que fazer para ter, sem parecer
-        # defeito.
-        ui.estado_vazio(
-            "Leitura executiva não configurada",
-            "Ela usa a API do Claude para interpretar os números desta página. Não muda "
-            "nenhum cálculo: recebe apenas os valores que a camada de métricas já apurou, "
-            "e cada número da resposta é conferido antes de aparecer.",
-            acao=f"Defina {ia.CHAVE_API} no .env da raiz ou em .streamlit/secrets.toml.",
+        # A presenca da credencial **e** o interruptor, e por isso nao existe
+        # deteccao de ambiente aqui: na maquina do autor a chave esta no .env e o
+        # botao funciona; na versao publicada o segredo simplesmente nao e
+        # configurado e o visitante ve o recado abaixo. Um unico caminho de codigo
+        # para os dois casos, sem flag para esquecer de virar.
+        ui.frase(
+            "Esta é a única parte do dashboard que custa dinheiro por clique. Ela usa a "
+            "API do Claude para ler os números desta página e escrever o resumo do "
+            "exercício em três parágrafos: o que vai bem, o que preocupa e a ação mais "
+            "urgente."
+        )
+        st.button("Gerar a leitura do exercício", icon=":material/auto_awesome:",
+                  disabled=True, key="leitura_desligada")
+        ui.nota_armadilha(
+            "Obrigado por testar a solução! Por ora esta opção fica desligada na versão "
+            "publicada, porque os créditos da API são meus e eu gosto deles. Rodando o "
+            "projeto localmente com uma chave da API do Claude, o botão funciona.",
+            tom="aviso",
         )
         return
 

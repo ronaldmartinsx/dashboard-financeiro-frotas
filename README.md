@@ -70,13 +70,24 @@ Número sem procedência não vai para a tela, venha ele de uma consulta errada 
 modelo.
 
 ```bash
-# no .env da raiz, em .streamlit/secrets.toml ou na variável de ambiente
+# no .env da raiz (desenvolvimento local)
 ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-Sem a chave o bloco explica como ligar e **nenhum número da tela muda** — é um recurso
-opcional em cima da camada de métricas, nunca dentro dela. A chamada é sob demanda (só
-no clique), cacheada por payload, e custa alguns centavos por leitura.
+### Ligada local, desligada na versão publicada
+
+**A presença da credencial é o interruptor**, e por isso não existe detecção de ambiente
+no código. Na máquina de desenvolvimento a chave está no `.env` e o botão funciona; no
+Streamlit Cloud o segredo simplesmente **não é configurado**, o botão aparece desabilitado
+e o visitante lê o recado explicando por quê. Um único caminho de código para os dois
+casos, sem flag para alguém esquecer de virar.
+
+Ou seja: **para publicar, não faça nada.** Não adicione `ANTHROPIC_API_KEY` aos segredos
+do Streamlit Cloud e a leitura executiva já sobe desligada.
+
+Nenhum número da tela depende disso — é um recurso opcional em cima da camada de
+métricas, nunca dentro dela. A chamada é sob demanda (só no clique), cacheada por
+payload, e custa alguns centavos por leitura.
 
 `scripts/verificar_leitura.py` testa o verificador com 18 casos e **roda offline**: não
 chama a API nem gasta crédito. Ele entra na suíte do `verificar_tudo.py`.
