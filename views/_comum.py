@@ -760,18 +760,18 @@ def leitura_executiva(ctx: Contexto, *, comp: pd.DataFrame | None,
         # configurado e o visitante ve o recado abaixo. Um unico caminho de codigo
         # para os dois casos, sem flag para esquecer de virar.
         ui.frase(
-            "Esta é a única parte do dashboard que custa dinheiro por clique. Ela usa a "
-            "API do Claude para ler os números desta página e escrever o resumo do "
-            "exercício em três parágrafos: o que vai bem, o que preocupa e a ação mais "
-            "urgente."
+            "Aqui o Claude leria os números desta página e escreveria o resumo do "
+            "exercício: o que vai bem, o que preocupa e o que fazer primeiro."
         )
         st.button("Gerar a leitura do exercício", icon=":material/auto_awesome:",
                   disabled=True, key="leitura_desligada")
+        # Tom "info", nao "aviso": nada aqui esta errado, e o glifo de alerta
+        # brigaria com a piada.
         ui.nota_armadilha(
-            "Obrigado por testar a solução! Por ora esta opção fica desligada na versão "
-            "publicada, porque os créditos da API são meus e eu gosto deles. Rodando o "
-            "projeto localmente com uma chave da API do Claude, o botão funciona.",
-            tom="aviso",
+            "Acontece que cada clique nesse botão sai do meu bolso, e o bolso é modesto. "
+            "Então na versão publicada ele fica desligado mesmo, haha. Obrigado por "
+            "testar! Se quiser ver funcionando, roda o projeto na sua máquina com uma "
+            "chave da API do Claude: aí o crédito é seu.",
         )
         return
 

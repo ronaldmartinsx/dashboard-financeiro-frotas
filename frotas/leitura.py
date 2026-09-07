@@ -33,9 +33,11 @@ CHAVE_API: str = "ANTHROPIC_API_KEY"
 #: leitura, e ela e sob demanda (botao), nunca no carregamento da pagina.
 MODELO: str = "claude-opus-5"
 
-#: Teto de saida. Tres paragrafos curtos cabem de sobra; o teto existe para o caso
-#: de o modelo ignorar a instrucao de tamanho.
-MAX_TOKENS: int = 1200
+#: Teto de saida. Com pensamento adaptativo, o raciocinio conta neste mesmo teto --
+#: com 1.200 a resposta saia cortada no meio da ultima frase. O teto e generoso de
+#: proposito: so o que sai de fato e cobrado, e a instrucao de tamanho e que segura
+#: o texto em tres paragrafos.
+MAX_TOKENS: int = 8000
 
 INSTRUCOES = """Você escreve a leitura executiva de um dashboard financeiro de uma \
 locadora de frotas B2B. Quem lê é o CFO.
@@ -55,6 +57,17 @@ sem markdown.
 - Primeiro parágrafo: o que está indo bem, com o número que prova.
 - Segundo: o que preocupa e por quê.
 - Terceiro: a ação mais urgente, e o motivo dela ser urgente.
+- No máximo três números por parágrafo. O número entra para sustentar a frase, \
+não para preencher. Uma frase inteira de números não se lê.
+
+COMO ESCREVER OS NÚMEROS:
+- Valores em reais na forma compacta: "R$ 24,62 mi", "R$ 103,4 mil". Nunca \
+"R$ 24.623.638,22".
+- Percentuais com uma ou duas casas: "92,51%", "10,02%", "2,8%". Nunca mais \
+casas do que o JSON tem.
+- Desvio contra meta com sinal: "+2,9%", "+1,22 p.p.".
+- Arredondar para menos casas é permitido e desejável. Inventar casa que o JSON \
+não tem, não.
 - Português do Brasil, vocabulário de negócio. Nada de jargão técnico, nome de \
 regra, nome de coluna ou termo em inglês.
 - Sem travessão. Use vírgula, ponto ou dois-pontos.
@@ -104,7 +117,13 @@ class Conferencia:
 
 
 def _numeros_do_payload(dados: Any, saida: set[float] | None = None) -> set[float]:
-    """Todo valor numerico do payload, em qualquer profundidade."""
+    """Todo numero do payload, em qualquer profundidade -- inclusive dentro de texto.
+
+    Os rotulos tambem carregam numero: a faixa se chama "Mais de 180 dias" e o
+    alerta se chama "Títulos a caminho da baixa (mais de 300 dias)". Escrever "180
+    dias" e citar o proprio rotulo, entao esses numeros contam como procedencia.
+    Sem isto o verificador reprovaria a frase mais natural do briefing.
+    """
     saida = set() if saida is None else saida
     if isinstance(dados, bool):
         return saida
@@ -112,6 +131,10 @@ def _numeros_do_payload(dados: Any, saida: set[float] | None = None) -> set[floa
         valor = float(dados)
         if valor == valor:  # descarta NaN
             saida.add(abs(valor))
+    elif isinstance(dados, str):
+        for achado in _NUMERO.finditer(dados):
+            for candidato in _candidatos(achado.group(1), achado.group(2), achado.group(3)):
+                saida.add(abs(candidato))
     elif isinstance(dados, Mapping):
         for item in dados.values():
             _numeros_do_payload(item, saida)
@@ -179,12 +202,17 @@ def conferir(texto: str, payload: Mapping[str, Any]) -> Conferencia:
 
 
 def _num(valor: Any) -> float | None:
-    """Converte para float simples, ou None -- o JSON nao aceita NaN nem numpy."""
+    """Converte para float simples, ou None -- o JSON nao aceita NaN nem numpy.
+
+    Arredonda em **duas casas**, a mesma precisao que o app publica. Nao e cosmetico:
+    o modelo escreve o que le, e um payload com ``2.8411`` produzia "2,8411%" na tela.
+    O jeito de impedir precisao falsa no texto e nao ter precisao falsa no payload.
+    """
     try:
         saida = float(valor)
     except (TypeError, ValueError):
         return None
-    return None if saida != saida else round(saida, 4)
+    return None if saida != saida else round(saida, 2)
 
 
 def montar_payload(
@@ -409,6 +437,13 @@ def gerar(payload: Mapping[str, Any], *, tentativas: int = 2) -> Leitura:
         if resposta.stop_reason == "refusal":
             raise LeituraIndisponivel(
                 "O modelo recusou gerar a leitura para estes dados.", detalhe="refusal",
+            )
+        if resposta.stop_reason == "max_tokens":
+            # Texto cortado no meio da frase nao vai para a tela. Nao adianta tentar
+            # de novo com o mesmo teto, entao falha direto.
+            raise LeituraIndisponivel(
+                "A leitura saiu longa demais e foi cortada. Tente de novo.",
+                detalhe="max_tokens",
             )
 
         texto = "\n\n".join(
