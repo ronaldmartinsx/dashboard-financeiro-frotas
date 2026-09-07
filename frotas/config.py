@@ -44,37 +44,18 @@ FAIXAS_AGING: Final[tuple[str, ...]] = (
 )
 
 # --------------------------------------------------------------------------
-# Constantes de conexao
-# --------------------------------------------------------------------------
-
-#: Vai para ``application_name`` na conexao; e o que aparece em pg_stat_activity.
-NOME_APLICACAO: Final[str] = "frotas-data-app"
-
-#: Teto de tempo de execucao por statement, aplicado no servidor.
-TIMEOUT_STATEMENT_MS: Final[int] = 30_000
-
-#: Teto para o handshake TCP/TLS com o pooler.
-TIMEOUT_CONEXAO_S: Final[int] = 10
-
-#: Teto para esperar uma conexao livre no pool local.
-TIMEOUT_POOL_S: Final[int] = 15
-
-#: Pool pequeno de proposito: o pooler do Supabase e um recurso compartilhado.
-POOL_TAMANHO: Final[int] = 3
-POOL_OVERFLOW: Final[int] = 2
-
-#: Recicla conexao antes que o pooler a derrube por ociosidade.
-POOL_RECICLAGEM_S: Final[int] = 240
-
-# --------------------------------------------------------------------------
 # TTLs de cache (segundos). Dataset e estatico -- TTL longo e seguro.
 # --------------------------------------------------------------------------
+#
+# As constantes de pool, timeout e application_name sairam junto com a conexao
+# ao Postgres: o app le arquivos locais e nao tem servidor para negociar.
 
 TTL_DIMENSOES: Final[int] = 24 * 60 * 60   # listas de filtro: 24 h
 TTL_FATOS: Final[int] = 60 * 60            # agregacoes de fato: 1 h
 TTL_PESADO: Final[int] = 6 * 60 * 60       # series point-in-time: 6 h
 
-#: Nomes de segredo reconhecidos pelo app.
+#: Nomes de segredo, usados **so** por ``scripts/exportar_dados.py``. O app em si
+#: nao le credencial nenhuma desde que passou a consultar o snapshot local.
 CHAVE_DSN: Final[str] = "PG_DSN"
 CHAVE_SUPABASE_URL: Final[str] = "SUPABASE_URL"
 CHAVE_SUPABASE_KEY: Final[str] = "SUPABASE_PUBLISHABLE_KEY"

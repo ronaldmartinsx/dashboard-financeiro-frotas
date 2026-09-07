@@ -97,28 +97,18 @@ class Relatorio:
 # --------------------------------------------------------------------------
 
 
-def validar_conexao(rel: Relatorio) -> None:
-    estado = db.verificar_conexao()
-    rel.afirmar("conexao", "banco acessivel", estado.ok, estado.mensagem)
+def validar_dados(rel: Relatorio) -> None:
+    estado = db.verificar_dados()
+    rel.afirmar("dados", "snapshot local acessivel", estado.ok, estado.mensagem)
 
-    sessao = db.consultar(
-        "select current_setting('default_transaction_read_only') as ro, "
-        "current_setting('statement_timeout') as st, "
-        "current_setting('application_name') as an"
-    )
-    rel.afirmar("conexao", "sessao em default_transaction_read_only", sessao.loc[0, "ro"] == "on")
-    rel.afirmar(
-        "conexao",
-        "statement_timeout aplicado",
-        sessao.loc[0, "st"] == f"{config.TIMEOUT_STATEMENT_MS // 1000}s",
-        f"valor lido: {sessao.loc[0, 'st']}",
-    )
-    rel.afirmar(
-        "conexao",
-        "application_name aplicado",
-        sessao.loc[0, "an"] == config.NOME_APLICACAO,
-        f"valor lido: {sessao.loc[0, 'an']}",
-    )
+    # As oito tabelas, e nao so a que o boot consulta: faltar uma so aparece na
+    # pagina que a usa, e ai o erro chega como grafico vazio.
+    for tabela in db.TABELAS:
+        try:
+            n = int(db.consultar(f"select count(*) as n from public.{tabela}").loc[0, "n"])
+            rel.afirmar("dados", f"tabela {tabela} legivel", n > 0, f"{n} linhas")
+        except Exception as exc:  # noqa: BLE001
+            rel.afirmar("dados", f"tabela {tabela} legivel", False, type(exc).__name__)
 
     for sql, rotulo in (
         ("delete from public.custos", "guarda recusa DELETE"),
@@ -129,24 +119,17 @@ def validar_conexao(rel: Relatorio) -> None:
     ):
         try:
             db.consultar(sql)
-            rel.afirmar("conexao", rotulo, False, "a consulta NAO foi bloqueada")
+            rel.afirmar("dados", rotulo, False, "a consulta NAO foi bloqueada")
         except db.SqlNaoPermitido:
-            rel.afirmar("conexao", rotulo, True)
+            rel.afirmar("dados", rotulo, True)
 
-    # Escrita real recusada pelo servidor, nao so pela guarda local.
-    from sqlalchemy import text
-
+    # Escrita recusada pelo proprio motor, nao so pela guarda local: as tabelas
+    # sao views sobre Parquet, e view sobre arquivo nao aceita INSERT.
     try:
-        with db.obter_engine().connect() as conexao:
-            conexao.execute(text("create temp table _t_validacao (x int)"))
-        rel.afirmar("conexao", "servidor recusa escrita (read-only)", False, "escrita foi aceita")
+        db.obter_conexao().execute("insert into public.custos values (1)")
+        rel.afirmar("dados", "motor recusa escrita", False, "a escrita foi aceita")
     except Exception as exc:  # noqa: BLE001
-        rel.afirmar(
-            "conexao",
-            "servidor recusa escrita (read-only)",
-            "read-only transaction" in str(getattr(exc, "orig", exc)),
-            str(getattr(exc, "orig", exc))[:70],
-        )
+        rel.afirmar("dados", "motor recusa escrita", True, type(exc).__name__)
 
 
 #: Briefing, secao "Numeros de referencia" (valores em milhoes de reais).
@@ -498,7 +481,7 @@ def validar_alertas(rel: Relatorio) -> None:
 
 
 SECOES = {
-    "conexao": validar_conexao,
+    "dados": validar_dados,
     "receita": validar_receita_custos,
     "credito": validar_credito,
     "metas": validar_metas,

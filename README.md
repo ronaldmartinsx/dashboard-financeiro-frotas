@@ -1,8 +1,8 @@
-# Dashboard Financeiro — Streamlit + Supabase
+# Dashboard Financeiro — Streamlit + DuckDB
 
-Dashboard financeiro de uma locadora de frotas B2B. Lê o dataset direto do
-Supabase (Postgres, **somente leitura**) e responde quatro perguntas de negócio, uma por
-página, mais um guia de abertura.
+Dashboard financeiro de uma locadora de frotas B2B. Lê um snapshot local do dataset
+(**somente leitura**) e responde quatro perguntas de negócio, uma por página, mais um
+guia de abertura.
 
 A leitura que o app existe para permitir: **faturamento e caixa estão acima da meta;
 a crise é de crédito, não de receita.** A inadimplência > 30d fecha 2025 em 10,20%
@@ -15,17 +15,41 @@ pip install -r requirements.txt
 streamlit run streamlit_app.py
 ```
 
-### Credenciais
+### Os dados ficam no projeto
 
-O app precisa de `PG_DSN` (Postgres via pooler do Supabase). A precedência é:
+O app **não conecta em banco nenhum**. Ele lê `dados/*.parquet`, oito arquivos que somam
+459 KB e estão versionados aqui, e consulta esses arquivos com DuckDB em processo. Não há
+servidor, não há rede e não há credencial: `git clone` + `pip install` e o app roda.
 
-1. `st.secrets` — `.streamlit/secrets.toml`, para deploy;
-2. variável de ambiente `PG_DSN`;
-3. `.env` na raiz, para desenvolvimento local.
+Para regerar o snapshot quando o dataset de origem mudar:
 
-Nenhum dos três vai para o repositório: `.env` e `.streamlit/secrets.toml` estão no
-`.gitignore`. O app nunca imprime o valor de um segredo — em caso de erro reporta apenas
-a origem consultada. Sem credencial, sobe com uma tela de instruções em vez de stack trace.
+```bash
+pip install -r requirements-dev.txt
+python3 scripts/exportar_dados.py
+```
+
+Esse script é a **única** parte do repositório que fala com o Supabase, e ele não roda no
+app. Ele precisa de `PG_DSN` (`st.secrets`, variável de ambiente ou `.env` da raiz) e nunca
+imprime o valor do segredo, só a origem consultada. `.env` e `.streamlit/secrets.toml`
+continuam no `.gitignore`.
+
+**Por que DuckDB e não pandas.** A camada semântica inteira é SQL, e é nela que moram as
+armadilhas do dataset: corte point-in-time de cancelamento, janela de 12 competências,
+meta por período casado. Reescrever isso em pandas jogaria fora as verificações que validam
+exatamente aquele SQL. Com DuckDB o texto das consultas continua o mesmo que rodava no
+Postgres — duas diferenças de dialeto foram resolvidas de forma portável (`generate_series`
+no `FROM` em vez da lista do `SELECT`; `interval '1 month' - interval '1 day'` no lugar do
+literal composto) e `to_char` entra por macro, sem tocar nas consultas.
+
+**O que isso custou em tempo de carregamento**, medido antes e depois:
+
+| | Supabase (pooler) | Snapshot local |
+|---|---|---|
+| Metas | ~12 s | **0,33 s** |
+| Faturamento e Recebimento | ~2 s | **0,06 s** |
+| Inadimplência | ~2 s | **0,08 s** |
+| Custos | ~2 s | **0,06 s** |
+| Suíte de verificação completa | ~82 s | **3,5 s** |
 
 ## Escopo — cinco eixos
 
@@ -76,9 +100,10 @@ rótulo, nota de rodapé do visual ou tooltip.
 
 ```
 streamlit_app.py          entrypoint: st.navigation, filtros globais, estado compartilhado
+dados/                    o dataset em Parquet, uma tabela por arquivo (459 KB)
 frotas/
-  config.py               segredos (st.secrets > env > .env) e constantes de negócio
-  db.py                   engine, cache, guarda SELECT/WITH, erros tipados
+  config.py               constantes de negócio (e o segredo que só o exportador usa)
+  db.py                   DuckDB sobre dados/, cache, guarda SELECT/WITH, erros tipados
   filtros.py              dataclass Filtros (frozen/hashável) + política de filtros
   metrics/                camada semântica — a única que escreve SQL
     receita.py  credito.py  custos.py  metas.py  alertas.py  dimensoes.py
@@ -89,8 +114,9 @@ frotas/
     componentes.py        tiles, banners, tabelas, seletores
 views/                    guia + uma página por pergunta, mais _comum.py
 scripts/
+  exportar_dados.py       regera dados/ a partir do Supabase (só isto usa credencial)
   verificar_tudo.py       roda as quatro verificações; use antes de commitar
-  validar_metricas.py     110 verificações contra os números publicados
+  validar_metricas.py     116 verificações contra os números publicados
   verificar_rotulos.py    falha se nome de coluna, travessão ou cifrão cru chegar à tela
 docs/                     00 briefing · 01 KPIs · 02 arquitetura · 03 UX · 04 handover
 ```
@@ -109,7 +135,7 @@ python3 scripts/validar_metricas.py
 ```
 
 Roda a camada semântica contra o banco e compara com os números de referência de
-`DICIONARIO_DADOS.md`. Saída esperada: **110/110 obrigatórias OK**, 3 informativas
+`DICIONARIO_DADOS.md`. Saída esperada: **116/116 obrigatórias OK**, 3 informativas
 (divergências de definição documentadas em `docs/04_handover.md`).
 
 Cobre, entre outros: faturamento, receita líquida e custos dos três anos; inadimplência
@@ -138,19 +164,25 @@ Cinco invariantes que a revisão verifica e que devem continuar valendo:
 
 ## Segurança
 
-O app é read-only em profundidade: sessão Postgres em `default_transaction_read_only`,
-guarda que rejeita qualquer SQL que não comece por `SELECT`/`WITH`, e SQL sempre
-parametrizado. Nenhuma operação de escrita existe no código.
+O app é read-only em profundidade e, desde a mudança para o snapshot local, a superfície
+de ataque praticamente desapareceu:
 
-Da auditoria da camada de dados saíram dois achados:
+- **Não há credencial em lugar nenhum do app.** O `PG_DSN` só é lido por
+  `scripts/exportar_dados.py`, que roda na mão. Publicar o dashboard não expõe segredo.
+- As tabelas são *views* sobre arquivos Parquet abertos em leitura, e a guarda local
+  recusa qualquer SQL que não comece por `SELECT`/`WITH`. O validador testa as duas
+  barreiras: as cinco tentativas de escrita bloqueadas pela guarda, mais um `INSERT` que
+  o próprio motor recusa por ser view sobre arquivo.
+- SQL sempre parametrizado. Nenhuma operação de escrita existe no código.
+
+Os dois achados da auditoria da camada de dados ficaram **resolvidos por construção**:
 
 - **Corrigido em 2026-09-02** — `anon` e `authenticated` tinham grants de
-  `INSERT/UPDATE/DELETE/TRUNCATE` em `public`, bloqueados apenas pela ausência de
-  policy de escrita. Agora têm somente `SELECT`.
-- **Pendente** — o `PG_DSN` conecta como `postgres`, que tem `rolbypassrls = true`:
-  o app ignora as policies de RLS. O papel dedicado `app_leitura`, as policies que ele
-  exige e o teste de verificação estão em `docs/04_handover.md` §3.1.
-  **Aplique antes de publicar.**
+  `INSERT/UPDATE/DELETE/TRUNCATE` em `public`. Agora têm somente `SELECT`.
+- **Encerrado em 2026-09-06** — o risco de o app conectar como `postgres`
+  (`rolbypassrls = true`, ignorando as policies de RLS) deixou de existir: o app não
+  conecta. O papel `app_leitura` continua descrito em `docs/04_handover.md` §3.1 para
+  quem eventualmente religar a conexão.
 
 ## Ressalva sobre os dados
 

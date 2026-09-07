@@ -1,18 +1,28 @@
-"""Camada de acesso a dados: engine, cache e execucao de SQL parametrizado.
+"""Camada de acesso a dados: snapshot local, cache e execucao de SQL parametrizado.
+
+O app **nao fala com o Supabase**. Ele le o snapshot Parquet de ``dados/``, que
+``scripts/exportar_dados.py`` gera na mao quando o dataset de origem muda, e
+consulta esses arquivos com DuckDB, em processo.
+
+Por que DuckDB e nao pandas: a camada semantica inteira e SQL, e e nela que estao
+as armadilhas do dataset (corte point-in-time de cancelamento, janela de 12
+competencias, meta por periodo casado). Reescrever isso em pandas jogaria fora as
+110 verificacoes que validam exatamente aquele SQL. Com DuckDB o texto das
+consultas continua o mesmo que rodava no Postgres, e as verificacoes continuam
+verificando a mesma coisa.
 
 Regras que este modulo garante (defesa em profundidade):
 
-* **Somente leitura.** A sessao abre com ``default_transaction_read_only=on`` no
-  servidor e :func:`consultar` recusa qualquer SQL que nao comece por
+* **Somente leitura.** As tabelas sao *views* sobre arquivos Parquet abertos em
+  modo leitura, e :func:`consultar` recusa qualquer SQL que nao comece por
   ``SELECT``/``WITH``. Duas barreiras independentes.
 * **Sempre parametrizado.** Nenhum valor de filtro entra por f-string; os valores
   viajam como bind params (``:nome``), inclusive listas (``in :segmentos``).
-* **Degradacao util.** Falta de credencial ou banco inacessivel viram
-  :class:`ErroBanco` com ``mensagem_usuario`` pronta para ``st.error`` -- o app
-  nunca mostra stack trace nem trecho de credencial.
+* **Degradacao util.** Snapshot ausente ou corrompido vira :class:`ErroDados` com
+  ``mensagem_usuario`` pronta para ``st.error`` -- o app nunca mostra stack trace.
 
-Cache: :func:`obter_engine` usa ``st.cache_resource`` (um engine por processo) e
-as consultas usam ``st.cache_data`` em tres faixas de TTL. A chave de cache e
+Cache: :func:`obter_conexao` usa ``st.cache_resource`` (uma conexao por processo)
+e as consultas usam ``st.cache_data`` em tres faixas de TTL. A chave de cache e
 ``(sql, params ordenados)`` -- estavel porque os params sao uma tupla ordenada de
 pares, nunca um dicionario mutavel.
 """
@@ -22,12 +32,12 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from functools import lru_cache
+from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 import pandas as pd
 
 from frotas import config
-from frotas.config import CredencialAusente
 
 # --------------------------------------------------------------------------
 # Erros
@@ -43,12 +53,12 @@ class ErroBanco(RuntimeError):
         self.detalhe = detalhe
 
 
-class ErroConexao(ErroBanco):
-    """Nao foi possivel falar com o banco (credencial, rede, pooler fora)."""
+class ErroDados(ErroBanco):
+    """O snapshot local nao esta la, ou nao da para abrir."""
 
 
 class ErroConsulta(ErroBanco):
-    """A consulta chegou ao banco e falhou (timeout, SQL invalido, permissao)."""
+    """A consulta rodou sobre o snapshot e falhou (SQL ou parametro invalido)."""
 
 
 class SqlNaoPermitido(ErroBanco):
@@ -125,92 +135,77 @@ def _cache_dados(ttl: int):
 
 
 # --------------------------------------------------------------------------
-# Engine
+# Snapshot local
 # --------------------------------------------------------------------------
+
+#: Onde os Parquet vivem. Gerados por ``scripts/exportar_dados.py``.
+DIRETORIO_DADOS = Path(__file__).resolve().parent.parent / "dados"
+
+#: As tabelas do snapshot. Explicita de proposito: o app so enxerga o que esta
+#: aqui, e um arquivo solto em ``dados/`` nao vira tabela por acidente.
+TABELAS = (
+    "titulos_receber", "custos", "clientes", "contratos",
+    "veiculos", "metas", "alocacoes_veiculo", "calendario",
+)
+
+#: ``to_char`` nao existe no DuckDB, e as consultas usam nove vezes, sempre com
+#: ``'YYYY-MM'``. O macro traduz o formato do Postgres para o do ``strftime`` em
+#: vez de reescrever o SQL: o texto das consultas precisa continuar identico ao
+#: que rodava no Postgres, senao as 110 verificacoes deixam de verificar aquilo.
+_MACRO_TO_CHAR = """
+create or replace macro to_char(d, f) as
+    strftime(d, replace(replace(replace(f, 'YYYY', '%Y'), 'MM', '%m'), 'DD', '%d'))
+"""
 
 
 @_cache_recurso
-def obter_engine():
-    """Engine SQLAlchemy apontando para o pooler do Supabase (modo session).
+def obter_conexao():
+    """Conexao DuckDB em processo, com uma view por arquivo do snapshot.
 
-    Um engine por processo (``st.cache_resource``). Pool deliberadamente pequeno
-    -- o pooler e recurso compartilhado do projeto -- com ``pool_pre_ping`` para
-    absorver a queda silenciosa de conexao que o pooler faz por ociosidade.
+    Uma conexao por processo (``st.cache_resource``). O banco em si e ``:memory:``:
+    o que existe em disco sao os Parquet, abertos em leitura. Nao ha servidor, nao
+    ha rede e nao ha credencial -- por isso a consulta mais cara do app caiu de
+    segundos para milissegundos.
+
+    O schema chama ``public`` porque a camada semantica escreve
+    ``from public.titulos_receber``. Manter o prefixo evita mexer em todo o SQL.
 
     Raises:
-        ErroConexao: credencial ausente ou DSN malformado.
+        ErroDados: snapshot ausente ou ilegivel.
     """
-    from sqlalchemy import create_engine, event
-
     try:
-        dsn = config.obter_dsn()
-    except CredencialAusente as exc:
-        raise ErroConexao(str(exc), detalhe="credencial") from None
-
-    opcoes_sessao = " ".join(
-        (
-            f"-c statement_timeout={config.TIMEOUT_STATEMENT_MS}",
-            f"-c idle_in_transaction_session_timeout={config.TIMEOUT_STATEMENT_MS}",
-            "-c default_transaction_read_only=on",
-        )
-    )
-    try:
-        engine = create_engine(
-            dsn,
-            pool_size=config.POOL_TAMANHO,
-            max_overflow=config.POOL_OVERFLOW,
-            pool_timeout=config.TIMEOUT_POOL_S,
-            pool_recycle=config.POOL_RECICLAGEM_S,
-            pool_pre_ping=True,
-            future=True,
-            # AUTOCOMMIT: leitura pura nao precisa de BEGIN/COMMIT explicitos.
-            # Economiza duas viagens de rede por consulta (o pooler fica em outra
-            # regiao: cada round-trip custa ~240 ms). O read-only continua valendo
-            # -- default_transaction_read_only vale para a transacao implicita.
-            isolation_level="AUTOCOMMIT",
-            connect_args={
-                "sslmode": "require",
-                "connect_timeout": config.TIMEOUT_CONEXAO_S,
-                "application_name": config.NOME_APLICACAO,
-                # Honrado numa conexao direta ao Postgres; o Supavisor descarta o
-                # startup packet 'options' -- por isso o listener abaixo repete
-                # os mesmos ajustes via set_config() ja dentro da sessao.
-                "options": opcoes_sessao,
-            },
-        )
-    except Exception as exc:  # DSN sintaticamente invalido, driver ausente...
-        raise ErroConexao(
-            "Nao foi possivel preparar a conexao com o banco. Verifique o segredo "
-            "PG_DSN (o valor nao e exibido) e se psycopg2 esta instalado.",
-            detalhe=type(exc).__name__,
+        import duckdb
+    except ImportError:
+        raise ErroDados(
+            "A biblioteca duckdb nao esta instalada. Rode: pip install -r requirements.txt",
+            detalhe="duckdb ausente",
         ) from None
 
-    event.listen(engine, "connect", _ajustar_sessao)
-    return engine
-
-
-def _ajustar_sessao(conexao_dbapi, _registro) -> None:
-    """Aplica timeouts, ``application_name`` e read-only em cada nova conexao.
-
-    O pooler do Supabase (Supavisor) ignora o parametro de startup ``options``,
-    entao os ajustes sao reaplicados aqui, via ``set_config`` parametrizado
-    (``SET`` puro nao aceita bind param). ``is_local=false`` faz valer para a
-    sessao inteira -- o pooler esta em modo session, entao a conexao e nossa
-    ate voltar para o pool.
-    """
-    with conexao_dbapi.cursor() as cursor:
-        cursor.execute(
-            "select set_config('application_name', %s, false),"
-            "       set_config('statement_timeout', %s, false),"
-            "       set_config('idle_in_transaction_session_timeout', %s, false),"
-            "       set_config('default_transaction_read_only', 'on', false)",
-            (
-                config.NOME_APLICACAO,
-                str(config.TIMEOUT_STATEMENT_MS),
-                str(config.TIMEOUT_STATEMENT_MS),
-            ),
+    faltando = [t for t in TABELAS if not (DIRETORIO_DADOS / f"{t}.parquet").exists()]
+    if faltando:
+        raise ErroDados(
+            "Os dados do projeto nao foram encontrados em dados/. Rode "
+            "'python3 scripts/exportar_dados.py' para gerar o snapshot.",
+            detalhe=f"faltando: {', '.join(faltando)}",
         )
-    conexao_dbapi.commit()
+
+    try:
+        conexao = duckdb.connect(":memory:")
+        conexao.execute("create schema if not exists public")
+        for tabela in TABELAS:
+            caminho = (DIRETORIO_DADOS / f"{tabela}.parquet").as_posix()
+            conexao.execute(
+                f"create or replace view public.{tabela} as "
+                f"select * from read_parquet('{caminho}')"
+            )
+        conexao.execute(_MACRO_TO_CHAR)
+    except Exception as exc:  # noqa: BLE001 - arquivo corrompido, versao de parquet
+        raise ErroDados(
+            "Os dados do projeto existem mas nao puderam ser abertos. Gere o "
+            "snapshot de novo com 'python3 scripts/exportar_dados.py'.",
+            detalhe=type(exc).__name__,
+        ) from None
+    return conexao
 
 
 # --------------------------------------------------------------------------
@@ -236,55 +231,59 @@ def _normalizar_params(params: Mapping[str, Any] | None) -> ParamsOrdenados:
     return tuple(sorted(itens, key=lambda kv: kv[0]))
 
 
+#: Bind param no estilo SQLAlchemy (``:nome``). O ``(?<!:)`` protege os casts
+#: ``::date`` / ``::float8``: ali o segundo dois-pontos vem depois de outro e nao
+#: pode virar parametro.
+_BIND = re.compile(r"(?<!:):([a-zA-Z_]\w*)")
+
+
+def _traduzir(sql: str, params: ParamsOrdenados) -> tuple[str, dict[str, Any]]:
+    """``:nome`` (SQLAlchemy) -> ``$nome`` (DuckDB), expandindo listas.
+
+    ``in :segmentos`` com uma tupla de tres vira ``in ($segmentos_0, $segmentos_1,
+    $segmentos_2)``. A tupla nunca chega vazia: ``frotas.filtros._adicionar`` so
+    monta a condicao quando ha valor, entao nao existe o caso de ``in ()``.
+    """
+    valores: dict[str, Any] = {}
+    expandidos: dict[str, str] = {}
+    for chave, valor in params:
+        if isinstance(valor, tuple):
+            nomes = []
+            for posicao, item in enumerate(valor):
+                nome = f"{chave}_{posicao}"
+                valores[nome] = item
+                nomes.append(f"${nome}")
+            expandidos[chave] = "(" + ", ".join(nomes) + ")"
+        else:
+            valores[chave] = valor
+
+    def trocar(achado: re.Match[str]) -> str:
+        nome = achado.group(1)
+        if nome in expandidos:
+            return expandidos[nome]
+        return f"${nome}" if nome in valores else achado.group(0)
+
+    return _BIND.sub(trocar, sql), valores
+
+
 def _executar(sql: str, params: ParamsOrdenados) -> pd.DataFrame:
-    """Round-trip real ao banco. Nao cacheado -- ver :func:`consultar`."""
-    from sqlalchemy import bindparam, text
-    from sqlalchemy.exc import DataError, ProgrammingError, SQLAlchemyError
-
+    """Roda a consulta sobre o snapshot. Nao cacheado -- ver :func:`consultar`."""
     validar_sql_leitura(sql)
-    dicionario = dict(params)
-    comando = text(sql)
-    expandindo = [
-        bindparam(nome, expanding=True)
-        for nome, valor in params
-        if isinstance(valor, tuple)
-    ]
-    if expandindo:
-        comando = comando.bindparams(*expandindo)
-
-    engine = obter_engine()
+    consulta, valores = _traduzir(sql, params)
+    conexao = obter_conexao()
     try:
-        with engine.connect() as conexao:
-            return pd.read_sql_query(comando, conexao, params=dicionario)
-    except SQLAlchemyError as exc:
-        origem = getattr(exc, "orig", None)
-        texto = str(origem or exc)
-        if "statement timeout" in texto or "canceling statement" in texto:
-            raise ErroConsulta(
-                "A consulta passou do tempo limite "
-                f"({config.TIMEOUT_STATEMENT_MS // 1000}s). Reduza o periodo do "
-                "filtro e tente de novo.",
-                detalhe="statement_timeout",
-            ) from None
-        if "read-only transaction" in texto:
-            raise ErroConsulta(
-                "Operacao de escrita recusada pelo banco: a sessao do app e "
-                "somente leitura.",
-                detalhe="read_only",
-            ) from None
-        if isinstance(exc, (ProgrammingError, DataError)):
-            # Erro de SQL ou de tipo de parametro: e bug da camada semantica, nao
-            # queda de banco. Nao mascarar como indisponibilidade -- isso mandaria
-            # o desenvolvedor procurar problema de rede que nao existe.
-            raise ErroConsulta(
-                "A consulta foi recusada pelo banco (SQL ou parametro invalido). "
-                "E um defeito da camada de metricas, nao uma falha de conexao.",
-                detalhe=texto.strip().splitlines()[0][:200] if texto else type(exc).__name__,
-            ) from None
-        raise ErroConexao(
-            "Banco de dados indisponivel no momento. Verifique a conexao e o "
-            "segredo PG_DSN; os dados exibidos podem estar desatualizados.",
-            detalhe=type(exc).__name__,
+        # ``cursor()`` a cada consulta: a conexao e uma so no processo e o
+        # Streamlit roda scripts em threads. Sem isso, dois reruns simultaneos
+        # disputariam o mesmo resultado aberto.
+        return conexao.cursor().execute(consulta, valores).fetch_df()
+    except ErroBanco:
+        raise
+    except Exception as exc:  # noqa: BLE001 - duckdb levanta varios tipos
+        texto = str(exc).strip().splitlines()
+        raise ErroConsulta(
+            "A consulta foi recusada (SQL ou parametro invalido). E um defeito da "
+            "camada de metricas, nao uma falha de leitura dos dados.",
+            detalhe=texto[0][:200] if texto else type(exc).__name__,
         ) from None
 
 
@@ -341,35 +340,33 @@ def consultar(
 
 
 @dataclass(frozen=True)
-class EstadoConexao:
-    """Resultado do teste de conectividade, para a barra lateral de diagnostico."""
+class EstadoDados:
+    """Resultado da checagem do snapshot, para a tela de boot."""
 
     ok: bool
     mensagem: str
-    origem_credencial: str | None = None
+    origem: str | None = None
 
 
-def verificar_conexao() -> EstadoConexao:
-    """Testa a conexao sem levantar excecao -- use no boot do app.
+def verificar_dados() -> EstadoDados:
+    """Confere se o snapshot esta la e responde, sem levantar excecao.
 
-    Nunca revela o DSN: informa apenas a origem do segredo (``st.secrets``,
-    ``ambiente`` ou ``.env``) e uma mensagem acionavel.
+    Roda no boot do app. Onde antes havia um teste de rede contra o pooler --
+    a operacao mais lenta da abertura -- hoje ha uma leitura local.
     """
-    origem = config.origem_segredo(config.CHAVE_DSN).origem
-    if origem is None:
-        return EstadoConexao(
-            False,
-            "Credencial de banco nao configurada. Defina PG_DSN em "
-            ".streamlit/secrets.toml, na variavel de ambiente ou no .env local.",
-            None,
-        )
     try:
-        df = consultar("select 1 as ok", ttl=config.TTL_FATOS)
+        linhas = consultar(
+            "select count(*) as n from public.titulos_receber", ttl=config.TTL_DIMENSOES
+        )
     except ErroBanco as exc:
-        return EstadoConexao(False, exc.mensagem_usuario, origem)
-    if df.empty:
-        return EstadoConexao(False, "O banco respondeu vazio ao teste de conexao.", origem)
-    return EstadoConexao(True, f"Conectado ao Supabase (credencial via {origem}).", origem)
+        return EstadoDados(False, exc.mensagem_usuario, None)
+    if linhas.empty or int(linhas.loc[0, "n"]) == 0:
+        return EstadoDados(False, "O snapshot de dados esta vazio.", str(DIRETORIO_DADOS))
+    return EstadoDados(
+        True,
+        f"Lendo o snapshot local de dados/ ({int(linhas.loc[0, 'n']):,} títulos).".replace(",", "."),
+        str(DIRETORIO_DADOS),
+    )
 
 
 def limpar_cache() -> None:

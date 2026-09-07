@@ -4,7 +4,7 @@ Fecha o trabalho da equipe de cinco agentes (KPIs · arquitetura de dados · UX/
 front-end · tech lead). Registra o que foi decidido e por quê, o que ficou em aberto,
 e o que alguém precisa saber antes de mexer ou publicar.
 
-Estado atual: **5/5 páginas renderizam sem exceção**, `validar_metricas` em **110/110**,
+Estado atual: **5/5 páginas renderizam sem exceção**, `validar_metricas` em **116/116**,
 `verificar_rotulos` em **241 rótulos sem nome de coluna exposto**.
 
 ---
@@ -13,7 +13,7 @@ Estado atual: **5/5 páginas renderizam sem exceção**, `validar_metricas` em *
 
 O projeto foi reduzido a **cinco eixos**: Faturamento · Recebimento · **Inadimplência
 somente na posição atual** · Metas · Custos. A entrega original tinha 5 páginas
-analíticas e 179 verificações; agora são 1 guia + 4 páginas e 110 verificações.
+analíticas e 179 verificações; agora são 1 guia + 4 páginas e 116 verificações.
 
 **O que saiu, e por decisão explícita do dono do projeto:**
 
@@ -327,7 +327,7 @@ entre 2,2 s e 3,1 s.
 
 | Verificação | Resultado |
 |---|---|
-| `scripts/verificar_tudo.py` | as 4 passam (pyflakes, métricas 110/110, rótulos, render) |
+| `scripts/verificar_tudo.py` | as 4 passam (pyflakes, métricas 116/116, rótulos, render) |
 | SQL fora de `frotas/metrics/` | zero |
 | Hex literal em `views/` | zero |
 | Segredo em todo o histórico do git | zero |
@@ -364,3 +364,31 @@ Os cenários incluem os que já quebraram antes: todo o período, um mês só, s
 rótulos cobrindo texto livre, os dois documentos de escopo antigo marcados como
 históricos, D1 encerrada no dicionário, alertas roteados para a página 2, filtro de
 data removido da página de custos e a barra lateral agrupada em "Quando" e "Recortes".
+
+## 7. Snapshot local: o app deixou de conectar no banco
+
+**2026-09-06.** Decisao do dono do projeto: por ser projeto pessoal, nao faz sentido
+manter conexao viva com o Supabase. O dataset (43.485 linhas, 8 tabelas) foi exportado
+para `dados/*.parquet` -- 459 KB, versionados -- e o app passou a consultar esses arquivos
+com DuckDB em processo.
+
+**O que nao mudou:** a camada semantica. Todo o SQL continua igual, porque e nele que estao
+as armadilhas do dataset e sao elas que as verificacoes cobrem. Duas diferencas de dialeto
+foram resolvidas de forma **portavel**, isto e, o texto continua valido no Postgres:
+
+| Onde | Era | Ficou | Por que |
+|---|---|---|---|
+| `metas._realizado_inadimplencia` | `generate_series(...)` na lista do `SELECT` | `from generate_series(...) as meses(g)` | no DuckDB a forma antiga devolve uma *lista*, nao linhas |
+| `metas`, `receita` | `interval '1 month - 1 day'` | `interval '1 month' - interval '1 day'` | DuckDB nao parseia o literal composto |
+| `to_char(d, 'YYYY-MM')` (9 usos) | — | macro em `db._MACRO_TO_CHAR` | traduz o formato em vez de reescrever consulta |
+
+**Ganho medido**, cache frio, por pagina: Metas 12 s -> **0,33 s**; as outras ~2 s ->
+**~0,06 s**. Suite completa de verificacao: 82 s -> **3,5 s**.
+
+**Consequencia de seguranca:** o item 3.1 (papel `app_leitura`, RLS ignorada por
+`rolbypassrls`) deixa de bloquear a publicacao. O app nao le credencial nenhuma; so
+`scripts/exportar_dados.py` le, e ele roda na mao. A descricao do papel fica no §3.1 para
+quem religar a conexao um dia.
+
+**Como regerar o snapshot:** `pip install -r requirements-dev.txt` e
+`python3 scripts/exportar_dados.py`.

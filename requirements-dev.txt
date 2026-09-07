@@ -1,0 +1,8 @@
+# So para regerar o snapshot de dados/ a partir do Supabase:
+#     python3 scripts/exportar_dados.py
+# O app nao usa nada daqui.
+
+-r requirements.txt
+SQLAlchemy==2.0.43
+psycopg2-binary==2.9.10
+python-dotenv==1.1.1

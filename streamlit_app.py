@@ -91,31 +91,24 @@ def _meses_disponiveis() -> list[date]:
     return [d.date() for d in marcos]
 
 
-def tela_sem_banco(mensagem: str) -> None:
-    """Tela util quando nao ha credencial ou o banco esta fora (secao 6.8 do UX).
+def tela_sem_dados(mensagem: str) -> None:
+    """Tela util quando o snapshot de dados nao esta la (secao 6.8 do UX).
 
-    Nunca cita o valor do segredo -- so a origem e o que fazer. E nunca despeja
-    stack trace: o publico desta tela e o CFO.
+    Nunca despeja stack trace: o publico desta tela e o CFO. Como o app le
+    arquivos do proprio projeto, o conserto e uma linha de comando, e nao a
+    configuracao de uma credencial.
     """
     ui.estilos(ui.tema_atual())
     st.title(TITULO)
     st.error(mensagem)
     st.markdown(
-        "**Como configurar a leitura**\n\n"
-        "1. Defina `PG_DSN` em `.streamlit/secrets.toml`, numa variavel de ambiente "
-        "ou no `.env` da raiz do projeto.\n"
-        "2. A credencial precisa ser de **leitura**: o app nunca escreve no banco.\n"
-        "3. Recarregue a pagina depois de configurar."
+        "**Como restaurar os dados**\n\n"
+        "1. Os dados do projeto ficam em `dados/`, um arquivo por tabela.\n"
+        "2. Se a pasta sumiu, gere de novo com `python3 scripts/exportar_dados.py` "
+        "(esse script, e so ele, precisa da credencial do Supabase).\n"
+        "3. Recarregue a pagina."
     )
-    diagnostico = [
-        {"Segredo": o.nome, "Origem": o.origem or "não encontrado", "Configurado": o.definido}
-        for o in config.diagnostico_segredos()
-    ]
-    st.dataframe(pd.DataFrame(diagnostico), hide_index=True, width="stretch")
-    st.caption(
-        "O diagnostico mostra apenas a origem de cada segredo, nunca o valor. "
-        "Nenhum numero desta tela foi recalculado."
-    )
+    st.caption("Nenhum numero desta tela foi recalculado.")
     if st.button("tentar de novo"):
         db.limpar_cache()
         st.rerun()
@@ -352,16 +345,16 @@ def main() -> None:
     # ou mexer num filtro, e so o F5 (sessao nova) devolve o estilo.
     ui.reiniciar_estilos()
 
-    estado = db.verificar_conexao()
+    estado = db.verificar_dados()
     if not estado.ok:
-        tela_sem_banco(estado.mensagem)
+        tela_sem_dados(estado.mensagem)
         st.stop()
 
     pagina = st.navigation(PAGINAS, position="sidebar")
     try:
         opcoes, clientes = _opcoes(), _clientes()
     except Exception as exc:  # noqa: BLE001 - boot da sidebar
-        tela_sem_banco(getattr(exc, "mensagem_usuario", "Nao foi possivel falar com o banco."))
+        tela_sem_dados(getattr(exc, "mensagem_usuario", "Nao foi possivel ler os dados do projeto."))
         st.stop()
 
     barra_lateral(opcoes, clientes, pagina=pagina.url_path)

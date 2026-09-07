@@ -129,8 +129,12 @@ def _realizado_inadimplencia(ano: int | None) -> pd.DataFrame:
     }
     sql = f"""
     with refs as (
-        select (generate_series(cast(:serie_ini as date), cast(:serie_fim as date),
-                                interval '1 month') + interval '1 month - 1 day')::date as data_ref
+        -- generate_series no FROM, e nao na lista do SELECT: no Postgres as duas
+        -- formas geram linhas, mas so esta e portavel (no DuckDB, na lista do
+        -- SELECT ela devolveria uma lista em vez de linhas).
+        select (g + interval '1 month' - interval '1 day')::date as data_ref
+        from generate_series(cast(:serie_ini as date), cast(:serie_fim as date),
+                             interval '1 month') as meses(g)
     )
     select to_char(r.data_ref, 'YYYY-MM') as ano_mes,
            (100.0 *

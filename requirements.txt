@@ -1,11 +1,14 @@
-# Data app de frotas -- Streamlit + Supabase (Postgres), somente leitura.
+# Data app de frotas -- Streamlit sobre snapshot Parquet local, somente leitura.
 # Versoes fixadas nas ja instaladas no ambiente do projeto (Python 3.13).
 
 streamlit==1.50.0
 pandas==2.3.3
-SQLAlchemy==2.0.43
-psycopg2-binary==2.9.10
-python-dotenv==1.1.1
+
+# Camada de dados: DuckDB consulta os Parquet de dados/ em processo. Nao ha
+# servidor, nao ha rede e nao ha credencial -- ver requirements-dev.txt para o
+# que gera o snapshot.
+duckdb==1.5.5
+pyarrow==22.0.0
 
 # Visualizacao (usada pela camada de UI; a camada de dados nao depende dela)
 plotly==6.3.1

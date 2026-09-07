@@ -207,7 +207,7 @@ def faturamento_por_categoria_veiculo(filtros: Filtros) -> pd.DataFrame:
         select distinct b.id_titulo, a.id_veiculo
         from base b
         join public.alocacoes_veiculo a on a.id_contrato = b.id_contrato
-         and a.data_alocacao <= (b.competencia + interval '1 month - 1 day')::date
+         and a.data_alocacao <= (b.competencia + interval '1 month' - interval '1 day')::date
          and (a.data_devolucao is null or a.data_devolucao >= b.competencia)
     ),
     fallback as (

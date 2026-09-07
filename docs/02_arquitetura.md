@@ -609,7 +609,7 @@ o nome do bind param. O valor nunca aparece na string.
 - [ ] `git status` limpo e `.env` fora do indice (`git check-ignore -v .env`).
 - [ ] `git log -p | grep -iE 'postgresql://|service_role|eyJ'` sem resultado.
 - [ ] `requirements.txt` com as versoes fixadas (ja entregue).
-- [ ] `python3 scripts/validar_metricas.py` verde (110/110).
+- [ ] `python3 scripts/validar_metricas.py` verde (116/116).
 
 **O que muda em `st.secrets`** — crie `.streamlit/secrets.toml` **no painel do
 deploy**, nunca no repositorio:
@@ -656,7 +656,7 @@ Secoes: `conexao`, `receita`, `credito`, `metas`, `filtros`, `cobranca`, `frota`
 `alertas`. (`carteira`, `margem` e `credito_dim` sairam com as metricas que
 verificavam; `cobranca` e `frota` cobrem o que restou dos eixos 2 e 5.)
 
-Saida atual: **110/110 verificacoes obrigatorias OK**, 3 informativas (a
+Saida atual: **116/116 verificacoes obrigatorias OK**, 3 informativas (a
 divergencia de definicao dos cancelamentos, §5.4). Codigo de saida 0. O script e
 somente leitura e pode ser rodado em CI com `PG_DSN` no ambiente.
 
