@@ -80,8 +80,10 @@ st.markdown(
 )
 
 ui.nota_armadilha(
-    "A carteira em aberto e a inadimplência divergem de propósito: a carteira exclui faturas "
-    "baixadas, a inadimplência não. São R$ 328 mil de diferença e as duas leituras estão certas."
+    "A carteira em aberto e a inadimplência divergem de propósito, e por dois motivos que se "
+    "compensam: a inadimplência conta faturas já baixadas (R$ 1,09 mi) que a carteira não conta, "
+    "e a carteira conta o vencido de até 30 dias (R$ 761 mil) que a inadimplência não conta. "
+    "Sobram R$ 328 mil de diferença e as duas leituras estão certas."
 )
 
 ui.nota_armadilha(

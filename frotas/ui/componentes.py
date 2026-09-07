@@ -220,6 +220,23 @@ def estilos(tema: Tema = "claro") -> None:
 }}
 /* Notas ou banners em sequencia nao repetem o respiro. */
 .fv-nota + .fv-nota, .fv-banner + .fv-nota, .fv-nota + .fv-banner {{ margin-top: 0; }}
+
+/* Leitura executiva: texto gerado, com o selo de conferencia no rodape. Mesma
+   familia visual da nota de armadilha, mas com respiro de bloco de leitura. */
+.fv-leitura {{
+  border-left: 3px solid var(--fv-marca);
+  background: var(--fv-superficie-fraca);
+  padding: {esp['md']}px {esp['lg']}px {esp['sm']}px;
+  margin: {esp['sm']}px 0 {esp['md']}px;
+  font-family: {theme.FONTE}; font-size: {tp['corpo']}px; color: var(--fv-tinta);
+}}
+.fv-leitura p {{ margin: 0 0 {esp['sm']}px; line-height: 1.62; }}
+.fv-leitura p:last-of-type {{ margin-bottom: 0; }}
+.fv-leitura__selo {{
+  display: block; margin-top: {esp['md']}px; padding-top: {esp['sm']}px;
+  border-top: 1px solid var(--fv-grade);
+  font-size: {tp['nota']}px; color: var(--fv-tinta-3);
+}}
 .fv-rodape {{
   margin-top: {esp['xxl']}px; padding-top: {esp['md']}px;
   border-top: 1px solid var(--fv-grade);
@@ -1110,6 +1127,26 @@ def frase(texto_html: str) -> None:
     ``format`` para os numeros e nunca cor propria.
     """
     st.markdown(f'<div class="fv-frase">{texto_html}</div>', unsafe_allow_html=True)
+
+
+def leitura_gerada(texto: str, *, rodape: str, tema: Tema = "claro") -> None:
+    """Renderiza a leitura executiva aprovada, com o selo de conferencia.
+
+    O selo nao e enfeite: ele e a razao pela qual este texto pode aparecer na
+    mesma tela que os numeros conferidos. Sem ele, o leitor nao teria como
+    distinguir um paragrafo escrito por um modelo de um paragrafo escrito a mao.
+
+    O texto passa por ``_e()``: ele vem de fora do codigo e nao pode injetar HTML,
+    e dois cifroes na mesma string abririam LaTeX no Markdown do Streamlit.
+    """
+    paragrafos = "".join(
+        f"<p>{_e(trecho.strip())}</p>" for trecho in texto.split("\n") if trecho.strip()
+    )
+    st.markdown(
+        f'<div class="fv-leitura">{paragrafos}'
+        f'<span class="fv-leitura__selo">{theme.ICONE_NIVEL["bom"]} {_e(rodape)}</span></div>',
+        unsafe_allow_html=True,
+    )
 
 
 def bloco_desabilitado(texto: str, *, acao: str | None = None) -> None:

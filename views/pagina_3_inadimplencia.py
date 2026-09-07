@@ -132,7 +132,8 @@ ui.banner_alerta(
 ui.nota_armadilha(
     f"Tudo nesta página mostra como a carteira estava em {fmt.data_br(ref)}. "
     "porque uma fatura de 2024 ainda vencida conta na posição de hoje. A carteira exclui faturas "
-    "baixadas; a inadimplência não. As duas leituras estão certas e diferem em R$ 328 mil."
+    "baixadas e conta o vencido de até 30 dias; a inadimplência faz o contrário. Os dois efeitos "
+    "quase se anulam: sobram R$ 328 mil e as duas leituras estão certas."
 )
 
 # --------------------------------------------------------------------------

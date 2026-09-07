@@ -51,6 +51,36 @@ literal composto) e `to_char` entra por macro, sem tocar nas consultas.
 | Custos | ~2 s | **0,06 s** |
 | Suíte de verificação completa | ~82 s | **3,5 s** |
 
+## Leitura executiva (opcional)
+
+A página de Metas tem um bloco **"O que estes números estão dizendo?"**: um botão que
+gera, pela API do Claude, o briefing do exercício em três parágrafos — o que vai bem, o
+que preocupa e a ação mais urgente.
+
+**O modelo não tem acesso a dado nenhum.** Ele não vê SQL, não vê os arquivos e não
+calcula. Recebe um dicionário com os números que `frotas/metrics/` já apurou — os mesmos
+que as verificações cobrem — e o trabalho dele é interpretar e priorizar.
+
+E isso é verificado, não prometido. `frotas/leitura.py` extrai **todo número do texto
+gerado** e exige que cada um corresponda a um valor do payload, com a tolerância de
+arredondamento do próprio texto (`92,5%` casa com `92,5126`; `R$ 3,52 mil` não casa com
+`R$ 3,52 mi`). Um número sem procedência **reprova a resposta inteira**: o app tenta uma
+vez mais dizendo qual número reprovou e, se falhar de novo, não mostra briefing nenhum.
+Número sem procedência não vai para a tela, venha ele de uma consulta errada ou de um
+modelo.
+
+```bash
+# no .env da raiz, em .streamlit/secrets.toml ou na variável de ambiente
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Sem a chave o bloco explica como ligar e **nenhum número da tela muda** — é um recurso
+opcional em cima da camada de métricas, nunca dentro dela. A chamada é sob demanda (só
+no clique), cacheada por payload, e custa alguns centavos por leitura.
+
+`scripts/verificar_leitura.py` testa o verificador com 18 casos e **roda offline**: não
+chama a API nem gasta crédito. Ele entra na suíte do `verificar_tudo.py`.
+
 ## Escopo — cinco eixos
 
 Faturamento · Recebimento · **Inadimplência na posição atual** · Metas · Custos.
@@ -102,7 +132,8 @@ rótulo, nota de rodapé do visual ou tooltip.
 streamlit_app.py          entrypoint: st.navigation, filtros globais, estado compartilhado
 dados/                    o dataset em Parquet, uma tabela por arquivo (459 KB)
 frotas/
-  config.py               constantes de negócio (e o segredo que só o exportador usa)
+  config.py               constantes de negócio e os segredos (exportador e leitura)
+  leitura.py              leitura executiva: payload, chamada e verificação de procedência
   db.py                   DuckDB sobre dados/, cache, guarda SELECT/WITH, erros tipados
   filtros.py              dataclass Filtros (frozen/hashável) + política de filtros
   metrics/                camada semântica — a única que escreve SQL
@@ -118,6 +149,7 @@ scripts/
   verificar_tudo.py       roda as quatro verificações; use antes de commitar
   validar_metricas.py     116 verificações contra os números publicados
   verificar_rotulos.py    falha se nome de coluna, travessão ou cifrão cru chegar à tela
+  verificar_leitura.py    18 casos do verificador de procedência (offline, sem custo)
 docs/                     00 briefing · 01 KPIs · 02 arquitetura · 03 UX · 04 handover
 ```
 
@@ -127,8 +159,8 @@ docs/                     00 briefing · 01 KPIs · 02 arquitetura · 03 UX · 0
 python3 scripts/verificar_tudo.py
 ```
 
-Roda tudo de uma vez e só devolve 0 se as quatro passarem: `pyflakes`, as métricas,
-os rótulos e o render das cinco páginas. **Chame antes de commitar.**
+Roda tudo de uma vez e só devolve 0 se as cinco passarem: `pyflakes`, as métricas,
+os rótulos, o verificador da leitura executiva e o render das cinco páginas. **Chame antes de commitar.**
 
 ```bash
 python3 scripts/validar_metricas.py
@@ -154,13 +186,15 @@ travessão em texto corrido e cifrão cru (dois `$` na mesma string viram LaTeX 
 
 ## Regras de arquitetura
 
-Cinco invariantes que a revisão verifica e que devem continuar valendo:
+Seis invariantes que a revisão verifica e que devem continuar valendo:
 
 - **Só `frotas/metrics/` escreve SQL.** `views/` e `frotas/ui/` não abrem conexão.
 - **A UI não conhece limiar.** Nível e cor de alerta vêm de `frotas.metrics.alertas`.
 - **A UI não inventa cor.** Zero hex literal em `views/` — tudo vem de `frotas.ui.theme`.
 - **Todo número passa por `frotas.ui.format`**, inclusive os separadores do Plotly.
 - **Nenhum nome de coluna do banco chega à tela** — tudo passa por `frotas.ui.rotulos`.
+- **Nenhum número sem procedência chega à tela** — inclusive os de texto gerado por
+  modelo, conferidos um a um contra o payload em `frotas/leitura.py`.
 
 ## Segurança
 

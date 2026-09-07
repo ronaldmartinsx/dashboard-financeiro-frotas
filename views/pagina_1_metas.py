@@ -140,6 +140,14 @@ if parcial:
     )
 
 # --------------------------------------------------------------------------
+# Leitura executiva
+# --------------------------------------------------------------------------
+# Sob demanda, nunca no carregamento: a chamada custa dinheiro e o resto da pagina
+# tem que abrir sem depender de rede. O botao e a unica coisa que aparece de graca.
+ui.cabecalho_secao("O que estes números estão dizendo?", ancora="leitura")
+base.leitura_executiva(ctx, comp=comp, df_alertas=df_alertas)
+
+# --------------------------------------------------------------------------
 # Onde ficamos em relacao a meta?
 # --------------------------------------------------------------------------
 ui.cabecalho_secao("Onde ficamos em relação à meta?", ancora="desvio")

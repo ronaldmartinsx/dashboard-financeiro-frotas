@@ -60,6 +60,10 @@ CHAVE_DSN: Final[str] = "PG_DSN"
 CHAVE_SUPABASE_URL: Final[str] = "SUPABASE_URL"
 CHAVE_SUPABASE_KEY: Final[str] = "SUPABASE_PUBLISHABLE_KEY"
 
+#: Credencial da leitura executiva. **Opcional**: sem ela o bloco explica como
+#: ligar e nenhum numero da tela muda. Ver ``frotas/leitura.py``.
+CHAVE_ANTHROPIC: Final[str] = "ANTHROPIC_API_KEY"
+
 _RAIZ: Final[Path] = Path(__file__).resolve().parent.parent
 _CAMINHO_DOTENV: Final[Path] = _RAIZ / ".env"
 

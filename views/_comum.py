@@ -44,7 +44,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from frotas import config
+from frotas import config, leitura as ia
 from frotas.filtros import Filtros
 from frotas.metrics import alertas as m_alertas
 from frotas.ui import componentes as ui
@@ -716,6 +716,142 @@ def mostrar_grafico(
                 hide_index=True,
                 width="stretch",
             )
+
+
+# --------------------------------------------------------------------------
+# Leitura executiva
+# --------------------------------------------------------------------------
+
+
+@st.cache_data(ttl=config.TTL_PESADO, show_spinner=False, max_entries=32)
+def _gerar_leitura(payload_json: str) -> dict:
+    """Chama o modelo uma vez por payload. A chave de cache e o proprio JSON.
+
+    Sem isto, cada rerun do Streamlit -- e ha um a cada clique de filtro --
+    dispararia uma chamada nova e cobraria de novo pela mesma leitura.
+    """
+    import json as _json
+
+    resultado = ia.gerar(_json.loads(payload_json))
+    return {
+        "texto": resultado.texto,
+        "conferidos": resultado.conferencia.conferidos,
+        "tokens_entrada": resultado.tokens_entrada,
+        "tokens_saida": resultado.tokens_saida,
+        "tentativas": resultado.tentativas,
+        "custo": resultado.custo_estimado_reais,
+    }
+
+
+def leitura_executiva(ctx: Contexto, *, comp: pd.DataFrame | None,
+                      df_alertas: pd.DataFrame | None) -> None:
+    """Bloco da leitura executiva: botao, texto aprovado e o selo de conferencia.
+
+    O modelo nao consulta nada. Recebe o payload que :mod:`frotas.leitura` monta a
+    partir do que a camada de metricas ja apurou, e a resposta so chega a tela
+    depois de passar na conferencia de procedencia.
+    """
+    import json as _json
+
+    if not ia.disponivel():
+        # Nao e "indisponivel neste recorte": e um recurso opcional que nao foi
+        # ligado. O texto diz o que ele faz e o que fazer para ter, sem parecer
+        # defeito.
+        ui.estado_vazio(
+            "Leitura executiva não configurada",
+            "Ela usa a API do Claude para interpretar os números desta página. Não muda "
+            "nenhum cálculo: recebe apenas os valores que a camada de métricas já apurou, "
+            "e cada número da resposta é conferido antes de aparecer.",
+            acao=f"Defina {ia.CHAVE_API} no .env da raiz ou em .streamlit/secrets.toml.",
+        )
+        return
+
+    with st.spinner("Lendo os números..."):
+        payload = _montar_payload_leitura(ctx, comp=comp, df_alertas=df_alertas)
+    assinatura = _json.dumps(payload, ensure_ascii=False, sort_keys=True)
+
+    chave_estado = f"leitura_{ctx.ano}"
+    if st.button("Gerar a leitura do exercício", icon=":material/auto_awesome:"):
+        st.session_state[chave_estado] = assinatura
+
+    if st.session_state.get(chave_estado) != assinatura:
+        ui.frase(
+            "Um resumo do exercício em três parágrafos: o que vai bem, o que preocupa e "
+            "a ação mais urgente. Escrito a partir dos números desta página, e conferido "
+            "número a número antes de aparecer."
+        )
+        return
+
+    try:
+        with st.spinner("Escrevendo a leitura..."):
+            saida = _gerar_leitura(assinatura)
+    except ia.LeituraIndisponivel as exc:
+        st.warning(exc.mensagem_usuario)
+        return
+
+    ui.leitura_gerada(
+        saida["texto"],
+        rodape=(f"{saida['conferidos']} números conferidos contra a camada de métricas, "
+                f"nenhum inventado · {fmt.moeda(saida['custo'])} nesta leitura"),
+        tema=ctx.tema,
+    )
+
+
+def _montar_payload_leitura(ctx: Contexto, *, comp: pd.DataFrame | None,
+                            df_alertas: pd.DataFrame | None) -> dict:
+    """Junta o que as metricas ja calcularam no dicionario que vai para o modelo."""
+    from frotas.metrics import credito, custos, receita
+
+    f, ref = ctx.filtros, ctx.data_ref
+    f_ano = f.com(competencia_ini=date(ctx.ano, 1, 1),
+                  competencia_fim=config.COMPETENCIA_MAX)
+
+    def primeira(df: pd.DataFrame | None) -> dict | None:
+        if df is None or df.empty:
+            return None
+        return df.iloc[0].to_dict()
+
+    def linhas(df: pd.DataFrame | None, limite: int | None = None) -> list[dict]:
+        if df is None or df.empty:
+            return []
+        recorte = df if limite is None else df.head(limite)
+        return [linha.to_dict() for _, linha in recorte.iterrows()]
+
+    tarefas = {
+        "resumo": lambda: receita.resumo(f_ano),
+        "cobertura": lambda: credito.cobertura_de_caixa(f, ref),
+        "inad": lambda: credito.inadimplencia_ponto_no_tempo(f, ref),
+        "segmentos": lambda: credito.risco_por_segmento(f, ref),
+        "aging": lambda: credito.aging_carteira(f, ref),
+        "ociosidade": lambda: custos.custo_ociosidade(f_ano),
+    }
+    dados = carregar(tarefas, trabalhadores=6)
+
+    seg = obter(dados, "segmentos")
+    if seg is not None and not seg.empty:
+        seg = seg.sort_values("inadimplencia_pct", ascending=False)
+    ocio = obter(dados, "ociosidade")
+
+    return ia.montar_payload(
+        exercicio=ctx.ano,
+        data_ref=ref,
+        resumo=primeira(obter(dados, "resumo")),
+        cobertura=primeira(obter(dados, "cobertura")),
+        inadimplencia=primeira(obter(dados, "inad")),
+        # Rotulos traduzidos antes de sair: o modelo escreve o que le, e um payload
+        # com "Servicos Publicos" devolveria "Servicos Publicos" na tela.
+        metas_do_ano=[{**linha, "tipo_meta": rot.valor(linha.get("tipo_meta"))}
+                      for linha in linhas(comp)],
+        # So os alertas que estao doendo: uma lista com treze regras, das quais duas
+        # em "ok", faria o modelo gastar paragrafo com o que esta em ordem.
+        alertas=[a for a in linhas(df_alertas)
+                 if str(a.get("nivel")) in ("ambar", "vermelho")],
+        segmentos=[{**linha, "segmento": rot.valor(linha.get("segmento"))}
+                   for linha in linhas(seg, 4)],
+        aging=[{**linha, "faixa": rot.faixa_aging(linha.get("faixa"))}
+               for linha in linhas(obter(dados, "aging"))],
+        ociosidade=(None if ocio is None or ocio.empty else ocio.iloc[-1].to_dict()),
+    )
 
 
 def cor_divergente(delta: float | None, *, direcao: str, limite: float, tema: Tema) -> str:

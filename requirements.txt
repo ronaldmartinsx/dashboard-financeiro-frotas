@@ -10,6 +10,10 @@ pandas==2.3.3
 duckdb==1.5.5
 pyarrow==22.0.0
 
+# Leitura executiva (opcional). Sem ANTHROPIC_API_KEY o bloco explica como ligar
+# e o resto do app funciona igual -- nenhum numero da tela depende disto.
+anthropic>=1.0
+
 # Visualizacao (usada pela camada de UI; a camada de dados nao depende dela)
 plotly==6.3.1
 altair==5.5.0

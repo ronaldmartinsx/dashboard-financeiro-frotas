@@ -12,6 +12,8 @@ Cobre:
 * ``pyflakes``            -- import morto, nome indefinido, f-string sem placeholder;
 * ``validar_metricas``    -- a camada semantica contra os numeros publicados;
 * ``verificar_rotulos``   -- nome de coluna, travessao e cifrao cru na tela;
+* ``verificar_leitura``   -- o verificador de procedencia da leitura executiva
+  (offline: nao chama a API nem gasta credito);
 * render das 5 paginas    -- excecao ou ``st.error`` em qualquer uma reprova.
 """
 
@@ -79,6 +81,7 @@ def main() -> int:
                             "frotas", "views", "scripts", "streamlit_app.py"])[0],
         _rodar("validar_metricas", [sys.executable, "scripts/validar_metricas.py"])[0],
         _rodar("verificar_rotulos", [sys.executable, "scripts/verificar_rotulos.py"])[0],
+        _rodar("verificar_leitura", [sys.executable, "scripts/verificar_leitura.py"])[0],
         _paginas_renderizam(),
     ]
     falhas = resultados.count(False)
