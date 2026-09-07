@@ -7,8 +7,14 @@ snapshot Parquet de 459 KB versionado no próprio repositório, com a regra de n
 camada semântica testada por **116 verificações** contra números conferidos.
 
 <p align="center">
-  <img src="docs/imagens/painel.png" width="900"
-       alt="Página de Metas: faixa de cinco indicadores orçados, dois alertas e o gráfico de desvio contra a meta dos mesmos meses">
+  <a href="https://dashboard-financeiro-rdev.streamlit.app"><img src="docs/imagens/painel.png" width="900"
+     alt="Página de Metas: faixa de cinco indicadores orçados, dois alertas e o gráfico de desvio contra a meta dos mesmos meses"></a>
+</p>
+
+<p align="center">
+  <a href="https://dashboard-financeiro-rdev.streamlit.app"><b>Abrir o painel</b></a>
+  &nbsp;·&nbsp;
+  <a href="docs/">Documentos de projeto</a>
 </p>
 
 ## O que os dados mostram
@@ -59,10 +65,14 @@ handover. Eles registram **por que** cada decisão foi tomada, incluindo as reve
 
 ## Rodando
 
+Há uma versão publicada em **[dashboard-financeiro-rdev.streamlit.app](https://dashboard-financeiro-rdev.streamlit.app)**. Para rodar local:
+
 ```bash
 pip install -r requirements.txt
 streamlit run streamlit_app.py
 ```
+
+Não precisa de credencial nem de banco: o dataset viaja no repositório.
 
 ### Os dados ficam no projeto
 
