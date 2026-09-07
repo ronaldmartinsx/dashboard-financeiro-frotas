@@ -6,9 +6,10 @@ Painel de cinco páginas que responde uma pergunta de negócio por tela. Streaml
 snapshot Parquet de 459 KB versionado no próprio repositório, com a regra de negócio numa
 camada semântica testada por **116 verificações** contra números conferidos.
 
-<!-- PRINT: descomente a linha abaixo depois de salvar a captura em docs/imagens/painel.png
-<p align="center"><img src="docs/imagens/painel.png" alt="Página de Metas do dashboard" width="900"></p>
--->
+<p align="center">
+  <img src="docs/imagens/painel.png" width="900"
+       alt="Página de Metas: faixa de cinco indicadores orçados, dois alertas e o gráfico de desvio contra a meta dos mesmos meses">
+</p>
 
 ## O que os dados mostram
 

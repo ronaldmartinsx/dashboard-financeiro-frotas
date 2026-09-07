@@ -220,8 +220,12 @@ else:
         )
         base.mostrar_grafico(
             fig, chave="p1_desvio",
-            nota="Azul é desvio favorável ao negócio: custo e inadimplência abaixo da meta contam "
-                 "como favoráveis, ainda que o número seja negativo.",
+            # A nota dizia "Azul e desvio favoravel". A paleta trocou, o polo
+            # favoravel virou teal, e a frase ficou apontando para uma cor que
+            # nao existe mais na tela. Agora ela nomeia **o que a cor codifica**,
+            # nao a cor: sobrevive a proxima troca de paleta.
+            nota="A cor mostra a direção, não o sinal do número: custo e inadimplência abaixo "
+                 "da meta contam como favoráveis, ainda que a variação seja negativa.",
             dados=comp,
             colunas_dados=["tipo_meta", "unidade", "realizado", "meta_alinhada", "meta_anual",
                            "variacao_abs_alinhada", "variacao_pct_alinhada", "periodo_realizado",
