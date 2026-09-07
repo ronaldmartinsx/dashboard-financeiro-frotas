@@ -453,8 +453,10 @@ else:
                 textposition="outside",
                 textfont={"size": theme.TIPOGRAFIA["nota"], "color": t.tinta_secundaria},
                 connector={"line": {"color": t.grade, "width": 1}},
-                increasing={"marker": {"color": escala[5]}},
-                decreasing={"marker": {"color": escala[1]}},
+                # Indices nomeados, nao literais: a escala ja mudou de tamanho
+                # uma vez, e com literal isso teria quebrado em silencio.
+                increasing={"marker": {"color": escala[theme.IDX_DIVERGENTE_FAVORAVEL]}},
+                decreasing={"marker": {"color": escala[theme.IDX_DIVERGENTE_DESFAVORAVEL]}},
                 totals={"marker": {"color": t.marca_neutro}},
                 hovertemplate="%{x}<br>desvio: R$ %{y:,.0f}<extra></extra>",
             )

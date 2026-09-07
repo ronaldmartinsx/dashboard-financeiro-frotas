@@ -2,85 +2,88 @@
 #
 # Regra de manutencao: nenhum hex nasce aqui. Todo valor deste arquivo existe
 # primeiro como token em frotas/ui/theme.py; se um mudar, o outro muda junto.
-# Streamlit 1.50 nao tem bloco [theme.dark]; o tema escuro vive em
-# theme.TEMA_ESCURO e e selecionado em tempo de execucao por
-# st.context.theme.type (ver docs/03_ux.md secao 2).
+# Ha um tema so: o app e claro por tese. Na camada de dados do Bancada o
+# dashboard E o artefato claro que a bancada escura enquadra.
 
 [theme]
 base = "light"
 
 # --- superficies e tinta (Tokens.plano / superficie / tinta) ---------------
-backgroundColor          = "#FBFBF9"   # superficie de card e area de grafico
-secondaryBackgroundColor = "#F2F2EE"   # plano da pagina, sidebar, zebra de tabela
-textColor                = "#101112"   # tinta primaria -- 18,2:1 na superficie
-linkColor                = "#1C5CAB"   # azul 550: 6,0:1, legivel como link
+backgroundColor          = "#F4F6F8"   # --claro-superficie (o --papel do Bancada)
+secondaryBackgroundColor = "#E6EBEF"   # --claro-canvas: pagina, sidebar, zebra
+textColor                = "#101A24"   # --claro-titulo -- 16,2:1 na superficie
+linkColor                = "#1C4468"   # --dado-1: o link herda a marca
 
 # --- identidade -----------------------------------------------------------
-primaryColor = "#2A78D6"               # slot 1 da paleta categorica
+primaryColor = "#1C4468"               # --dado-1, a cor de Faturamento.
+                                       # Tambem pinta a barra de ProgressColumn
+                                       # em toda tabela: o st.dataframe desenha
+                                       # em canvas e o CSS nao alcanca.
 
 # --- tipografia (theme.TIPOGRAFIA) ----------------------------------------
-font        = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
-headingFont = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
-codeFont    = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+# As familias sao carregadas pelo @import de componentes.estilos(); aqui so se
+# declara o nome, porque o config.toml nao aceita URL de fonte.
+font        = "'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif"
+headingFont = "'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif"
+codeFont    = "'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace"
 baseFontSize = 14
 
 # --- superficie e borda (theme.RAIO_CARD) ---------------------------------
-baseRadius       = "8px"
-buttonRadius     = "8px"
-borderColor      = "#E4E3DC"           # mesma cor da grade dos graficos
+baseRadius       = "3px"               # raio de bloco do Bancada
+buttonRadius     = "2px"               # raio de controle
+borderColor      = "#DDE4EA"           # mesma cor da grade dos graficos
 showWidgetBorder = true
 showSidebarBorder = true
-dataframeHeaderBackgroundColor = "#F2F2EE"
-dataframeBorderColor           = "#E4E3DC"
+dataframeHeaderBackgroundColor = "#E6EBEF"
+dataframeBorderColor           = "#DDE4EA"
 
-# --- paleta categorica: os 8 segmentos, na ordem validada -----------------
-# Nunca reordenar. A ordem e o mecanismo de seguranca para daltonismo
-# (pior par adjacente DeltaE 9,2 protan/deutan; piso de visao normal 19,6).
+# --- paleta categorica: os seis matizes do Bancada ------------------------
+# Nunca reordenar. A ordem e escada de luminancia (L* 32 -> 74) sobre o eixo
+# azul-laranja, que deuteranopia e protanopia preservam: se o matiz colapsar,
+# a ordem sobrevive pela luz.
 chartCategoricalColors = [
-  "#2A78D6",  # 1 Agronegocio            azul
-  "#EB6834",  # 2 Construcao Civil       laranja
-  "#1BAF7A",  # 3 Energia e Saneamento   aqua
-  "#4A3AA7",  # 4 Industria              violeta
-  "#008300",  # 5 Logistica e Transporte verde
-  "#E87BA4",  # 6 Mineracao              magenta
-  "#EDA100",  # 7 Servicos Publicos      amarelo
-  "#0E8EA6",  # 8 Varejo e Distribuicao  ciano
+  "#1C4468",  # 1 prussia
+  "#A04A34",  # 2 terracota
+  "#6A5F9C",  # 3 violeta
+  "#3D8E94",  # 4 teal
+  "#D99442",  # 5 ambar
+  "#8FB3CC",  # 6 azul palido
 ]
 
 # --- rampa sequencial neutra (magnitude sem polaridade) -------------------
 # A rampa de risco (vermelha) NAO entra aqui de proposito: ela e reservada a
 # risco real e e passada explicitamente pelo grafico que a usa.
 chartSequentialColors = [
-  "#CDE2FB", "#B7D3F6", "#9EC5F4", "#86B6EF", "#6DA7EC",
-  "#5598E7", "#3987E5", "#2A78D6", "#256ABF", "#1C5CAB",
+  "#E2EBF2", "#CDDCE8", "#B8CEDE", "#A0BDD2", "#87ACC7", "#6F9AB9", "#5685A8", "#3F7095", "#2D5A7F", "#1C4468",
 ]
 
 # --- cores semanticas dos elementos nativos (st.success/warning/error) ----
 # Casadas com Tokens.marca_* / Tokens.texto_* para que um st.error nao apareca
-# num vermelho diferente do vermelho dos alertas.
-redColor              = "#B02525"
-redTextColor          = "#B02525"
-redBackgroundColor    = "#FBECEC"
-orangeColor           = "#9A4A22"
-orangeTextColor       = "#9A4A22"
-orangeBackgroundColor = "#FDF0E9"
+# num vermelho diferente do vermelho dos alertas. O fundo e o veu de 10% do
+# Bancada: o sinal como veu, nunca como bloco cheio.
+redColor              = "#A8321C"
+redTextColor          = "#A8321C"
+redBackgroundColor    = "#ECE2E2"
+orangeColor           = "#99460E"
+orangeTextColor       = "#99460E"
+orangeBackgroundColor = "#EBE4E1"
 yellowColor           = "#8A5A00"
 yellowTextColor       = "#8A5A00"
-yellowBackgroundColor = "#FBF3E0"
-greenColor            = "#0F7A12"
-greenTextColor        = "#0F7A12"
-greenBackgroundColor  = "#EAF5EA"
-blueColor             = "#1C5CAB"
-blueTextColor         = "#1C5CAB"
-blueBackgroundColor   = "#E9F0FA"
-grayColor             = "#6E6D67"
-grayTextColor         = "#6E6D67"
-grayBackgroundColor   = "#F2F2EE"
+yellowBackgroundColor = "#E9E6DF"
+greenColor            = "#1D6F5C"
+greenTextColor        = "#1D6F5C"
+greenBackgroundColor  = "#DEE8E8"
+blueColor             = "#1C4468"
+blueTextColor         = "#1C4468"
+blueBackgroundColor   = "#DEE4EA"
+grayColor             = "#7C8B98"
+grayTextColor         = "#5B6B78"
+grayBackgroundColor   = "#DDE3E8"
 
 [theme.sidebar]
-backgroundColor          = "#F2F2EE"
-secondaryBackgroundColor = "#FBFBF9"
-borderColor              = "#E4E3DC"
+backgroundColor          = "#E6EBEF"
+secondaryBackgroundColor = "#F4F6F8"
+borderColor              = "#DDE4EA"
 showWidgetBorder         = true
 
 [server]

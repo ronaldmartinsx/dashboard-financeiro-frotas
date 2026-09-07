@@ -4,40 +4,54 @@ Este modulo e a fonte de verdade visual do app. Nada aqui importa Streamlit: e
 so dado e funcao pura, para poder ser testado num script e reaproveitado por
 Plotly, Altair, HTML de componente e pelo ``.streamlit/config.toml``.
 
-Como as paletas foram escolhidas
---------------------------------
-Seguindo a skill ``dataviz``: forma primeiro, cor por ultimo, e validacao por
-script -- nunca por olho. A paleta categorica dos 8 segmentos foi obtida
-enumerando ordens candidatas e mantendo apenas as que passam **todos** os
-portoes nos dois temas, contra as superficies reais do app
-(``#FBFBF9`` claro, ``#16181C`` escuro):
+De onde vem a paleta
+--------------------
+Da **camada de dados do Bancada**, o design system do portfolio do dono
+(``tokens/dados.css``, ``entrega/dados/GUIA.md``). A tese do sistema e "a
+bancada e escura, os artefatos sao claros": um dashboard construido na camada
+clara **e** o artefato que o site escuro enquadra, e a captura dele entra numa
+moldura do portfolio sem tratamento, porque o fundo dela ja e ``--papel``
+(``#F4F6F8``).
 
-* banda de luminosidade OKLCH e piso de croma: PASS nos dois temas;
-* separacao para daltonismo (protan/deutan, Machado 2009): pior par adjacente
-  **DeltaE 9,2 (claro)** e **9,4 (escuro)** -- alvo >= 8;
-* piso de visao normal: **19,6 (claro)** e **19,3 (escuro)** -- piso >= 15;
-* contraste vs. superficie: escuro passa inteiro; no claro tres matizes ficam
-  abaixo de 3:1 (aqua, magenta, amarelo) e por isso **exigem rotulo direto ou
-  tabela** (regra de alivio da skill, ver ``docs/03_ux.md`` secao 8).
+A licenca cromatica que o sistema abre aqui, e so aqui: no portfolio matiz nao
+carrega hierarquia; num dashboard carrega, porque matiz e o que codifica serie,
+ordem e desvio. Vale **dentro de grafico, tabela e KPI**; fora disso o painel
+segue acromatico.
 
-O vermelho **saiu** da paleta categorica de proposito. Neste app vermelho e cor
-de risco real (limiar vermelho da secao 8 de ``docs/01_kpis.md``); um segmento
-pintado de vermelho competiria com o alerta. O slot vago foi para um ciano
-proprio (``#0e8ea6`` / ``#2ba3bb``), validado junto com o resto.
+O que o Bancada entrega pronto e por que cada peca serve:
+
+* **6 matizes categoricos** no eixo azul-laranja, que a deuteranopia e a
+  protanopia preservam, sobre escada de luminancia monotonica (L* 32 -> 74).
+  Se o matiz colapsar, a ordem sobrevive pela luminancia.
+* **dois neutros de referencia** (``#9AA8B4`` e ``#B9C4CD``) reservados para
+  meta, orcado e ano anterior -- nunca um dos seis. E exatamente o que a linha
+  de meta deste app precisava.
+* **tres sinais recalibrados para fundo claro**, com contraste declarado. Os
+  sinais do tema escuro nao sobrevivem aqui (o verde cai de 9,9:1 para 1,7:1).
+* **escala divergente teal-terracota**, e nao verde-vermelho, que colapsa em
+  deuteranopia justamente onde o dado importa.
+
+Um tema so
+----------
+O app e claro por tese, nao por preferencia: ele **e** o artefato. O tema
+escuro saiu; ``Tema`` continua existindo como parametro das funcoes publicas
+para nao quebrar as chamadas, mas resolve sempre para :data:`TEMA_CLARO`.
 
 Direcao da metrica
 ------------------
-Metade dos KPIs melhora subindo (faturamento, margem, caixa) e metade melhora
-descendo (inadimplencia, custo, carteira vencida). Por isso **nenhuma funcao
-daqui pinta um numero pelo sinal**: pinta por *favorabilidade*, que depende de
+Metade dos KPIs melhora subindo (faturamento, caixa) e metade melhora descendo
+(inadimplencia, custo, carteira vencida). Por isso **nenhuma funcao daqui pinta
+um numero pelo sinal**: pinta por *favorabilidade*, que depende de
 :data:`DIRECAO_KPI`. E o que impede o erro classico de mostrar em verde uma
-inadimplencia que subiu.
+inadimplencia que subiu -- e e a razao de os glifos deste app dizerem qualidade
+(``✓ ! !! ✕``) e nao direcao (``▲ ▼``), diferente do Bancada, que so precisa do
+delta simples.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Final, Literal, Mapping
+from typing import Final, Literal
 
 Tema = Literal["claro", "escuro"]
 Nivel = Literal["bom", "atencao", "serio", "critico", "neutro", "meta"]
@@ -87,139 +101,110 @@ class Tokens:
     texto_neutro: str
 
 
-#: Tema claro. Superficie de card #FBFBF9 -- e contra ela que tudo foi validado.
+#: O tema. Superficie de card ``#F4F6F8`` -- o ``--papel`` do Bancada promovido
+#: a ambiente inteiro. E contra ela que todo contraste deste arquivo foi medido.
+#:
+#: As tres cores de sinal vem dos valores **claros** do Bancada
+#: (``--claro-sinal-*``), que sao seguros para texto (5,2 a 7,5:1). Por isso
+#: ``marca_*`` e ``texto_*`` compartilham o valor em bom, atencao e critico --
+#: no tema antigo eles divergiam porque o ambar de marca ficava em 1,77:1.
+#:
+#: ``serio`` e o unico valor **derivado**: o Bancada tem tres sinais e este app
+#: tem quatro degraus de severidade. E o ponto medio entre atencao e critico,
+#: conferido pelo piso de contraste em ``scripts/verificar_tema.py``.
+#:
+#: Os dois neutros sao o par que o Bancada reserva para referencia: ``marca_meta``
+#: leva ``--dado-referencia``, que e o token designado para meta e orcado.
 TEMA_CLARO: Final[Tokens] = Tokens(
     nome="claro",
-    plano="#F2F2EE",
-    superficie="#FBFBF9",
-    superficie_alta="#FFFFFF",
-    superficie_fraca="#F6F5F1",
-    tinta="#101112",
-    tinta_secundaria="#52514E",
-    tinta_fraca="#6E6D67",
-    grade="#E4E3DC",
-    eixo="#BFBEB7",
-    borda="rgba(16, 17, 18, 0.10)",
-    marca_bom="#0CA30C",
-    marca_atencao="#FAB219",
-    marca_serio="#EC835A",
-    marca_critico="#D03B3B",
-    marca_neutro="#9A9A93",
-    marca_meta="#52514E",
-    texto_bom="#0F7A12",
+    plano="#E6EBEF",            # --claro-canvas: mais escuro que o cartao, de proposito
+    superficie="#F4F6F8",       # --claro-superficie (--papel)
+    superficie_alta="#FBFCFD",  # --claro-elevada
+    superficie_fraca="#DDE3E8", # --claro-afundada
+    tinta="#101A24",            # --claro-titulo      16,2:1
+    tinta_secundaria="#2B3A47", # --claro-corpo        9,8:1
+    tinta_fraca="#5B6B78",      # --claro-secundario   4,7:1
+    grade="#DDE4EA",            # --claro-grade
+    eixo="#7C8B98",             # --claro-fio-controle 3,1:1 (WCAG 1.4.11)
+    borda="#CCD6DE",            # --claro-fio
+    marca_bom="#1D6F5C",        # --claro-sinal-positivo 5,2:1
+    marca_atencao="#8A5A00",    # --claro-sinal-atencao  6,2:1
+    marca_serio="#99460E",      # derivado (ver acima)
+    marca_critico="#A8321C",    # --claro-sinal-negativo 7,5:1
+    marca_neutro="#7C8B98",     # --claro-fio-controle: neutro solido o bastante para barra
+    marca_meta="#9AA8B4",       # --dado-referencia: meta, orcado, ano anterior
+    texto_bom="#1D6F5C",
     texto_atencao="#8A5A00",
-    texto_serio="#9A4A22",
-    texto_critico="#B02525",
-    texto_neutro="#6E6D67",
+    texto_serio="#99460E",
+    texto_critico="#A8321C",
+    texto_neutro="#5B6B78",     # --claro-secundario
 )
-
-#: Tema escuro. Superficie de card #16181C -- passos proprios, nao um "inverso".
-TEMA_ESCURO: Final[Tokens] = Tokens(
-    nome="escuro",
-    plano="#0E1013",
-    superficie="#16181C",
-    superficie_alta="#1E2126",
-    superficie_fraca="#1A1D21",
-    tinta="#FFFFFF",
-    tinta_secundaria="#C4C7C2",
-    tinta_fraca="#8E918C",
-    grade="#2A2E33",
-    eixo="#3E434A",
-    borda="rgba(255, 255, 255, 0.12)",
-    marca_bom="#0CA30C",
-    marca_atencao="#FAB219",
-    marca_serio="#EC835A",
-    marca_critico="#D03B3B",
-    marca_neutro="#77797D",
-    marca_meta="#C4C7C2",
-    texto_bom="#3FCB43",
-    texto_atencao="#F2C14E",
-    texto_serio="#F0A184",
-    texto_critico="#FF8A8A",
-    texto_neutro="#8E918C",
-)
-
-_TEMAS: Final[Mapping[Tema, Tokens]] = {"claro": TEMA_CLARO, "escuro": TEMA_ESCURO}
 
 
 def tokens(tema: Tema = "claro") -> Tokens:
-    """Tokens do tema pedido. ``tema`` invalido cai no claro, nunca explode."""
-    return _TEMAS.get(tema, TEMA_CLARO)
+    """Os tokens do app.
+
+    ``tema`` continua na assinatura porque as views o passam, mas ha um tema so:
+    o app **e** o artefato claro que o portfolio enquadra. Ver o topo do modulo.
+    """
+    return TEMA_CLARO
 
 
 # --------------------------------------------------------------------------
-# 2. Paleta categorica -- identidade dos 8 segmentos
+# 2. Paleta categorica -- os seis matizes do Bancada
 # --------------------------------------------------------------------------
 
-#: Ordem fixa dos slots categoricos (claro, escuro). A ordem **e** o mecanismo
-#: de seguranca para daltonismo: nao reordene sem rodar o validador da skill.
-SLOTS_CATEGORICOS: Final[tuple[tuple[str, str, str], ...]] = (
-    ("azul",    "#2A78D6", "#3987E5"),
-    ("laranja", "#EB6834", "#D95926"),
-    ("aqua",    "#1BAF7A", "#199E70"),
-    ("violeta", "#4A3AA7", "#9085E9"),
-    ("verde",   "#008300", "#008300"),
-    ("magenta", "#E87BA4", "#D55181"),
-    ("amarelo", "#EDA100", "#C98500"),
-    ("ciano",   "#0E8EA6", "#2BA3BB"),
-)
-
-#: Segmento -> slot. Ordem alfabetica do dominio de ``clientes.segmento``: e
-#: deterministica, documentada e **nunca repinta** quando um filtro reduz o
-#: numero de series (regra "cor segue a entidade, nunca o rank").
+#: Os seis matizes categoricos do Bancada (``--dado-1`` a ``--dado-6``), na ordem
+#: publicada. **A ordem e escada de luminancia** (L* 32 -> 74, passo ~8) sobre o
+#: eixo azul-laranja, que a deuteranopia e a protanopia preservam: se o matiz
+#: colapsar, a ordem sobrevive pela luz. Nao reordene.
 #:
-#: Coincidencia util e proposital: Construcao Civil -- o segmento que conta a
-#: historia -- cai no laranja, saliente sem roubar o vermelho do alerta.
-SEGMENTOS: Final[tuple[str, ...]] = (
-    "Agronegocio",
-    "Construcao Civil",
-    "Energia e Saneamento",
-    "Industria",
-    "Logistica e Transporte",
-    "Mineracao",
-    "Servicos Publicos",
-    "Varejo e Distribuicao",
+#: Escolher um slot **por significado** (e o que :data:`INDICADORES` faz) e o uso
+#: previsto; o que a regra proibe e embaralhar a sequencia por gosto.
+PALETA_DADOS: Final[tuple[str, ...]] = (
+    "#1C4468",  # 0 prussia saturado  L* 32
+    "#A04A34",  # 1 terracota         L* 42
+    "#6A5F9C",  # 2 violeta           L* 50
+    "#3D8E94",  # 3 teal              L* 58
+    "#D99442",  # 4 ambar             L* 66
+    "#8FB3CC",  # 5 azul palido       L* 74
 )
 
-#: Matizes cujo contraste no tema claro fica abaixo de 3:1. Onde eles aparecem,
-#: a UI **tem** que oferecer rotulo direto ou a visao de tabela (regra de alivio).
-_BAIXO_CONTRASTE_CLARO: Final[frozenset[str]] = frozenset({"#1BAF7A", "#E87BA4", "#EDA100"})
+#: Matizes cujo contraste fica abaixo de 3:1 sobre ``superficie``. Onde eles
+#: aparecem, a UI **tem** que oferecer rotulo direto ou a visao de tabela (regra
+#: de alivio). Os valores saem medidos de ``scripts/verificar_tema.py``, que
+#: falha se esta lista divergir da medicao.
+_BAIXO_CONTRASTE: Final[frozenset[str]] = frozenset({"#D99442", "#8FB3CC"})
 
 #: Cor de qualquer categoria fora do dominio conhecido ("Outros", nulo, resto do
-#: Pareto). Nunca gerar um 9o matiz: dobre no cinza.
-COR_OUTROS: Final[tuple[str, str]] = ("#9A9A93", "#77797D")
+#: Pareto). Nunca gerar um 7o matiz: dobre no neutro de projecao do Bancada.
+COR_OUTROS: Final[str] = "#B9C4CD"
 
 #: Preenchimento nulo -- a marca so tem contorno (barra fantasma do ano anterior,
 #: por exemplo). Existe como token para que nenhuma view escreva cor na mao.
 TRANSPARENTE: Final[str] = "rgba(0,0,0,0)"
 
 
-#: Indicador orcado -> slot categorico. Cor **por indicador**, nao por segmento:
-#: o indicador atravessa as quatro paginas (aparece em card, serie e matriz),
-#: enquanto o segmento so pinta dois visuais. Quem le associa "laranja = custo"
-#: em qualquer tela.
+#: Indicador orcado -> slot de :data:`PALETA_DADOS`. Cor **por indicador**: o
+#: indicador atravessa as quatro paginas (card, serie e matriz), entao quem le
+#: associa o matiz ao assunto em qualquer tela.
 #:
-#: Nenhum indicador recebe vermelho ou verde: sao as cores de status (critico e
-#: dentro da meta). Uma serie de inadimplencia pintada de vermelho pareceria em
-#: alerta permanente, inclusive quando o indicador esta bom.
+#: Cada escolha preserva a relacao que o app ja tinha, so que na paleta do
+#: Bancada. Nenhum indicador recebe a cor de um **sinal** (``marca_bom`` ou
+#: ``marca_critico``): serie e status sao coisas diferentes e nao podem se
+#: confundir na mesma tela.
 #:
-#: Segmento e indicador compartilham os mesmos oito slots, mas **nunca no mesmo
-#: visual**: um grafico mostra series de indicadores ou de segmentos, jamais os
-#: dois. A ambiguidade seria entre telas, e o rotulo direto resolve.
+#: A inadimplencia e o caso delicado: terracota le como risco, que **e** o
+#: significado, e o dono pediu para manter a associacao -- mas e um matiz de
+#: serie (``--dado-2``), distinto do vermelho de alerta critico (``#A8321C``).
+#: Um badge e uma barra na mesma tela continuam distinguiveis.
 INDICADORES: Final[tuple[tuple[str, int], ...]] = (
-    ("Faturamento", 0),          # azul -- a serie que abre a leitura
-    ("Receita Liquida", 7),      # ciano -- parente do azul: faturamento menos impostos
-    ("Recebimento (Caixa)", 2),  # aqua -- o dinheiro que entrou
-    ("Custo Operacional", 1),    # laranja -- a saida
-    ("Inadimplencia > 30d", -1),  # vermelho -- ver COR_INADIMPLENCIA
+    ("Faturamento", 0),          # prussia -- a serie que abre a leitura, o matiz ancora
+    ("Receita Liquida", 5),      # azul palido -- parente do prussia: faturamento menos impostos
+    ("Recebimento (Caixa)", 3),  # teal -- o dinheiro que entrou
+    ("Custo Operacional", 4),    # ambar -- a saida
+    ("Inadimplencia > 30d", 1),  # terracota -- ver acima
 )
-
-#: Inadimplencia e a excecao da regra "indicador nao usa cor de status": aqui o
-#: vermelho **e** o significado, e o dono do painel pediu para manter a associacao.
-#: Nao e o mesmo vermelho do alerta critico (``marca_critico``): e o tom mais
-#: escuro e terroso da rampa divergente, para a serie nao se confundir com um
-#: badge de alerta na mesma tela.
-COR_INADIMPLENCIA: Final[tuple[str, str]] = ("#AF2C28", "#D74F47")
 
 
 #: Rating de credito -> nivel de status. Rating **e** uma escala de risco, entao
@@ -239,84 +224,95 @@ def cor_rating(nota: str, tema: Tema = "claro") -> str:
 
 
 def cor_indicador(indicador: str, tema: Tema = "claro") -> str:
-    """Cor fixa de um indicador orcado, estavel em todas as paginas."""
-    if indicador == "Inadimplencia > 30d":
-        return COR_INADIMPLENCIA[0 if tema == "claro" else 1]
-    paleta = paleta_categorica(tema)
-    for nome, slot in INDICADORES:
-        if nome == indicador and slot >= 0:
-            return paleta[slot]
-    return paleta[0]
+    """Cor fixa de um indicador orcado, estavel em todas as paginas.
 
+    Indicador desconhecido cai no slot 0 -- nunca gera matiz novo.
+    """
+    for nome, slot in INDICADORES:
+        if nome == indicador:
+            return PALETA_DADOS[slot]
+    return PALETA_DADOS[0]
 
 
 def paleta_categorica(tema: Tema = "claro") -> list[str]:
-    """Os 8 slots categoricos, na ordem validada."""
-    indice = 1 if tema == "claro" else 2
-    return [slot[indice] for slot in SLOTS_CATEGORICOS]
+    """Os seis matizes categoricos, na ordem publicada pelo Bancada.
 
+    Passe a lista inteira para o grafico (``colorway`` no Plotly,
+    ``color_discrete_map`` quando houver dominio). Nunca deixe a biblioteca
+    ciclar cores sozinha: um filtro que remove uma serie nao pode repintar as
+    que sobraram.
 
-def paleta_segmentos(tema: Tema = "claro") -> dict[str, str]:
-    """Mapa ``segmento -> hex``, fixo e independente do recorte ativo.
-
-    Passe este dicionario inteiro para o grafico (``color_discrete_map`` no
-    Plotly, ``scale=alt.Scale(domain=..., range=...)`` no Altair). Nunca deixe a
-    biblioteca ciclar cores sozinha: um filtro que remove um segmento nao pode
-    repintar os que sobraram.
+    Acima de tres series, cor nao basta -- some traco, marcador ou, melhor,
+    rotulo direto na serie (``views._comum.rotulos_de_barra``).
     """
-    cores = paleta_categorica(tema)
-    return dict(zip(SEGMENTOS, cores))
-
-
-def cor_segmento(segmento: str | None, tema: Tema = "claro") -> str:
-    """Cor fixa de um segmento. Desconhecido/nulo -> cinza de "Outros"."""
-    if not segmento:
-        return COR_OUTROS[0 if tema == "claro" else 1]
-    return paleta_segmentos(tema).get(
-        segmento, COR_OUTROS[0 if tema == "claro" else 1]
-    )
+    return list(PALETA_DADOS)
 
 
 def exige_rotulo_direto(cor: str, tema: Tema = "claro") -> bool:
     """A cor fica abaixo de 3:1 na superficie e precisa de rotulo/tabela?"""
-    return tema == "claro" and cor.upper() in _BAIXO_CONTRASTE_CLARO
+    return cor.upper() in _BAIXO_CONTRASTE
 
 
 # --------------------------------------------------------------------------
 # 3. Rampas sequenciais -- magnitude
 # --------------------------------------------------------------------------
 
-#: Rampa neutra de magnitude (azul, matiz do slot 1). Use para grandeza **sem
-#: polaridade**: faturamento, custo, carteira. Passos 100 (perto de zero) a 700.
-RAMPA_NEUTRA: Final[dict[int, str]] = {
-    100: "#CDE2FB", 150: "#B7D3F6", 200: "#9EC5F4", 250: "#86B6EF",
-    300: "#6DA7EC", 350: "#5598E7", 400: "#3987E5", 450: "#2A78D6",
-    500: "#256ABF", 550: "#1C5CAB", 600: "#184F95", 650: "#104281",
-    700: "#0D366B",
-}
+def _mistura(de: str, para: str, fracao: float) -> str:
+    """Interpola dois hex em RGB. Deterministico e sem dependencia."""
+    a = tuple(int(de[i:i + 2], 16) for i in (1, 3, 5))
+    b = tuple(int(para[i:i + 2], 16) for i in (1, 3, 5))
+    return "#" + "".join(f"{round(x + (y - x) * fracao):02X}" for x, y in zip(a, b))
 
-#: Rampa de risco (vermelho, mesmo matiz do status critico, hue OKLCH 27).
-#: Use **so** para grandeza que e risco: inadimplencia, vencido, atraso.
-#: Fora disso, use :data:`RAMPA_NEUTRA` -- vermelho nao e decoracao.
-RAMPA_RISCO: Final[dict[int, str]] = {
-    100: "#FFE0DB", 150: "#FFCDC5", 200: "#FFB9AF", 250: "#FFA499",
-    300: "#FB8D82", 350: "#F1786D", 400: "#E56359", 450: "#D74F47",
-    500: "#C33933", 550: "#AF2C28", 600: "#982421", 650: "#811E1B",
-    700: "#6B1715",
-}
 
-#: Passos permitidos numa rampa **ordinal** (celulas discretas, faixas, tiers):
-#: o passo mais proximo da superficie ainda precisa de 2:1.
-#: Validado: azul claro 250 (2,04:1) / azul escuro 500 (3,29:1);
-#: risco claro 300 (2,19:1) / risco escuro 550 (2,72:1).
-_LIMITES_ORDINAIS: Final[dict[tuple[str, Tema], tuple[int, int]]] = {
-    ("neutra", "claro"): (250, 700),
-    ("neutra", "escuro"): (100, 500),
-    ("risco", "claro"): (300, 700),
-    ("risco", "escuro"): (150, 550),
-}
+def _expandir(ancoras: tuple[str, ...], passos: int) -> tuple[str, ...]:
+    """Espalha ``ancoras`` em ``passos`` cores, interpolando entre vizinhas.
 
-_RAMPAS: Final[dict[str, dict[int, str]]] = {
+    As ancoras sao os valores publicados; os passos entre elas existem so para a
+    rampa ter resolucao quando um grafico pede mais faixas do que o sistema
+    publica. Sem isto, pedir 6 faixas de uma rampa de 5 devolvia **cor repetida**
+    -- duas faixas de aging saiam identicas, que e um defeito de leitura.
+    """
+    if passos <= len(ancoras):
+        return ancoras
+    saida = []
+    for i in range(passos):
+        pos = i * (len(ancoras) - 1) / (passos - 1)
+        base = min(int(pos), len(ancoras) - 2)
+        saida.append(_mistura(ancoras[base], ancoras[base + 1], pos - base))
+    return tuple(saida)
+
+
+#: Ancoras da rampa neutra -- a sequencial do Bancada (``--dado-seq-1..5``), um
+#: matiz so, terminando em ``--dado-1``. Claro = pouco, escuro = muito. Use para
+#: grandeza **sem polaridade**: faturamento, custo, carteira.
+_ANCORAS_NEUTRA: Final[tuple[str, ...]] = (
+    "#E2EBF2", "#B3CADB", "#7BA4C1", "#43759B", "#1C4468",
+)
+
+#: Ancoras da rampa de risco -- a familia terracota do Bancada. Use **so** para
+#: grandeza que e risco: inadimplencia, vencido, atraso. Fora disso use a neutra;
+#: terracota nao e decoracao.
+#:
+#: Tres das cinco sao valores literais do sistema (``--dado-div-neg-1``,
+#: ``--dado-2``, ``--dado-div-neg-2``); as duas mais claras sao interpoladas,
+#: porque o Bancada nao publica uma sequencial terracota. Fica registrado aqui
+#: para ninguem confundir com token oficial.
+_ANCORAS_RISCO: Final[tuple[str, ...]] = (
+    "#F0E2DC", "#DCBBAB", "#C98A72", "#A04A34", "#8F3B26",
+)
+
+#: Dez passos: nove sobram depois do piso ordinal, que e o maximo que
+#: :func:`rampa` aceita. Assim nenhuma chamada devolve cor repetida.
+RAMPA_NEUTRA: Final[tuple[str, ...]] = _expandir(_ANCORAS_NEUTRA, 10)
+RAMPA_RISCO: Final[tuple[str, ...]] = _expandir(_ANCORAS_RISCO, 10)
+
+#: Indice do primeiro passo utilizavel numa rampa **ordinal** (celulas discretas,
+#: faixas de aging): os passos mais claros que isto nao alcancam 2:1 contra a
+#: superficie e sumiriam como celula. Em preenchimento continuo a rampa inteira
+#: vale, porque ali a vizinhanca da a leitura.
+_PISO_ORDINAL: Final[dict[str, int]] = {"neutra": 1, "risco": 1}
+
+_RAMPAS: Final[dict[str, tuple[str, ...]]] = {
     "neutra": RAMPA_NEUTRA,
     "risco": RAMPA_RISCO,
 }
@@ -332,14 +328,14 @@ def rampa(
     """Devolve ``n`` passos de uma rampa sequencial, do menor ao maior valor.
 
     Args:
-        nome: ``"neutra"`` (azul, grandeza sem polaridade) ou ``"risco"``
-            (vermelho, so para risco real).
-        tema: no tema escuro a ancora inverte -- "mais" fica **mais claro**,
-            porque e o claro que avanca sobre o fundo escuro.
-        n: quantos passos (2 a 9).
-        ordinal: ``True`` para marcas discretas (celulas de heatmap, faixas de
-            aging): respeita o piso de 2:1 do passo mais proximo da superficie.
-            ``False`` libera a rampa inteira, para preenchimento continuo.
+        nome: ``"neutra"`` (grandeza sem polaridade) ou ``"risco"`` (so risco
+            real).
+        tema: aceito para compatibilidade de chamada; ha um tema so.
+        n: quantos passos (2 a 9). Acima de 5 os passos se repetem, porque a
+            sequencial do Bancada tem cinco.
+        ordinal: ``True`` para marcas discretas -- respeita o piso de contraste
+            do passo mais proximo da superficie. ``False`` libera a rampa
+            inteira, para preenchimento continuo.
 
     Returns:
         Lista de hex na ordem "menor valor -> maior valor".
@@ -347,16 +343,10 @@ def rampa(
     if nome not in _RAMPAS:
         raise ValueError(f"rampa desconhecida: {nome!r}. Use 'neutra' ou 'risco'.")
     n = max(2, min(9, int(n)))
-    passos = sorted(_RAMPAS[nome])
+    passos = list(_RAMPAS[nome])
     if ordinal:
-        menor, maior = _LIMITES_ORDINAIS[(nome, tema)]
-        passos = [p for p in passos if menor <= p <= maior]
-    escolhidos = [
-        passos[round(i * (len(passos) - 1) / (n - 1))] for i in range(n)
-    ]
-    cores = [_RAMPAS[nome][p] for p in escolhidos]
-    # No tema escuro a intensidade cresce para o claro: inverte a ordem.
-    return cores if tema == "claro" else list(reversed(cores))
+        passos = passos[_PISO_ORDINAL[nome]:]
+    return [passos[round(i * (len(passos) - 1) / (n - 1))] for i in range(n)]
 
 
 # --------------------------------------------------------------------------
@@ -368,17 +358,35 @@ def rampa(
 # desfavoravel, ainda que o numero seja positivo. Quem decide isso e
 # DIRECAO_KPI, via posicao_divergente().
 
-#: Polo desfavoravel (vermelho) -> neutro -> polo favoravel (azul).
-#: Cinza no meio de proposito: no meio a leitura tem que ser "nada acontecendo".
-ESCALA_DIVERGENTE: Final[dict[Tema, list[str]]] = {
-    "claro": ["#AF2C28", "#D74F47", "#F1786D", "#EDECE8", "#86B6EF", "#3987E5", "#1C5CAB"],
-    "escuro": ["#FFA499", "#F1786D", "#D74F47", "#2E3238", "#256ABF", "#3987E5", "#86B6EF"],
-}
+#: Polo desfavoravel (terracota) -> neutro -> polo favoravel (teal). E o par
+#: divergente do Bancada, e a razao dele nao ser verde-vermelho esta escrita no
+#: proprio sistema: esse par colapsa em deuteranopia justamente onde o dado
+#: importa mais. Neutro claro no meio de proposito: no meio a leitura tem que
+#: ser "nada acontecendo".
+#:
+#: Sao **sete** passos e nao os cinco do Bancada: os tres valores centrais de
+#: cada lado sao literais do sistema (``--dado-div-*``) e os dois intermediarios
+#: sao interpolados, para a escala ter resolucao suficiente no heatmap de desvio.
+ESCALA_DIVERGENTE: Final[tuple[str, ...]] = (
+    "#8F3B26",  # 0 --dado-div-neg-2  mais desfavoravel
+    "#B06A50",  # 1 interpolado
+    "#C98A72",  # 2 --dado-div-neg-1
+    "#EDF0F3",  # 3 --dado-div-centro
+    "#86B5BA",  # 4 --dado-div-pos-1
+    "#55919B",  # 5 interpolado
+    "#226E77",  # 6 --dado-div-pos-2  mais favoravel
+)
+
+#: Indices nomeados da escala. Existiam como literais (``escala[5]``,
+#: ``escala[1]``) dentro da pagina de metas, o que quebraria em silencio se a
+#: escala mudasse de tamanho -- e ela acabou de mudar.
+IDX_DIVERGENTE_FAVORAVEL: Final[int] = 5
+IDX_DIVERGENTE_DESFAVORAVEL: Final[int] = 1
 
 
 def escala_divergente(tema: Tema = "claro") -> list[str]:
-    """Sete passos: 3 desfavoraveis, cinza neutro, 3 favoraveis."""
-    return list(ESCALA_DIVERGENTE[tema])
+    """Sete passos: 3 desfavoraveis, neutro, 3 favoraveis."""
+    return list(ESCALA_DIVERGENTE)
 
 
 # --------------------------------------------------------------------------
@@ -567,28 +575,46 @@ def posicao_divergente(delta: float | None, *, direcao: Direcao, limite: float) 
 # 6. Tipografia e espacamento
 # --------------------------------------------------------------------------
 
-#: Uma familia so, a do sistema. Sem fonte display, sem serifada.
-FONTE: Final[str] = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'
+#: As tres familias do Bancada, cada uma com um papel. Carregadas do Google
+#: Fonts pelo ``@import`` de ``componentes.estilos()`` -- o ``config.toml`` do
+#: Streamlit nao aceita URL de fonte.
+#:
+#: Toda stack declara fallback de verdade. O proprio sistema registra por que
+#: isso importa: sem Plex Mono o fallback e Courier, um salto de genero
+#: tipografico; sem Plex Sans e Segoe UI, **que tambem tem tabular**, entao o
+#: alinhamento de coluna sobrevive.
+FONTE: Final[str] = '"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif'
+
+#: Rotulo em versalete, cabecalho de coluna, proveniencia. **Nunca numero**:
+#: nesta superficie quem alinha coluna e ``tabular-nums``, nao a monoespacada.
+FONTE_MONO: Final[str] = '"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
+
+#: So o numero heroi do cartao de KPI. A 30px a mono leria como terminal.
+FONTE_NUMERO: Final[str] = '"Archivo", "Arial Narrow", system-ui, sans-serif'
 
 #: Escala tipografica em px. Quatro degraus de leitura, nao doze.
+#:
+#: Deliberadamente **nao** e a escala do Bancada, que e fluida (``clamp``) com
+#: corpo de 16 a 17,8px: aquela e a escala de um site com prosa, e esta e a de
+#: um painel operacional denso, onde o dono pediu menos rolagem. Do sistema vem
+#: as familias, os pesos e o tabular; o tamanho continua nosso.
 TIPOGRAFIA: Final[dict[str, int]] = {
-    "numero_heroi": 40,   # valor unico da pagina 1
     "numero_kpi": 28,     # valor do tile de KPI
-    "titulo_pagina": 22,
     "titulo_secao": 16,
     "corpo": 14,
     "rotulo": 13,         # rotulo de eixo, legenda, delta
     "nota": 12,           # proveniencia, badge, aviso de armadilha
 }
 
-#: Espacamento em px -- escala de 4. Use so estes valores.
+#: Espacamento em px -- escala de 4, como a do Bancada. Use so estes valores.
 ESPACO: Final[dict[str, int]] = {
     "xs": 4, "sm": 8, "md": 12, "lg": 16, "xl": 24, "xxl": 32,
 }
 
-#: Raio de canto e espessura de traco.
-RAIO_CARD: Final[int] = 8
-RAIO_MARCA: Final[int] = 4      # ponta arredondada de barra, ancorada na base
+#: Raio e traco. Os dois raios sao os do Bancada: 3px em bloco, 2px em controle.
+#: Zero sombra em todo o app -- elevacao se comunica por superficie, nao borrao.
+RAIO_CARD: Final[int] = 3
+RAIO_MARCA: Final[int] = 2      # ponta arredondada de barra, ancorada na base
 ESPESSURA_LINHA: Final[int] = 2
 TAMANHO_MARCADOR: Final[int] = 8
 FOLGA_ENTRE_MARCAS: Final[int] = 2  # respiro da superficie entre fatias e barras
@@ -608,14 +634,20 @@ def layout_grafico(tema: Tema = "claro") -> dict:
         "separators": ",.",
         "paper_bgcolor": t.superficie,
         "plot_bgcolor": t.superficie,
+        # Sequencia padrao para qualquer traco que nao peca cor: o Plotly cairia
+        # no azul dele, que nao pertence a nenhuma paleta deste app.
+        "colorway": list(PALETA_DADOS),
         "font": {"family": FONTE, "size": TIPOGRAFIA["rotulo"], "color": t.tinta_secundaria},
         # "text" tem que vir explicito: um title so com "font" faz o Plotly.js
         # desenhar a string "undefined" no topo do grafico. Os titulos deste app
         # sao cabecalhos de secao em HTML, entao o padrao e vazio -- quem quiser
         # titulo dentro da figura passa title_text e sobrescreve.
         "title": {"text": "", "font": {"size": TIPOGRAFIA["titulo_secao"], "color": t.tinta}},
+        # Grade vertical desligada, horizontal ligada: e a regra do Bancada (a
+        # mesma do tema de Power BI dele) e a pratica corrente em serie temporal
+        # -- a linha vertical nao ajuda a comparar altura e vira ruido.
         "xaxis": {
-            "gridcolor": t.grade, "linecolor": t.eixo, "zerolinecolor": t.eixo,
+            "showgrid": False, "linecolor": t.eixo, "zerolinecolor": t.eixo,
             "tickfont": {"color": t.tinta_fraca, "size": TIPOGRAFIA["nota"]},
         },
         "yaxis": {
@@ -636,13 +668,16 @@ def layout_grafico(tema: Tema = "claro") -> dict:
 
 __all__ = [
     "Tema", "Nivel", "Direcao", "Tokens",
-    "TEMA_CLARO", "TEMA_ESCURO", "tokens",
-    "SLOTS_CATEGORICOS", "SEGMENTOS", "COR_OUTROS",
-    "paleta_categorica", "paleta_segmentos", "cor_segmento", "exige_rotulo_direto",
+    "TEMA_CLARO", "tokens",
+    "PALETA_DADOS", "COR_OUTROS", "TRANSPARENTE",
+    "paleta_categorica", "exige_rotulo_direto",
+    "INDICADORES", "cor_indicador", "RATING_NIVEL", "cor_rating",
     "RAMPA_NEUTRA", "RAMPA_RISCO", "rampa",
     "ESCALA_DIVERGENTE", "escala_divergente", "posicao_divergente",
+    "IDX_DIVERGENTE_FAVORAVEL", "IDX_DIVERGENTE_DESFAVORAVEL",
     "DIRECAO_KPI", "ICONE_NIVEL", "ROTULO_NIVEL",
     "nivel_por_limiar", "nivel_delta", "cor_nivel", "cor_delta",
-    "FONTE", "TIPOGRAFIA", "ESPACO", "RAIO_CARD", "RAIO_MARCA",
+    "FONTE", "FONTE_MONO", "FONTE_NUMERO",
+    "TIPOGRAFIA", "ESPACO", "RAIO_CARD", "RAIO_MARCA",
     "ESPESSURA_LINHA", "TAMANHO_MARCADOR", "FOLGA_ENTRE_MARCAS", "layout_grafico",
 ]

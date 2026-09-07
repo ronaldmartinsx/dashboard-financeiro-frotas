@@ -92,6 +92,25 @@ payload, e custa alguns centavos por leitura.
 `scripts/verificar_leitura.py` testa o verificador com 18 casos e **roda offline**: não
 chama a API nem gasta crédito. Ele entra na suíte do `verificar_tudo.py`.
 
+## Identidade visual
+
+O app veste a **camada de dados do [Bancada](../Bancada%20Design%20System)**, o design
+system do portfólio. A tese do sistema é *"a bancada é escura, os artefatos são claros"*:
+um dashboard construído na camada clara **é** o artefato que o site escuro enquadra, então
+a captura de tela dele entra numa moldura do portfólio sem tratamento nenhum.
+
+Do sistema vêm as superfícies (`#F4F6F8` sobre `#E6EBEF`), os seis matizes categóricos, os
+três sinais recalibrados para fundo claro, as escalas sequencial e divergente, e as três
+fontes com papel definido: **Archivo** no número herói, **IBM Plex Sans** no corpo e nos
+números de tabela e eixo, **IBM Plex Mono** só em rótulo e procedência.
+
+Duas coisas nós **não** adotamos, com a razão registrada em `docs/03_ux.md`: a escala de
+tamanhos (a do Bancada é de site com prosa; esta é de painel denso) e os glifos `▲ ▼` (os
+nossos `✓ ! !! ✕` codificam favorabilidade, não direção — é o que impede pintar de verde
+uma inadimplência que subiu).
+
+**Um tema só.** O app é claro por tese, não por gosto.
+
 ## Escopo — cinco eixos
 
 Faturamento · Recebimento · **Inadimplência na posição atual** · Metas · Custos.
@@ -150,7 +169,7 @@ frotas/
   metrics/                camada semântica — a única que escreve SQL
     receita.py  credito.py  custos.py  metas.py  alertas.py  dimensoes.py
   ui/
-    theme.py              tokens de cor, paletas validadas para daltonismo, layout Plotly
+    theme.py              tokens do Bancada, paleta validada para daltonismo, layout Plotly
     format.py             formatação pt-BR (R$, %, p.p., competência, delta)
     rotulos.py            dicionário único coluna → rótulo legível (149 colunas)
     componentes.py        tiles, banners, tabelas, seletores
@@ -161,6 +180,7 @@ scripts/
   validar_metricas.py     116 verificações contra os números publicados
   verificar_rotulos.py    falha se nome de coluna, travessão ou cifrão cru chegar à tela
   verificar_leitura.py    18 casos do verificador de procedência (offline, sem custo)
+  verificar_tema.py       invariantes visuais: hex, espelho do config, contraste, daltonismo
 docs/                     00 briefing · 01 KPIs · 02 arquitetura · 03 UX · 04 handover
 ```
 
@@ -170,8 +190,9 @@ docs/                     00 briefing · 01 KPIs · 02 arquitetura · 03 UX · 0
 python3 scripts/verificar_tudo.py
 ```
 
-Roda tudo de uma vez e só devolve 0 se as cinco passarem: `pyflakes`, as métricas,
-os rótulos, o verificador da leitura executiva e o render das cinco páginas. **Chame antes de commitar.**
+Roda tudo de uma vez e só devolve 0 se as seis passarem: `pyflakes`, as métricas,
+os rótulos, o verificador da leitura executiva, os invariantes visuais e o render
+das cinco páginas. **Chame antes de commitar.**
 
 ```bash
 python3 scripts/validar_metricas.py
@@ -201,7 +222,8 @@ Seis invariantes que a revisão verifica e que devem continuar valendo:
 
 - **Só `frotas/metrics/` escreve SQL.** `views/` e `frotas/ui/` não abrem conexão.
 - **A UI não conhece limiar.** Nível e cor de alerta vêm de `frotas.metrics.alertas`.
-- **A UI não inventa cor.** Zero hex literal em `views/` — tudo vem de `frotas.ui.theme`.
+- **A UI não inventa cor.** Zero hex literal em `views/` — tudo vem de `frotas.ui.theme`,
+  e `verificar_tema.py` falha se um aparecer.
 - **Todo número passa por `frotas.ui.format`**, inclusive os separadores do Plotly.
 - **Nenhum nome de coluna do banco chega à tela** — tudo passa por `frotas.ui.rotulos`.
 - **Nenhum número sem procedência chega à tela** — inclusive os de texto gerado por

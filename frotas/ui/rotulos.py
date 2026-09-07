@@ -346,7 +346,7 @@ def valor(bruto: Any) -> str:
 
     O banco guarda os dominios sem acento. Use esta funcao ao escrever o rotulo
     na tela e **mantenha o valor cru** para procurar cor
-    (``theme.cor_segmento``) ou para comparar com o dominio.
+    (``theme.cor_indicador``) ou para comparar com o dominio.
     """
     if bruto is None or (isinstance(bruto, float) and bruto != bruto):
         return ""

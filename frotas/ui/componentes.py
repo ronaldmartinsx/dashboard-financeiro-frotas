@@ -60,16 +60,15 @@ _CHAVE_ESTILOS = "_fv_estilos_aplicados"
 
 
 def tema_atual() -> Tema:
-    """Tema ativo no navegador do usuario, como ``theme`` espera receber.
+    """O tema do app. Sempre claro.
 
-    ``st.context.theme.type`` devolve ``"light"``/``"dark"``. Se o contexto nao
-    estiver disponivel (execucao fora do runtime, teste, versao antiga), cai no
-    tema claro em vez de explodir.
+    Nao le mais a preferencia do navegador: este painel e claro por tese, nao por
+    gosto. Na camada de dados do Bancada o dashboard **e** o artefato claro que a
+    bancada escura enquadra, e um print dele em tema escuro deixaria de pertencer
+    a moldura do portfolio. O ``config.toml`` fixa ``base = "light"`` pelo mesmo
+    motivo.
     """
-    try:
-        return "escuro" if st.context.theme.type == "dark" else "claro"
-    except Exception:  # noqa: BLE001 - tema e cosmetico, nunca derruba a pagina
-        return "claro"
+    return "claro"
 
 
 def _e(texto: Any) -> str:
@@ -112,6 +111,10 @@ def estilos(tema: Tema = "claro") -> None:
     st.markdown(
         f"""
 <style>
+/* As tres familias do Bancada. O @import tem que vir antes de qualquer regra,
+   senao o navegador o descarta. O config.toml do Streamlit nao aceita URL de
+   fonte, entao este e o unico ponto de carregamento de fonte do app. */
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap");
 :root {{
   --fv-plano: {t.plano};
   --fv-superficie: {t.superficie};
@@ -123,7 +126,14 @@ def estilos(tema: Tema = "claro") -> None:
   --fv-grade: {t.grade};
   --fv-eixo: {t.eixo};
   --fv-borda: {t.borda};
+  /* A marca da pagina. Era referenciada em .fv-leitura sem nunca ter sido
+     definida: a barra da leitura executiva saia na cor do texto. */
+  --fv-marca: {theme.cor_indicador("Faturamento", tema)};
   --fv-raio: {theme.RAIO_CARD}px;
+  --fv-raio-controle: {theme.RAIO_MARCA}px;
+  --fv-fonte: {theme.FONTE};
+  --fv-fonte-mono: {theme.FONTE_MONO};
+  --fv-fonte-numero: {theme.FONTE_NUMERO};
 }}
 .fv-tile {{
   background: var(--fv-superficie);
@@ -135,44 +145,59 @@ def estilos(tema: Tema = "claro") -> None:
      um card cheio. */
   min-height: 104px;
   display: flex; flex-direction: column; gap: {esp['xs']}px;
-  font-family: {theme.FONTE};
+  font-family: var(--fv-fonte);
 }}
 .fv-tile--fraco {{ background: var(--fv-superficie-fraca); }}
 .fv-tile__topo {{
   display: flex; align-items: baseline; justify-content: space-between;
   gap: {esp['sm']}px;
 }}
+/* Rotulo em versalete mono: no Bancada, versalete e exclusividade da mono, e a
+   mono e exclusividade do rotulo. text-transform nao altera o DOM, entao o
+   verificador de rotulos continua lendo o texto original. */
 .fv-tile__rotulo {{
-  font-size: {tp['rotulo']}px; color: var(--fv-tinta-2); font-weight: 400;
-  letter-spacing: .02em; line-height: 1.2;
+  font-family: var(--fv-fonte-mono);
+  font-size: {tp['nota']}px; color: var(--fv-tinta-2); font-weight: 500;
+  letter-spacing: .14em; text-transform: uppercase; line-height: 1.3;
 }}
+/* Numero heroi em Archivo tabular. Tabular e o que alinha o numero entre os
+   cinco cards da faixa; nao e enfeite. */
 .fv-tile__valor {{
-  font-size: {tp['numero_kpi']}px; font-weight: 600; color: var(--fv-tinta);
-  line-height: 1.15; margin-top: {esp['xs']}px;
+  font-family: var(--fv-fonte-numero);
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum";
+  font-size: {tp['numero_kpi']}px; font-weight: 500; color: var(--fv-tinta);
+  letter-spacing: -.02em; line-height: 1.15; margin-top: {esp['xs']}px;
 }}
-.fv-tile__delta {{ font-size: {tp['rotulo']}px; line-height: 1.3; }}
+.fv-tile__delta {{
+  font-variant-numeric: tabular-nums;
+  font-size: {tp['rotulo']}px; line-height: 1.3;
+}}
 .fv-tile__nota {{
   font-size: {tp['nota']}px; color: var(--fv-tinta-3); line-height: 1.35;
   margin-top: auto;
 }}
 .fv-cab__kicker {{
-  font-size: {tp['rotulo']}px; color: var(--fv-tinta-2); font-weight: 500;
-  letter-spacing: .04em; text-transform: uppercase; vertical-align: middle;
+  font-family: var(--fv-fonte-mono);
+  font-size: {tp['nota']}px; color: var(--fv-tinta-2); font-weight: 500;
+  letter-spacing: .14em; text-transform: uppercase; vertical-align: middle;
 }}
 .fv-cab__chips {{
   display: flex; flex-wrap: wrap; gap: {esp['xs']}px;
   margin: -{esp['xs']}px 0 {esp['lg']}px;
 }}
 .fv-badges {{ display: flex; flex-wrap: wrap; gap: {esp['xs']}px; margin-top: {esp['xs']}px; }}
+/* Chip de contexto e badge: mono, como todo rotulo. Acromatico de proposito --
+   no Bancada, cor pertence ao dado, nunca ao cromo da interface. */
 .fv-badge {{
   display: inline-flex; align-items: center; gap: {esp['xs']}px;
+  font-family: var(--fv-fonte-mono);
   font-size: {tp['nota']}px; line-height: 1.4;
   background: var(--fv-superficie-fraca); color: var(--fv-tinta-2);
-  border: 1px solid var(--fv-borda); border-radius: {theme.RAIO_MARCA}px;
+  border: 1px solid var(--fv-borda); border-radius: var(--fv-raio-controle);
   padding: 2px {esp['sm']}px; white-space: nowrap;
 }}
 .fv-esqueleto {{
-  background: var(--fv-superficie-fraca); border-radius: {theme.RAIO_MARCA}px;
+  background: var(--fv-superficie-fraca); border-radius: var(--fv-raio-controle);
 }}
 .fv-banner {{
   display: flex; align-items: flex-start; gap: {esp['md']}px;
@@ -183,7 +208,7 @@ def estilos(tema: Tema = "claro") -> None:
   /* Respiro acima: o banner agora vem logo abaixo da faixa de KPIs e, sem esta
      margem, encostava nos cards. */
   margin: {esp['lg']}px 0 {esp['sm']}px;
-  font-family: {theme.FONTE};
+  font-family: var(--fv-fonte);
 }}
 /* Banners consecutivos nao repetem o respiro: so o primeiro se afasta dos cards. */
 .fv-banner + .fv-banner {{ margin-top: 0; }}
@@ -200,7 +225,7 @@ def estilos(tema: Tema = "claro") -> None:
   border-left-width: 1px; padding: {esp['sm']}px {esp['lg']}px;
   font-size: {tp['rotulo']}px;
 }}
-.fv-secao {{ margin: {esp['xl']}px 0 {esp['sm']}px; font-family: {theme.FONTE}; }}
+.fv-secao {{ margin: {esp['xl']}px 0 {esp['sm']}px; font-family: var(--fv-fonte); }}
 .fv-secao__linha {{ display: flex; align-items: baseline; gap: {esp['md']}px; }}
 .fv-secao__pergunta {{
   font-size: {tp['titulo_secao']}px; font-weight: 600; color: var(--fv-tinta);
@@ -216,7 +241,7 @@ def estilos(tema: Tema = "claro") -> None:
   font-size: {tp['nota']}px; color: var(--fv-tinta-2); line-height: 1.45;
   /* Mesmo respiro do banner: a nota tambem aparece logo abaixo da faixa de
      KPIs e, sem margem no topo, encostava nos cards. */
-  margin: {esp['lg']}px 0 {esp['sm']}px; font-family: {theme.FONTE};
+  margin: {esp['lg']}px 0 {esp['sm']}px; font-family: var(--fv-fonte);
 }}
 /* Notas ou banners em sequencia nao repetem o respiro. */
 .fv-nota + .fv-nota, .fv-banner + .fv-nota, .fv-nota + .fv-banner {{ margin-top: 0; }}
@@ -228,7 +253,7 @@ def estilos(tema: Tema = "claro") -> None:
   background: var(--fv-superficie-fraca);
   padding: {esp['md']}px {esp['lg']}px {esp['sm']}px;
   margin: {esp['sm']}px 0 {esp['md']}px;
-  font-family: {theme.FONTE}; font-size: {tp['corpo']}px; color: var(--fv-tinta);
+  font-family: var(--fv-fonte); font-size: {tp['corpo']}px; color: var(--fv-tinta);
 }}
 .fv-leitura p {{ margin: 0 0 {esp['sm']}px; line-height: 1.62; }}
 .fv-leitura p:last-of-type {{ margin-bottom: 0; }}
@@ -237,27 +262,22 @@ def estilos(tema: Tema = "claro") -> None:
   border-top: 1px solid var(--fv-grade);
   font-size: {tp['nota']}px; color: var(--fv-tinta-3);
 }}
-.fv-rodape {{
-  margin-top: {esp['xxl']}px; padding-top: {esp['md']}px;
-  border-top: 1px solid var(--fv-grade);
-  font-size: {tp['nota']}px; color: var(--fv-tinta-3); line-height: 1.5;
-  font-family: {theme.FONTE};
-}}
 .fv-vazio {{
   border: 1px dashed var(--fv-eixo); border-radius: var(--fv-raio);
-  padding: {esp['xl']}px; text-align: center; font-family: {theme.FONTE};
+  padding: {esp['xl']}px; text-align: center; font-family: var(--fv-fonte);
   background: var(--fv-superficie-fraca);
 }}
 .fv-vazio__titulo {{ font-size: {tp['corpo']}px; color: var(--fv-tinta); font-weight: 600; }}
 .fv-vazio__corpo {{ font-size: {tp['rotulo']}px; color: var(--fv-tinta-2); margin-top: {esp['xs']}px; }}
 .fv-frase {{
   font-size: {tp['corpo']}px; color: var(--fv-tinta-2); line-height: 1.6;
-  font-family: {theme.FONTE};
+  font-family: var(--fv-fonte);
 }}
 .fv-frase b {{ color: var(--fv-tinta); font-weight: 600; }}
-.fv-sparkbar {{
-  display: inline-block; height: 6px; border-radius: 3px; vertical-align: middle;
-  margin: 0 {esp['sm']}px;
+/* Todo numero desta folha e tabular: e o que alinha coluna e faixa de KPI. */
+.fv-tile__valor, .fv-tile__delta, .fv-tile__nota,
+.fv-banner__detalhe, .fv-leitura__selo {{
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum";
 }}
 @media (prefers-reduced-motion: reduce) {{ * {{ transition: none !important; }} }}
 </style>

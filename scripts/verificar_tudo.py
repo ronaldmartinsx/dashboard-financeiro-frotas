@@ -14,6 +14,8 @@ Cobre:
 * ``verificar_rotulos``   -- nome de coluna, travessao e cifrao cru na tela;
 * ``verificar_leitura``   -- o verificador de procedencia da leitura executiva
   (offline: nao chama a API nem gasta credito);
+* ``verificar_tema``      -- os invariantes visuais: zero hex fora do tema,
+  espelho do config.toml, contraste e daltonismo;
 * render das 5 paginas    -- excecao ou ``st.error`` em qualquer uma reprova.
 """
 
@@ -82,6 +84,7 @@ def main() -> int:
         _rodar("validar_metricas", [sys.executable, "scripts/validar_metricas.py"])[0],
         _rodar("verificar_rotulos", [sys.executable, "scripts/verificar_rotulos.py"])[0],
         _rodar("verificar_leitura", [sys.executable, "scripts/verificar_leitura.py"])[0],
+        _rodar("verificar_tema", [sys.executable, "scripts/verificar_tema.py"])[0],
         _paginas_renderizam(),
     ]
     falhas = resultados.count(False)
