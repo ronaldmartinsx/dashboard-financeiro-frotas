@@ -1,12 +1,60 @@
-# Dashboard Financeiro — Streamlit + DuckDB
+# Dashboard Financeiro — locadora de frotas B2B
 
-Dashboard financeiro de uma locadora de frotas B2B. Lê um snapshot local do dataset
-(**somente leitura**) e responde quatro perguntas de negócio, uma por página, mais um
-guia de abertura.
+> ### Faturamento e caixa estão acima da meta. A crise é de crédito, não de receita.
 
-A leitura que o app existe para permitir: **faturamento e caixa estão acima da meta;
-a crise é de crédito, não de receita.** A inadimplência > 30d fecha 2025 em 10,20%
-contra uma meta de 3,00% — um desvio de +7,20 p.p., o maior do dataset.
+Painel de cinco páginas que responde uma pergunta de negócio por tela. Streamlit sobre um
+snapshot Parquet de 459 KB versionado no próprio repositório, com a regra de negócio numa
+camada semântica testada por **116 verificações** contra números conferidos.
+
+<!-- PRINT: descomente a linha abaixo depois de salvar a captura em docs/imagens/painel.png
+<p align="center"><img src="docs/imagens/painel.png" alt="Página de Metas do dashboard" width="900"></p>
+-->
+
+## O que os dados mostram
+
+A tese não saiu de um briefing, saiu dos números. Em 2025 a empresa **bateu a meta de
+faturamento estourando a de custo**, e o caixa fechou negativo no mesmo ano em que a
+receita foi positiva: a assinatura de crescimento financiado por prazo.
+
+| Exercício | Faturamento | Recebimento | Custo | Inadimplência acima de 30 dias |
+|---|---|---|---|---|
+| 2024 | −2,7% | −4,7% | −2,1% | 3,56% *(meta 3,00%)* |
+| 2025 | **+6,8%** | −2,9% | **+8,2%** | **10,20%** *(meta 3,00%)* |
+| 2026 *(8 meses)* | +2,9% | +3,6% | +0,3% | 10,02% *(meta 8,00%)* |
+
+Um desvio de **+7,20 pontos percentuais** na inadimplência de 2025, o maior do dataset por
+uma ordem de grandeza. O orçamento de 2026 reconheceu a realidade e revisou a meta para
+8,00%; ainda assim o realizado está em 10,02%.
+
+Três achados que o painel expõe e que não estavam na pergunta original:
+
+- **O rating de crédito funciona, e ninguém está usando.** Um cliente D erra 25 vezes mais
+  que um A (16,94% contra 0,67%), mas os clientes C têm o **maior limite médio da base**,
+  50% acima dos A. Há **R$ 1,33 mi em aberto acima dos limites aprovados**, em 13 de 49
+  clientes. O limite nunca foi calibrado pelo risco.
+- **Os veículos parados não estão esperando cliente, estão quebrados.** 40,5% do custo do
+  veículo sem contrato é manutenção e pneu. Não é problema comercial, é de oficina.
+- **A empresa gasta 3,7 vezes mais consertando do que prevenindo** (R$ 8,00 mi de
+  manutenção corretiva contra R$ 2,16 mi de preventiva). É a decisão isolada mais cara do
+  painel de custos, e está sendo tomada por omissão.
+
+## O que este projeto demonstra
+
+- **Camada semântica única e testada.** Só um módulo escreve SQL, e 116 verificações
+  comparam o que ele calcula com números conferidos. A pergunta "esse número está certo?"
+  tem uma resposta executável.
+- **Invariantes verificados por máquina, não combinados.** Seis portões rodam em 3,5 s:
+  nenhum nome de coluna do banco na tela, nenhuma cor escrita fora do tema, contraste e
+  daltonismo medidos, e nenhum número sem procedência — inclusive nos textos escritos por
+  modelo de linguagem.
+- **As armadilhas do domínio, tratadas e documentadas.** Corte point-in-time de
+  cancelamento (sem ele a inadimplência infla de 9,4% para 18,7%), comparação de meta por
+  período casado em ano parcial, e o descasamento de 1 a 3 meses entre faturar e receber.
+- **Desempenho por decisão de arquitetura.** A página mais pesada saiu de 12 s para 0,33 s
+  ao trocar a conexão viva por um snapshot local, sem reescrever uma linha de SQL.
+
+Os cinco documentos de projeto estão em [`docs/`](docs/): briefing, KPIs, arquitetura, UX e
+handover. Eles registram **por que** cada decisão foi tomada, incluindo as revertidas.
 
 ## Rodando
 
