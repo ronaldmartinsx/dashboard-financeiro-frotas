@@ -292,6 +292,24 @@ def violacoes(coleta: Coleta) -> list[tuple[str, str, str, str]]:
     return achados
 
 
+#: Documentos de prosa longa que seguem a mesma regra das telas: sem travessao.
+#: O README tinha 21 quando este portao foi escrito -- a regra existia so para o
+#: app e ninguem vigiava o texto que o visitante le primeiro.
+DOCUMENTOS: tuple[str, ...] = ("README.md",)
+
+
+def travessoes_em_documento(nome: str) -> list[tuple[int, str]]:
+    """(linha, trecho) de cada travessao em texto corrido no documento."""
+    caminho = _RAIZ / nome
+    if not caminho.exists():
+        return []
+    achados = []
+    for numero, linha in enumerate(caminho.read_text(encoding="utf-8").splitlines(), 1):
+        if re.search(r"\S\s*—|—\s*\S", linha):
+            achados.append((numero, linha.strip()[:70]))
+    return achados
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -314,6 +332,16 @@ def main() -> int:
           f"{len(rot.VALORES)} valores de domínio traduzidos.\n")
 
     total_violacoes = 0
+    if not args.pagina:
+        for nome in DOCUMENTOS:
+            achados = travessoes_em_documento(nome)
+            total_violacoes += len(achados)
+            marca = f"{VERMELHO}FALHOU{FIM}" if achados else f"{VERDE}ok{FIM}"
+            print(f"{marca}  {nome:38s}        prosa sem travessão")
+            for numero, trecho in achados:
+                print(f"   {VERMELHO}✗{FIM} travessão em {nome}:{numero}: "
+                      f"{AMARELO}{trecho!r}{FIM}")
+
     total_rotulos = 0
     falhas_render: list[str] = []
     for caminho in alvos:

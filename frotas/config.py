@@ -54,11 +54,10 @@ TTL_DIMENSOES: Final[int] = 24 * 60 * 60   # listas de filtro: 24 h
 TTL_FATOS: Final[int] = 60 * 60            # agregacoes de fato: 1 h
 TTL_PESADO: Final[int] = 6 * 60 * 60       # series point-in-time: 6 h
 
-#: Nomes de segredo, usados **so** por ``scripts/exportar_dados.py``. O app em si
-#: nao le credencial nenhuma desde que passou a consultar o snapshot local.
+#: Nome do segredo de banco, usado **so** por ``scripts/exportar_dados.py``. O
+#: app em si nao le credencial nenhuma desde que passou a consultar o snapshot
+#: local.
 CHAVE_DSN: Final[str] = "PG_DSN"
-CHAVE_SUPABASE_URL: Final[str] = "SUPABASE_URL"
-CHAVE_SUPABASE_KEY: Final[str] = "SUPABASE_PUBLISHABLE_KEY"
 
 #: Credencial da leitura executiva. **Opcional**: sem ela o bloco explica como
 #: ligar e nenhum numero da tela muda. Ver ``frotas/leitura.py``.
@@ -165,11 +164,6 @@ def origem_segredo(nome: str) -> OrigemSegredo:
     if _ler_dotenv().get(nome):
         return OrigemSegredo(nome, ".env")
     return OrigemSegredo(nome, None)
-
-
-def diagnostico_segredos() -> list[OrigemSegredo]:
-    """Inventario seguro para a UI: quais segredos existem e de onde vieram."""
-    return [origem_segredo(n) for n in (CHAVE_DSN, CHAVE_SUPABASE_URL, CHAVE_SUPABASE_KEY)]
 
 
 def obter_dsn() -> str:

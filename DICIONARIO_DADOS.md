@@ -5,7 +5,15 @@ Formato: CSV UTF-8, separador `,`, decimal `.`, datas ISO `YYYY-MM-DD`. Seed fix
 
 ## Onde os dados estao
 
-Os CSVs foram carregados no Supabase (projeto `qoirqktsvkeyokyabpgw`, schema `public`) em 2026-08-31 e a pasta `data/` foi removida — **o banco e a fonte de verdade**. Credenciais em `.env` (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` para leitura; `PG_DSN` para acesso direto).
+**A fonte de verdade e a pasta `dados/`**: oito arquivos Parquet versionados junto com o
+codigo, consultados em processo pelo DuckDB. O app nao abre conexao de rede e nao le
+credencial nenhuma.
+
+Historico da origem: os CSVs foram carregados em um Postgres gerenciado (Supabase) em
+2026-08-31, e o app consultava aquele banco ao vivo. Em 2026-09-05 o snapshot foi
+exportado para Parquet e a conexao saiu. `scripts/exportar_dados.py` regenera o snapshot,
+e e o unico lugar do projeto que precisa de credencial de banco. Os nomes de tabela e de
+coluna descritos abaixo continuam validos: sao os mesmos no Parquet.
 
 Os prefixos `dim_`/`fato_`/`ponte_` sairam dos nomes (a granularidade esta no `COMMENT ON TABLE` de cada tabela):
 

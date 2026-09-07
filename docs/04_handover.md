@@ -327,7 +327,7 @@ entre 2,2 s e 3,1 s.
 
 | Verificação | Resultado |
 |---|---|
-| `scripts/verificar_tudo.py` | as 4 passam (pyflakes, métricas 116/116, rótulos, render) |
+| `scripts/verificar_tudo.py` | os 6 passam (pyflakes, métricas 116/116, rótulos, leitura, tema, render) |
 | SQL fora de `frotas/metrics/` | zero |
 | Hex literal em `views/` | zero |
 | Segredo em todo o histórico do git | zero |

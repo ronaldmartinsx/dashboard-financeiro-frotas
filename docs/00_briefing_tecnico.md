@@ -1,5 +1,9 @@
 # Briefing tecnico — Data App de Frotas (Streamlit + Supabase)
 
+> **Documento historico, congelado no inicio do projeto (2026-08-31).** Descreve o
+> esquema no Postgres e a conexao ao vivo, que saiu em 2026-09-05. O esquema segue
+> valido; a secao de conexao nao. Para o estado atual, ver `docs/02_arquitetura.md`.
+
 Documento base lido por **todos** os agentes da equipe. Nao re-descubra o esquema: ele esta aqui.
 A fonte de verdade de negocio e `DICIONARIO_DADOS.md` na raiz — leia-o antes de definir qualquer metrica.
 
@@ -7,7 +11,7 @@ A fonte de verdade de negocio e `DICIONARIO_DADOS.md` na raiz — leia-o antes d
 
 Locadora de frotas B2B. Dataset sintetico com narrativas plantadas, periodo de competencia
 **2024-01-01 a 2026-08-31** (data de extracao simulada: **2026-08-31**, nenhum pagamento apos ela).
-Os dados vivem no Supabase (projeto `qoirqktsvkeyokyabpgw`, schema `public`). Nao existe pasta `data/`.
+Os dados viviam no Supabase, no schema `public`. Nao existe pasta `data/`.
 
 ## Conexao
 

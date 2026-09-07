@@ -2,7 +2,7 @@
 
 Camadas (detalhe em ``docs/02_arquitetura.md``)::
 
-    views/  ->  frotas.metrics.*  ->  frotas.db.consultar  ->  Supabase (read-only)
+    views/  ->  frotas.metrics.*  ->  frotas.db.consultar  ->  DuckDB sobre dados/*.parquet
                       ^
                       |
                 frotas.filtros.Filtros

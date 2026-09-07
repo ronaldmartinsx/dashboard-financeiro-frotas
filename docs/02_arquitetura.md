@@ -70,8 +70,9 @@ Precedencia, do mais forte para o mais fraco:
 
 `obter_segredo(nome)` percorre as tres na ordem. `obter_dsn()` valida o formato e
 levanta `CredencialAusente` com uma mensagem que diz **onde configurar**, jamais o
-valor. `origem_segredo()` / `diagnostico_segredos()` devolvem so a *origem* —
-usados pela sidebar de diagnostico sem risco de vazamento.
+valor. `origem_segredo()` devolve so a *origem* de um segredo, nunca o valor.
+(`diagnostico_segredos()`, que inventariava as tres chaves do banco para a sidebar,
+saiu junto com a conexao: o app nao tem mais segredo de banco para diagnosticar.)
 
 O `.env` e lido com `dotenv_values()`, que **nao** escreve em `os.environ` — o
 segredo nao vaza para processos filhos.
@@ -495,6 +496,12 @@ Indices existentes na base cobrem o que a camada usa: `competencia`,
 
 ## 7. Seguranca
 
+> **Registro da fase com banco no ar (ate 2026-09-05).** O app hoje le Parquet local,
+> nao abre conexao e nao usa credencial de banco. Nada nesta secao roda em producao:
+> ela vale para `scripts/exportar_dados.py`, que ainda precisa do `PG_DSN`, e fica
+> como registro do que foi auditado e corrigido. A unica credencial que o app aceita
+> hoje e a `ANTHROPIC_API_KEY`, opcional, da leitura executiva.
+
 ### 7.1 Modelo de credenciais — o que NUNCA vai para o repositorio
 
 | Segredo | Onde vive | Vai para o git? |
@@ -508,7 +515,7 @@ vazias** — e o contrato de configuracao, nao o segredo.
 
 Garantias no codigo: `config.py` nunca imprime, loga ou escreve valor de segredo;
 o `.env` e lido com `dotenv_values()` (nao contamina `os.environ`); mensagens de
-erro citam **a origem esperada**, nunca o valor; `diagnostico_segredos()` devolve
+erro citam **a origem esperada**, nunca o valor; `origem_segredo()` devolve
 so `(nome, origem)`. `db.py` nunca inclui o DSN em texto de excecao — as
 mensagens sao pre-escritas, e o `detalhe` guarda so o nome da classe do erro.
 
@@ -537,7 +544,7 @@ secao `conexao`).
 
 ### 7.3 RLS do Supabase e o que a chave publicavel expoe
 
-Estado verificado no projeto `qoirqktsvkeyokyabpgw`:
+Estado verificado no projeto de origem:
 
 * RLS **habilitado** nas 8 tabelas de `public`.
 * Uma policy por tabela: `leitura publica`, `cmd = SELECT`, `qual = true`, para os
@@ -621,8 +628,8 @@ SUPABASE_PUBLISHABLE_KEY = "<chave publicavel>"
 ```
 
 Nada mais muda: `config.obter_segredo` ja prefere `st.secrets` a variavel de
-ambiente e ao `.env`. Confirme na sidebar que `diagnostico_segredos()` mostra
-origem `st.secrets` — se mostrar `.env`, o arquivo vazou para a imagem.
+ambiente e ao `.env`. Confirme que `origem_segredo()` mostra origem `st.secrets`:
+se mostrar `.env`, o arquivo vazou para a imagem.
 
 **O que rotacionar**
 

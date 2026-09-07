@@ -1,4 +1,4 @@
-# Dashboard Financeiro — locadora de frotas B2B
+# Dashboard Financeiro para locadora de frotas B2B
 
 > ### Faturamento e caixa estão acima da meta. A crise é de crédito, não de receita.
 
@@ -52,7 +52,7 @@ Três achados que o painel expõe e que não estavam na pergunta original:
   tem uma resposta executável.
 - **Invariantes verificados por máquina, não combinados.** Seis portões rodam em 3,5 s:
   nenhum nome de coluna do banco na tela, nenhuma cor escrita fora do tema, contraste e
-  daltonismo medidos, e nenhum número sem procedência — inclusive nos textos escritos por
+  daltonismo medidos, e nenhum número sem procedência, inclusive nos textos escritos por
   modelo de linguagem.
 - **As armadilhas do domínio, tratadas e documentadas.** Corte point-in-time de
   cancelamento (sem ele a inadimplência infla de 9,4% para 18,7%), comparação de meta por
@@ -96,7 +96,7 @@ continuam no `.gitignore`.
 armadilhas do dataset: corte point-in-time de cancelamento, janela de 12 competências,
 meta por período casado. Reescrever isso em pandas jogaria fora as verificações que validam
 exatamente aquele SQL. Com DuckDB o texto das consultas continua o mesmo que rodava no
-Postgres — duas diferenças de dialeto foram resolvidas de forma portável (`generate_series`
+Postgres. Duas diferenças de dialeto foram resolvidas de forma portável (`generate_series`
 no `FROM` em vez da lista do `SELECT`; `interval '1 month' - interval '1 day'` no lugar do
 literal composto) e `to_char` entra por macro, sem tocar nas consultas.
 
@@ -113,12 +113,12 @@ literal composto) e `to_char` entra por macro, sem tocar nas consultas.
 ## Leitura executiva (opcional)
 
 A página de Metas tem um bloco **"O que estes números estão dizendo?"**: um botão que
-gera, pela API do Claude, o briefing do exercício em três parágrafos — o que vai bem, o
+gera, pela API do Claude, o briefing do exercício em três parágrafos: o que vai bem, o
 que preocupa e a ação mais urgente.
 
 **O modelo não tem acesso a dado nenhum.** Ele não vê SQL, não vê os arquivos e não
-calcula. Recebe um dicionário com os números que `frotas/metrics/` já apurou — os mesmos
-que as verificações cobrem — e o trabalho dele é interpretar e priorizar.
+calcula. Recebe um dicionário com os números que `frotas/metrics/` já apurou, os mesmos
+que as verificações cobrem, e o trabalho dele é interpretar e priorizar.
 
 E isso é verificado, não prometido. `frotas/leitura.py` extrai **todo número do texto
 gerado** e exige que cada um corresponda a um valor do payload, com a tolerância de
@@ -144,7 +144,7 @@ casos, sem flag para alguém esquecer de virar.
 Ou seja: **para publicar, não faça nada.** Não adicione `ANTHROPIC_API_KEY` aos segredos
 do Streamlit Cloud e a leitura executiva já sobe desligada.
 
-Nenhum número da tela depende disso — é um recurso opcional em cima da camada de
+Nenhum número da tela depende disso. É um recurso opcional em cima da camada de
 métricas, nunca dentro dela. A chamada é sob demanda (só no clique), cacheada por
 payload, e custa alguns centavos por leitura.
 
@@ -165,18 +165,18 @@ números de tabela e eixo, **IBM Plex Mono** só em rótulo e procedência.
 
 Duas coisas nós **não** adotamos, com a razão registrada em `docs/03_ux.md`: a escala de
 tamanhos (a do Bancada é de site com prosa; esta é de painel denso) e os glifos `▲ ▼` (os
-nossos `✓ ! !! ✕` codificam favorabilidade, não direção — é o que impede pintar de verde
+nossos `✓ ! !! ✕` codificam favorabilidade, não direção, e é isso que impede pintar de verde
 uma inadimplência que subiu).
 
 **Um tema só.** O app é claro por tese, não por gosto.
 
 O rodapé leva a assinatura do autor, o link do portfólio e a ressalva sobre o dataset
 sintético. Ele é chamado **uma vez** no entrypoint, depois de `pagina.run()`: o rodapé é
-do app, não de cada página, e assim não há como uma esquecer. Segue o `Footer` do Bancada
-— separado do conteúdo por fio, nunca por inversão de fundo, e acromático, porque a cor
+do app, não de cada página, e assim não há como uma esquecer. Segue o `Footer` do Bancada:
+separado do conteúdo por fio, nunca por inversão de fundo, e acromático, porque a cor
 pertence ao dado.
 
-## Escopo — cinco eixos
+## Escopo: cinco eixos
 
 Faturamento · Recebimento · **Inadimplência na posição atual** · Metas · Custos.
 
@@ -210,7 +210,7 @@ data, porque seus números são todos por competência. Filtro visível que
 não faz nada é pior que filtro nenhum: o usuário mexe e conclui que o dashboard quebrou.
 
 **Granularidade do eixo temporal**: as páginas com série (Metas, Faturamento e Recebimento,
-Custos) trazem **Agrupar o tempo por** — mês, trimestre ou ano. Cada coluna declara como se
+Custos) trazem **Agrupar o tempo por**, com mês, trimestre ou ano. Cada coluna declara como se
 agrega (`reagrupar()` em `views/_comum.py`): reais somam, a inadimplência é fim de período
 (o trimestre é o valor do último mês, nunca a soma dos três) e a ociosidade é recalculada
 como veículos-mês parados sobre veículos-mês de frota. **Semana não existe** e não é
@@ -218,7 +218,7 @@ omissão: `titulos_receber.competencia` e `custos.competencia` são sempre dia 1
 meta é mensal por definição. Só `data_pagamento` tem grão diário.
 
 Duas regras editoriais que o código sustenta: **uma pergunta central por página,
-declarada no título**, e **no máximo um bloco curto de texto por página** — o resto é
+declarada no título**, e **no máximo um bloco curto de texto por página**. O resto é
 rótulo, nota de rodapé do visual ou tooltip.
 
 ## Estrutura
@@ -231,7 +231,7 @@ frotas/
   leitura.py              leitura executiva: payload, chamada e verificação de procedência
   db.py                   DuckDB sobre dados/, cache, guarda SELECT/WITH, erros tipados
   filtros.py              dataclass Filtros (frozen/hashável) + política de filtros
-  metrics/                camada semântica — a única que escreve SQL
+  metrics/                camada semântica, a única que escreve SQL
     receita.py  credito.py  custos.py  metas.py  alertas.py  dimensoes.py
   ui/
     theme.py              tokens do Bancada, paleta validada para daltonismo, layout Plotly
@@ -275,11 +275,11 @@ faturamento e recebimento; e o nível esperado dos 13 alertas.
 python3 scripts/verificar_rotulos.py
 ```
 
-Renderiza todas as páginas e **falha se qualquer nome de coluna do banco chegar à tela** —
+Renderiza todas as páginas e **falha se qualquer nome de coluna do banco chegar à tela**:
 cabeçalho de tabela, título de eixo, legenda, colorbar, anotação, rótulo de widget e o
 **texto livre** de `st.caption`, `st.markdown` e `st.expander`. Na prosa ele também pega
-travessão em texto corrido e cifrão cru (dois `$` na mesma string viram LaTeX no Streamlit)
-— os dois defeitos que já escaparam para a tela.
+travessão em texto corrido e cifrão cru (dois `$` na mesma string viram LaTeX no Streamlit),
+os dois defeitos que já escaparam para a tela.
 
 ## Regras de arquitetura
 
@@ -287,11 +287,11 @@ Seis invariantes que a revisão verifica e que devem continuar valendo:
 
 - **Só `frotas/metrics/` escreve SQL.** `views/` e `frotas/ui/` não abrem conexão.
 - **A UI não conhece limiar.** Nível e cor de alerta vêm de `frotas.metrics.alertas`.
-- **A UI não inventa cor.** Zero hex literal em `views/` — tudo vem de `frotas.ui.theme`,
+- **A UI não inventa cor.** Zero hex literal em `views/`: tudo vem de `frotas.ui.theme`,
   e `verificar_tema.py` falha se um aparecer.
 - **Todo número passa por `frotas.ui.format`**, inclusive os separadores do Plotly.
-- **Nenhum nome de coluna do banco chega à tela** — tudo passa por `frotas.ui.rotulos`.
-- **Nenhum número sem procedência chega à tela** — inclusive os de texto gerado por
+- **Nenhum nome de coluna do banco chega à tela**: tudo passa por `frotas.ui.rotulos`.
+- **Nenhum número sem procedência chega à tela**, inclusive os de texto gerado por
   modelo, conferidos um a um contra o payload em `frotas/leitura.py`.
 
 ## Segurança
@@ -309,9 +309,9 @@ de ataque praticamente desapareceu:
 
 Os dois achados da auditoria da camada de dados ficaram **resolvidos por construção**:
 
-- **Corrigido em 2026-09-02** — `anon` e `authenticated` tinham grants de
+- **Corrigido em 2026-09-02.** `anon` e `authenticated` tinham grants de
   `INSERT/UPDATE/DELETE/TRUNCATE` em `public`. Agora têm somente `SELECT`.
-- **Encerrado em 2026-09-06** — o risco de o app conectar como `postgres`
+- **Encerrado em 2026-09-06.** O risco de o app conectar como `postgres`
   (`rolbypassrls = true`, ignorando as policies de RLS) deixou de existir: o app não
   conecta. O papel `app_leitura` continua descrito em `docs/04_handover.md` §3.1 para
   quem eventualmente religar a conexão.
@@ -320,4 +320,4 @@ Os dois achados da auditoria da camada de dados ficaram **resolvidos por constru
 
 Dataset 100% sintético, com narrativas plantadas e período de competência de
 jan/2024 a ago/2026. Não representa nenhuma empresa real e não serve para benchmark.
-2026 é ano parcial (8 meses) — toda comparação contra meta usa período casado.
+2026 é ano parcial (8 meses), então toda comparação contra meta usa período casado.

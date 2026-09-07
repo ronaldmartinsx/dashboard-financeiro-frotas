@@ -7,7 +7,7 @@ consulta esses arquivos com DuckDB, em processo.
 Por que DuckDB e nao pandas: a camada semantica inteira e SQL, e e nela que estao
 as armadilhas do dataset (corte point-in-time de cancelamento, janela de 12
 competencias, meta por periodo casado). Reescrever isso em pandas jogaria fora as
-110 verificacoes que validam exatamente aquele SQL. Com DuckDB o texto das
+116 verificacoes que validam exatamente aquele SQL. Com DuckDB o texto das
 consultas continua o mesmo que rodava no Postgres, e as verificacoes continuam
 verificando a mesma coisa.
 
@@ -151,7 +151,7 @@ TABELAS = (
 #: ``to_char`` nao existe no DuckDB, e as consultas usam nove vezes, sempre com
 #: ``'YYYY-MM'``. O macro traduz o formato do Postgres para o do ``strftime`` em
 #: vez de reescrever o SQL: o texto das consultas precisa continuar identico ao
-#: que rodava no Postgres, senao as 110 verificacoes deixam de verificar aquilo.
+#: que rodava no Postgres, senao as 116 verificacoes deixam de verificar aquilo.
 _MACRO_TO_CHAR = """
 create or replace macro to_char(d, f) as
     strftime(d, replace(replace(replace(f, 'YYYY', '%Y'), 'MM', '%m'), 'DD', '%d'))

@@ -16,4 +16,3 @@ anthropic>=1.0
 
 # Visualizacao (usada pela camada de UI; a camada de dados nao depende dela)
 plotly==6.3.1
-altair==5.5.0
