@@ -1208,7 +1208,7 @@ def leitura_gerada(texto: str, *, rodape: str, tema: Tema = "claro") -> None:
 AUTOR: str = "Ronald Martins"
 PORTFOLIO: str = "rmartinsdev.com.br"
 GITHUB: str = "https://github.com/ronaldmartinsx"
-LINKEDIN: str | None = None  # o handle ainda nao foi informado; sem ele o link nao entra
+LINKEDIN: str = "https://www.linkedin.com/in/ronaldmartinsx/"
 
 #: O sinal secundario da marca, `r |>`, desenhado em curvas como no Bancada:
 #: nenhum glifo depende de fonte carregada, e nada aqui e cromatico.
@@ -1261,8 +1261,7 @@ def rodape() -> None:
         f"{_e(PORTFOLIO)}</a></span>",
         f'<span>{_link_plataforma("github", GITHUB, "GitHub")}</span>',
     ]
-    if LINKEDIN:
-        partes.append(f'<span>{_link_plataforma("linkedin", LINKEDIN, "LinkedIn")}</span>')
+    partes.append(f'<span>{_link_plataforma("linkedin", LINKEDIN, "LinkedIn")}</span>')
     st.markdown(
         f'<div class="fv-rodape">'
         f'<div class="fv-rodape__linha">{"".join(partes)}</div>'
