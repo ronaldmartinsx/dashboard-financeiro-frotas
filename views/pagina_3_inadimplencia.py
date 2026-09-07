@@ -300,7 +300,11 @@ else:
             continue
         fig.add_trace(
             go.Scatter(
-                x=grupo["faturamento_bruto_12m"], y=grupo["pct_vencido_30d"], mode="markers",
+                # y = vencido / faturado 12m, a mesma conta da regra A7. Era
+                # `pct_vencido_30d` (vencido / carteira), que nao e o que a nota,
+                # a linha de limiar e a regra publicada dizem -- e punha 34 dos 53
+                # clientes acima da linha vermelha, quando o alerta aponta 8.
+                x=grupo["faturamento_bruto_12m"], y=grupo["inadimplencia_pct"], mode="markers",
                 name=f"Rating {nota_rating}",
                 marker={
                     "size": (grupo["vencido_30d_mais"] / maior_venc * 40 + 8).tolist(),
@@ -342,7 +346,7 @@ else:
         nticks=6,
     )
     fig.update_yaxes(
-        title_text="% vencido do cliente",
+        title_text="% do faturado vencido",
         title_font_size=theme.TIPOGRAFIA["nota"], ticksuffix="%", rangemode="tozero",
         nticks=6,
     )
@@ -351,7 +355,7 @@ else:
         fig, chave="p3_clientes",
         nota="Tamanho da bolha é o valor vencido e a cor é o rating. O eixo vertical mostra "
              "quanto do faturamento de 12 meses do próprio cliente está vencido há mais de "
-             "30 dias.",
+             "30 dias, a mesma conta da regra de crédito que desenha as linhas.",
         dados=risco_cli,
     )
 
