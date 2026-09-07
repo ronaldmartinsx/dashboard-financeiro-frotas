@@ -62,8 +62,14 @@ falhas = []
 for nome in {PAGINAS!r}:
     at = AppTest.from_file(f"views/{{nome}}.py", default_timeout=400)
     at.run()
-    if at.exception or at.error:
-        falhas.append((nome, [str(e.value)[:200] for e in (at.exception or at.error)]))
+    problemas = [str(e.value)[:200] for e in (at.exception or at.error)]
+    # st.warning tambem reprova: e o canal de ``ui.erro_metrica``, que aparece
+    # quando uma metrica levanta e a pagina degrada em vez de quebrar. Antes o
+    # portao ignorava warning, e por isso um grafico morto passou para producao
+    # sem ninguem notar (a comparacao anual, quebrada por parametro sobrando).
+    problemas += [f"metrica falhou: {{str(w.value)[:160]}}" for w in at.warning]
+    if problemas:
+        falhas.append((nome, problemas))
 at = AppTest.from_file("streamlit_app.py", default_timeout=400)
 at.run()
 if at.exception:

@@ -308,8 +308,8 @@ with col_yoy:
                 comparavel = linha.iloc[0].get("variacao_pct_comparavel")
         base.mostrar_grafico(
             fig, chave="p2_yoy",
-            nota=(f"No acumulado, {fmt.variacao(comparavel)} contra os mesmos meses de {ano - 1} "
-                  ". Comparar com o ano cheio anterior subestimaria um ano parcial."
+            nota=(f"No acumulado, {fmt.variacao(comparavel)} contra os mesmos meses de "
+                  f"{ano - 1}. Comparar com o ano cheio anterior subestimaria um ano parcial."
                   if not fmt.eh_vazio(comparavel) else None),
             dados=yoy,
             colunas_dados=["ano_mes", "faturamento_bruto", "faturamento_bruto_ano_anterior",

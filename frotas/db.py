@@ -236,6 +236,10 @@ def _normalizar_params(params: Mapping[str, Any] | None) -> ParamsOrdenados:
 #: pode virar parametro.
 _BIND = re.compile(r"(?<!:):([a-zA-Z_]\w*)")
 
+#: Nomes de parametro que a consulta traduzida realmente referencia. Casa com
+#: limite de palavra, para ``$ref`` nao ser confundido com ``$ref_data``.
+_USADO = re.compile(r"\$([a-zA-Z_]\w*)")
+
 
 def _traduzir(sql: str, params: ParamsOrdenados) -> tuple[str, dict[str, Any]]:
     """``:nome`` (SQLAlchemy) -> ``$nome`` (DuckDB), expandindo listas.
@@ -263,7 +267,16 @@ def _traduzir(sql: str, params: ParamsOrdenados) -> tuple[str, dict[str, Any]]:
             return expandidos[nome]
         return f"${nome}" if nome in valores else achado.group(0)
 
-    return _BIND.sub(trocar, sql), valores
+    consulta = _BIND.sub(trocar, sql)
+    # Param que a consulta nao usa e **descartado**, nao enviado. A camada de
+    # metricas monta os params a partir de um helper comum (`condicoes_titulos`)
+    # mais extras, e nem toda consulta usa todo extra -- o SQLAlchemy ignorava o
+    # sobrando em silencio, o DuckDB recusa a consulta inteira com "excess
+    # parameters". Sem este filtro, cada extra esquecido derruba uma metrica so
+    # em producao, e o defeito viaja escondido: foi o que aconteceu com o
+    # grafico de comparacao anual.
+    usados = set(_USADO.findall(consulta))
+    return consulta, {k: v for k, v in valores.items() if k in usados}
 
 
 def _executar(sql: str, params: ParamsOrdenados) -> pd.DataFrame:
