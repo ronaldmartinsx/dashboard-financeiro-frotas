@@ -72,13 +72,23 @@ pip install -r requirements.txt
 streamlit run streamlit_app.py
 ```
 
-Não precisa de credencial nem de banco: o dataset viaja no repositório.
-
-### Os dados ficam no projeto
-
 O app **não conecta em banco nenhum**. Ele lê `dados/*.parquet`, oito arquivos que somam
-459 KB e estão versionados aqui, e consulta esses arquivos com DuckDB em processo. Não há
-servidor, não há rede e não há credencial: `git clone` + `pip install` e o app roda.
+459 KB e estão versionados aqui, com DuckDB em processo. Não há servidor, não há rede e não
+há credencial: `git clone` + `pip install` e o app roda.
+
+**Por que DuckDB e não pandas.** A camada semântica inteira é SQL, e é nela que moram as
+armadilhas do dataset. Reescrever isso em pandas jogaria fora as verificações que validam
+exatamente aquele SQL. Com DuckDB o texto das consultas continua o mesmo que rodava no
+Postgres: duas diferenças de dialeto foram resolvidas de forma portável e `to_char` entra
+por macro, sem tocar nas consultas.
+
+**O que isso custou em tempo de carregamento**, medido antes e depois:
+
+| | Postgres gerenciado | Snapshot local |
+|---|---|---|
+| Metas (a página mais pesada) | ~12 s | **0,33 s** |
+| Demais páginas | ~2 s | **0,06 a 0,08 s** |
+| Suíte de verificação completa | ~82 s | **3,5 s** |
 
 Para regerar o snapshot quando o dataset de origem mudar:
 
@@ -87,34 +97,14 @@ pip install -r requirements-dev.txt
 python3 scripts/exportar_dados.py
 ```
 
-Esse script é a **única** parte do repositório que fala com o Supabase, e ele não roda no
-app. Ele precisa de `PG_DSN` (`st.secrets`, variável de ambiente ou `.env` da raiz) e nunca
-imprime o valor do segredo, só a origem consultada. `.env` e `.streamlit/secrets.toml`
-continuam no `.gitignore`.
-
-**Por que DuckDB e não pandas.** A camada semântica inteira é SQL, e é nela que moram as
-armadilhas do dataset: corte point-in-time de cancelamento, janela de 12 competências,
-meta por período casado. Reescrever isso em pandas jogaria fora as verificações que validam
-exatamente aquele SQL. Com DuckDB o texto das consultas continua o mesmo que rodava no
-Postgres. Duas diferenças de dialeto foram resolvidas de forma portável (`generate_series`
-no `FROM` em vez da lista do `SELECT`; `interval '1 month' - interval '1 day'` no lugar do
-literal composto) e `to_char` entra por macro, sem tocar nas consultas.
-
-**O que isso custou em tempo de carregamento**, medido antes e depois:
-
-| | Supabase (pooler) | Snapshot local |
-|---|---|---|
-| Metas | ~12 s | **0,33 s** |
-| Faturamento e Recebimento | ~2 s | **0,06 s** |
-| Inadimplência | ~2 s | **0,08 s** |
-| Custos | ~2 s | **0,06 s** |
-| Suíte de verificação completa | ~82 s | **3,5 s** |
+Esse script é a **única** parte do repositório que fala com um banco, e ele não roda no
+app. Precisa de `PG_DSN` (`st.secrets`, variável de ambiente ou `.env` da raiz) e nunca
+imprime o valor do segredo, só a origem consultada.
 
 ## Leitura executiva (opcional)
 
-A página de Metas tem um bloco **"O que estes números estão dizendo?"**: um botão que
-gera, pela API do Claude, o briefing do exercício em três parágrafos: o que vai bem, o
-que preocupa e a ação mais urgente.
+A página de Metas tem um botão que gera, pela API do Claude, o briefing do exercício em
+três parágrafos: o que vai bem, o que preocupa e a ação mais urgente.
 
 **O modelo não tem acesso a dado nenhum.** Ele não vê SQL, não vê os arquivos e não
 calcula. Recebe um dicionário com os números que `frotas/metrics/` já apurou, os mesmos
@@ -125,66 +115,18 @@ gerado** e exige que cada um corresponda a um valor do payload, com a tolerânci
 arredondamento do próprio texto (`92,5%` casa com `92,5126`; `R$ 3,52 mil` não casa com
 `R$ 3,52 mi`). Um número sem procedência **reprova a resposta inteira**: o app tenta uma
 vez mais dizendo qual número reprovou e, se falhar de novo, não mostra briefing nenhum.
-Número sem procedência não vai para a tela, venha ele de uma consulta errada ou de um
-modelo.
 
-```bash
-# no .env da raiz (desenvolvimento local)
-ANTHROPIC_API_KEY=sk-ant-...
-```
+**A presença da credencial é o interruptor**, e por isso não existe detecção de ambiente no
+código. Local, com `ANTHROPIC_API_KEY` no `.env`, o botão funciona; no Streamlit Cloud o
+segredo simplesmente não é configurado, o botão aparece desabilitado e o visitante lê o
+motivo. Um único caminho de código para os dois casos, sem flag para alguém esquecer de
+virar. Para publicar, não é preciso fazer nada.
 
-### Ligada local, desligada na versão publicada
+A chamada é sob demanda, cacheada por payload, e nenhum número da tela depende dela.
+`scripts/verificar_leitura.py` cobre o verificador com 18 casos e **roda offline**, sem
+gastar crédito.
 
-**A presença da credencial é o interruptor**, e por isso não existe detecção de ambiente
-no código. Na máquina de desenvolvimento a chave está no `.env` e o botão funciona; no
-Streamlit Cloud o segredo simplesmente **não é configurado**, o botão aparece desabilitado
-e o visitante lê o recado explicando por quê. Um único caminho de código para os dois
-casos, sem flag para alguém esquecer de virar.
-
-Ou seja: **para publicar, não faça nada.** Não adicione `ANTHROPIC_API_KEY` aos segredos
-do Streamlit Cloud e a leitura executiva já sobe desligada.
-
-Nenhum número da tela depende disso. É um recurso opcional em cima da camada de
-métricas, nunca dentro dela. A chamada é sob demanda (só no clique), cacheada por
-payload, e custa alguns centavos por leitura.
-
-`scripts/verificar_leitura.py` testa o verificador com 18 casos e **roda offline**: não
-chama a API nem gasta crédito. Ele entra na suíte do `verificar_tudo.py`.
-
-## Identidade visual
-
-O app veste a **camada de dados do [Bancada](../Bancada%20Design%20System)**, o design
-system do portfólio. A tese do sistema é *"a bancada é escura, os artefatos são claros"*:
-um dashboard construído na camada clara **é** o artefato que o site escuro enquadra, então
-a captura de tela dele entra numa moldura do portfólio sem tratamento nenhum.
-
-Do sistema vêm as superfícies (`#F4F6F8` sobre `#E6EBEF`), os seis matizes categóricos, os
-três sinais recalibrados para fundo claro, as escalas sequencial e divergente, e as três
-fontes com papel definido: **Archivo** no número herói, **IBM Plex Sans** no corpo e nos
-números de tabela e eixo, **IBM Plex Mono** só em rótulo e procedência.
-
-Duas coisas nós **não** adotamos, com a razão registrada em `docs/03_ux.md`: a escala de
-tamanhos (a do Bancada é de site com prosa; esta é de painel denso) e os glifos `▲ ▼` (os
-nossos `✓ ! !! ✕` codificam favorabilidade, não direção, e é isso que impede pintar de verde
-uma inadimplência que subiu).
-
-**Um tema só.** O app é claro por tese, não por gosto.
-
-O rodapé leva a assinatura do autor, o link do portfólio e a ressalva sobre o dataset
-sintético. Ele é chamado **uma vez** no entrypoint, depois de `pagina.run()`: o rodapé é
-do app, não de cada página, e assim não há como uma esquecer. Segue o `Footer` do Bancada:
-separado do conteúdo por fio, nunca por inversão de fundo, e acromático, porque a cor
-pertence ao dado.
-
-## Escopo: cinco eixos
-
-Faturamento · Recebimento · **Inadimplência na posição atual** · Metas · Custos.
-
-Fora de escopo por decisão de projeto: margem operacional, análise de contratos,
-concentração de carteira, recuperação de crédito e toda série retroativa de
-inadimplência. A inadimplência é uma **foto na data de referência**, nunca uma série.
-
-## Guia e quatro páginas
+## As cinco páginas
 
 O menu lateral leva o **nome curto**; a **pergunta de negócio** é o título dentro da página.
 
@@ -196,30 +138,23 @@ O menu lateral leva o **nome curto**; a **pergunta de negócio** é o título de
 | Inadimplência | Quanto está em aberto hoje, e com quem? | Gerente de crédito e cobrança |
 | Custos | Para onde vai o custo? | Gerente de operação e frota |
 
-Toda página abre com o mesmo cabeçalho: **Dashboard Financeiro · <seção>**, a pergunta
-de negócio como título, e os **chips de contexto**, que repetem os filtros em uso. Os chips
-ficam no topo, e não num rodapé, porque contexto de apuração se lê antes do número, e porque
-o recorte só existia na barra lateral, invisível com ela recolhida.
+Duas regras editoriais que o código sustenta: **uma pergunta central por página, declarada
+no título**, e **no máximo um bloco curto de texto por página**. O resto é rótulo, nota de
+rodapé do visual ou tooltip.
 
-**Cada página exibe apenas os filtros que mudam os números dela** (`FILTROS_DA_PAGINA` em
-`views/_comum.py`, derivado de `filtros.politica_filtros()`). Metas troca o período por um
-seletor de **exercício**, porque tudo ali é por ano, e não lista porte, rating, tipo de
-contrato nem cliente, porque o orçamento só existe nos níveis Empresa e Segmento;
-Inadimplência não lista período, porque a página é uma leitura numa data; Custos não lista
-data, porque seus números são todos por competência. Filtro visível que
-não faz nada é pior que filtro nenhum: o usuário mexe e conclui que o dashboard quebrou.
+**Cada página exibe apenas os filtros que mudam os números dela.** Metas troca período por
+exercício, porque tudo ali é por ano; Inadimplência não lista período, porque é uma leitura
+numa data; Custos não lista data, porque seus números são todos por competência. Filtro
+visível que não faz nada é pior que filtro nenhum: o usuário mexe e conclui que o dashboard
+quebrou.
 
-**Granularidade do eixo temporal**: as páginas com série (Metas, Faturamento e Recebimento,
-Custos) trazem **Agrupar o tempo por**, com mês, trimestre ou ano. Cada coluna declara como se
-agrega (`reagrupar()` em `views/_comum.py`): reais somam, a inadimplência é fim de período
-(o trimestre é o valor do último mês, nunca a soma dos três) e a ociosidade é recalculada
-como veículos-mês parados sobre veículos-mês de frota. **Semana não existe** e não é
-omissão: `titulos_receber.competencia` e `custos.competencia` são sempre dia 1 do mês, e a
-meta é mensal por definição. Só `data_pagamento` tem grão diário.
+**A inadimplência é uma foto na data de referência, nunca uma série.** Fora de escopo por
+decisão de projeto: margem operacional, análise de contratos, concentração de carteira e
+recuperação de crédito. O raciocínio de cada corte está em `docs/03_ux.md`.
 
-Duas regras editoriais que o código sustenta: **uma pergunta central por página,
-declarada no título**, e **no máximo um bloco curto de texto por página**. O resto é
-rótulo, nota de rodapé do visual ou tooltip.
+As páginas com série trazem **Agrupar o tempo por**, com mês, trimestre ou ano, e cada
+coluna declara como se agrega: reais somam, a inadimplência é fim de período (o trimestre é
+o valor do último mês, nunca a soma dos três).
 
 ## Estrutura
 
@@ -234,14 +169,14 @@ frotas/
   metrics/                camada semântica, a única que escreve SQL
     receita.py  credito.py  custos.py  metas.py  alertas.py  dimensoes.py
   ui/
-    theme.py              tokens do Bancada, paleta validada para daltonismo, layout Plotly
+    theme.py              cor e tipografia, paleta validada para daltonismo, layout Plotly
     format.py             formatação pt-BR (R$, %, p.p., competência, delta)
     rotulos.py            dicionário único coluna → rótulo legível (149 colunas)
     componentes.py        tiles, banners, tabelas, seletores
 views/                    guia + uma página por pergunta, mais _comum.py
 scripts/
-  exportar_dados.py       regera dados/ a partir do Supabase (só isto usa credencial)
-  verificar_tudo.py       roda as quatro verificações; use antes de commitar
+  exportar_dados.py       regera dados/ a partir do banco de origem (só isto usa credencial)
+  verificar_tudo.py       roda as seis verificações; use antes de commitar
   validar_metricas.py     116 verificações contra os números publicados
   verificar_rotulos.py    falha se nome de coluna, travessão ou cifrão cru chegar à tela
   verificar_leitura.py    18 casos do verificador de procedência (offline, sem custo)
@@ -255,31 +190,20 @@ docs/                     00 briefing · 01 KPIs · 02 arquitetura · 03 UX · 0
 python3 scripts/verificar_tudo.py
 ```
 
-Roda tudo de uma vez e só devolve 0 se as seis passarem: `pyflakes`, as métricas,
-os rótulos, o verificador da leitura executiva, os invariantes visuais e o render
-das cinco páginas. **Chame antes de commitar.**
+Roda em 3,5 s e só devolve 0 se as seis passarem. **Chame antes de commitar.**
 
-```bash
-python3 scripts/validar_metricas.py
-```
-
-Roda a camada semântica contra o banco e compara com os números de referência de
-`DICIONARIO_DADOS.md`. Saída esperada: **116/116 obrigatórias OK**, 3 informativas
-(divergências de definição documentadas em `docs/04_handover.md`).
-
-Cobre, entre outros: faturamento, receita líquida e custos dos três anos; inadimplência
-na data de referência em quatro pontos; aging casa a casa; realizado × meta de
-faturamento e recebimento; e o nível esperado dos 13 alertas.
-
-```bash
-python3 scripts/verificar_rotulos.py
-```
-
-Renderiza todas as páginas e **falha se qualquer nome de coluna do banco chegar à tela**:
-cabeçalho de tabela, título de eixo, legenda, colorbar, anotação, rótulo de widget e o
-**texto livre** de `st.caption`, `st.markdown` e `st.expander`. Na prosa ele também pega
-travessão em texto corrido e cifrão cru (dois `$` na mesma string viram LaTeX no Streamlit),
-os dois defeitos que já escaparam para a tela.
+- **`validar_metricas.py`** compara a camada semântica com os números de referência de
+  `DICIONARIO_DADOS.md`. Saída esperada: **116/116 obrigatórias OK**, mais 3 informativas
+  (divergências de definição documentadas em `docs/04_handover.md`). Cobre faturamento,
+  receita líquida e custos dos três anos, inadimplência em quatro datas, o aging casa a
+  casa, realizado × meta, e o nível esperado dos 13 alertas.
+- **`verificar_rotulos.py`** renderiza todas as páginas e falha se qualquer nome de coluna
+  do banco chegar à tela, inclusive dentro do **texto livre** de `st.caption`, `st.markdown`
+  e `st.expander`. Também pega travessão em prosa e cifrão cru (dois `$` na mesma string
+  viram LaTeX no Streamlit), os dois defeitos que já escaparam.
+- **`verificar_tema.py`** mede contraste e separação em daltonismo, confere o espelho entre
+  o tema e o `config.toml`, e falha se um hex literal aparecer fora do tema.
+- **`verificar_leitura.py`** cobre o verificador de procedência com 18 casos, offline.
 
 ## Regras de arquitetura
 
@@ -296,25 +220,14 @@ Seis invariantes que a revisão verifica e que devem continuar valendo:
 
 ## Segurança
 
-O app é read-only em profundidade e, desde a mudança para o snapshot local, a superfície
-de ataque praticamente desapareceu:
-
 - **Não há credencial em lugar nenhum do app.** O `PG_DSN` só é lido por
   `scripts/exportar_dados.py`, que roda na mão. Publicar o dashboard não expõe segredo.
-- As tabelas são *views* sobre arquivos Parquet abertos em leitura, e a guarda local
-  recusa qualquer SQL que não comece por `SELECT`/`WITH`. O validador testa as duas
-  barreiras: as cinco tentativas de escrita bloqueadas pela guarda, mais um `INSERT` que
-  o próprio motor recusa por ser view sobre arquivo.
+- As tabelas são *views* sobre arquivos Parquet abertos em leitura, e a guarda local recusa
+  qualquer SQL que não comece por `SELECT`/`WITH`. O validador testa as duas barreiras.
 - SQL sempre parametrizado. Nenhuma operação de escrita existe no código.
 
-Os dois achados da auditoria da camada de dados ficaram **resolvidos por construção**:
-
-- **Corrigido em 2026-09-02.** `anon` e `authenticated` tinham grants de
-  `INSERT/UPDATE/DELETE/TRUNCATE` em `public`. Agora têm somente `SELECT`.
-- **Encerrado em 2026-09-06.** O risco de o app conectar como `postgres`
-  (`rolbypassrls = true`, ignorando as policies de RLS) deixou de existir: o app não
-  conecta. O papel `app_leitura` continua descrito em `docs/04_handover.md` §3.1 para
-  quem eventualmente religar a conexão.
+Os dois achados da auditoria feita enquanto havia banco no ar ficaram resolvidos por
+construção. O registro está em `docs/02_arquitetura.md` §7.
 
 ## Ressalva sobre os dados
 
