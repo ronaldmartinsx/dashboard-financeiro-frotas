@@ -4,10 +4,14 @@
 streamlit==1.50.0
 pandas==2.3.3
 
-# Camada de dados: DuckDB consulta os Parquet de dados/ em processo. Nao ha
-# servidor, nao ha rede e nao ha credencial -- ver requirements-dev.txt para o
-# que gera o snapshot.
+# Camada de dados: DuckDB consulta os Parquet de dados/ em processo, com o proprio
+# leitor de Parquet. Nao ha servidor, nao ha rede e nao ha credencial -- ver
+# requirements-dev.txt para o que gera o snapshot.
 duckdb==1.5.5
+
+# pyarrow nao e importado por nenhum modulo daqui: e dependencia dura do streamlit
+# (pyarrow>=7.0) e o que o exportador usa em to_parquet. Fica fixado para a versao
+# nao mudar sozinha num redeploy.
 pyarrow==22.0.0
 
 # Leitura executiva (opcional). Sem ANTHROPIC_API_KEY o bloco explica como ligar

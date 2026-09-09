@@ -13,8 +13,9 @@ proposito: e ele que entra na chave de ``st.cache_data`` das metricas, entao a
 barra lateral **monta um novo objeto** a cada mudanca em vez de mutar o antigo.
 
 A barra lateral chama ``dimensoes.opcoes_filtros()`` **uma vez** no boot: sao 15
-dominios em 1 round-trip (~3,8 s a frio, ~2 ms depois). Quinze ``listar_*`` em
-serie custariam 14 s.
+dominios em 1 round-trip. Foi para isso que as 13 ``listar_*`` de um dominio cada
+sairam do modulo -- consultar em serie era o custo que essa funcao existe para
+evitar.
 """
 
 from __future__ import annotations

@@ -171,7 +171,7 @@ frotas/
   ui/
     theme.py              cor e tipografia, paleta validada para daltonismo, layout Plotly
     format.py             formatação pt-BR (R$, %, p.p., competência, delta)
-    rotulos.py            dicionário único coluna → rótulo legível (149 colunas)
+    rotulos.py            dicionário único coluna → rótulo legível (151 colunas)
     componentes.py        tiles, banners, tabelas, seletores
 views/                    guia + uma página por pergunta, mais _comum.py
 scripts/
@@ -200,7 +200,9 @@ Roda em 3,5 s e só devolve 0 se as seis passarem. **Chame antes de commitar.**
 - **`verificar_rotulos.py`** renderiza todas as páginas e falha se qualquer nome de coluna
   do banco chegar à tela, inclusive dentro do **texto livre** de `st.caption`, `st.markdown`
   e `st.expander`. Também pega travessão em prosa e cifrão cru (dois `$` na mesma string
-  viram LaTeX no Streamlit), os dois defeitos que já escaparam.
+  viram LaTeX no Streamlit), os dois defeitos que já escaparam. A regra do travessão vale
+  também para este README e para os cinco documentos de `docs/`, poupando o `—` sozinho
+  de célula vazia e o citado entre crases.
 - **`verificar_tema.py`** mede contraste e separação em daltonismo, confere o espelho entre
   o tema e o `config.toml`, e falha se um hex literal aparecer fora do tema.
 - **`verificar_leitura.py`** cobre o verificador de procedência com 18 casos, offline.

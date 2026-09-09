@@ -1,7 +1,7 @@
-# Dataset Financeiro — Locadora de Frotas (sintético)
+# Dataset Financeiro: Locadora de Frotas (sintético)
 
-Período: **2024-01-01 a 2026-08-31** (32 meses de competência). Data de extração simulada: **2026-08-31** — nenhum pagamento existe após essa data.
-Formato: CSV UTF-8, separador `,`, decimal `.`, datas ISO `YYYY-MM-DD`. Seed fixa (`20260831`) — regenerável.
+Período: **2024-01-01 a 2026-08-31** (32 meses de competência). Data de extração simulada: **2026-08-31**, nenhum pagamento existe após essa data.
+Formato: CSV UTF-8, separador `,`, decimal `.`, datas ISO `YYYY-MM-DD`. Seed fixa (`20260831`), regenerável.
 
 ## Onde os dados estao
 
@@ -28,7 +28,7 @@ Os prefixos `dim_`/`fato_`/`ponte_` sairam dos nomes (a granularidade esta no `C
 | `fato_custos.csv` | `custos` | 36.298 | `id_contrato = 'SEM_ALOCACAO'` -> `NULL` (permite FK) + coluna derivada `veiculo_ocioso` |
 | — (gerado) | `metas` | 2.040 | orcamento regerado por `scripts/gerar_metas.py`, sem CSV de origem (ver secao Metas) |
 
-Em todas as tabelas, strings vazias dos CSVs viraram `NULL` — inclusive `data_pagamento`, `data_cancelamento`, `data_baixa`, `data_fim_efetiva`, `data_venda` e `data_devolucao`, onde o `NULL` carrega significado (nao pago / nao cancelado / ainda vigente). Ha FKs entre todas as tabelas, checks nos dominios enumerados e indices em `competencia`, `data_vencimento`, `data_pagamento`, `status_titulo` e `categoria_custo`. RLS habilitado com policy de SELECT para `anon` e `authenticated`; escrita fechada.
+Em todas as tabelas, strings vazias dos CSVs viraram `NULL`, inclusive `data_pagamento`, `data_cancelamento`, `data_baixa`, `data_fim_efetiva`, `data_venda` e `data_devolucao`, onde o `NULL` carrega significado (nao pago / nao cancelado / ainda vigente). Ha FKs entre todas as tabelas, checks nos dominios enumerados e indices em `competencia`, `data_vencimento`, `data_pagamento`, `status_titulo` e `categoria_custo`. RLS habilitado com policy de SELECT para `anon` e `authenticated`; escrita fechada.
 
 ## Modelo (esquema estrela)
 
@@ -54,11 +54,11 @@ dim_cliente ─────┘            │                    │
 
 ## Colunas relevantes
 
-**fato_titulos_receber** — `id_titulo`, `id_contrato`, `id_cliente`, `tipo_receita` (Locação, Multa de Trânsito, KM Excedente, Avaria, Serviços Adicionais, Multa Rescisória), `competencia`, `data_emissao`, `data_vencimento`, `valor_bruto`, `valor_impostos`, `valor_liquido`, `data_pagamento`, `valor_pago`, `valor_juros_multa`, `dias_atraso_pagamento`, `status_titulo` (Pago / Em Aberto / Cancelado / Baixado), `data_cancelamento`, `motivo_cancelamento`, `data_baixa`, `valor_baixa`, `motivo_baixa` (Perda Cobrável, Glosa, Cortesia, Baixa Caixa), `forma_pagamento`.
+**fato_titulos_receber**: `id_titulo`, `id_contrato`, `id_cliente`, `tipo_receita` (Locação, Multa de Trânsito, KM Excedente, Avaria, Serviços Adicionais, Multa Rescisória), `competencia`, `data_emissao`, `data_vencimento`, `valor_bruto`, `valor_impostos`, `valor_liquido`, `data_pagamento`, `valor_pago`, `valor_juros_multa`, `dias_atraso_pagamento`, `status_titulo` (Pago / Em Aberto / Cancelado / Baixado), `data_cancelamento`, `motivo_cancelamento`, `data_baixa`, `valor_baixa`, `motivo_baixa` (Perda Cobrável, Glosa, Cortesia, Baixa Caixa), `forma_pagamento`.
 
-**fato_custos** — `id_custo`, `id_veiculo`, `id_contrato` (`SEM_ALOCACAO` quando ocioso), `competencia`, `categoria_custo`, `tipo_custo` (Fixo / Variável / Não Caixa), `valor`.
+**fato_custos**: `id_custo`, `id_veiculo`, `id_contrato` (`SEM_ALOCACAO` quando ocioso), `competencia`, `categoria_custo`, `tipo_custo` (Fixo / Variável / Não Caixa), `valor`.
 
-**metas** — `id_meta`, `versao_meta`, `eh_versao_vigente`, `tipo_meta`, `unidade` (BRL / %), `tipo_agregacao`, `granularidade` (Mensal / Trimestral / Anual), `nivel_analise` (Empresa / Segmento), `chave_nivel` (`TOTAL` ou um valor de `clientes.segmento`), `ano`, `trimestre`, `ano_mes`, `data_inicio_periodo`, `data_fim_periodo`, `valor_meta`. Ver a secao **Metas (orcamento)** ao final.
+**metas**: `id_meta`, `versao_meta`, `eh_versao_vigente`, `tipo_meta`, `unidade` (BRL / %), `tipo_agregacao`, `granularidade` (Mensal / Trimestral / Anual), `nivel_analise` (Empresa / Segmento), `chave_nivel` (`TOTAL` ou um valor de `clientes.segmento`), `ano`, `trimestre`, `ano_mes`, `data_inicio_periodo`, `data_fim_periodo`, `valor_meta`. Ver a secao **Metas (orcamento)** ao final.
 
 ## Regras de negócio embutidas
 
@@ -68,18 +68,18 @@ dim_cliente ─────┘            │                    │
 - **Juros/multa**: 2% + 1% a.m. pro rata sobre títulos pagos em atraso (`valor_juros_multa`).
 - **Baixa**: títulos vencidos há mais de 365 dias e não pagos viram `Baixado`, com motivo decomposto.
 - **Status é "as of" 2026-08-31**. Vencido vs. a vencer deve ser calculado, nunca lido de coluna.
-- **Combustível é do cliente** — não entra em `fato_custos`.
+- **Combustível é do cliente**: não entra em `fato_custos`.
 
 ## Armadilhas plantadas de propósito
 
-1. **Títulos cancelados (~4% do faturamento, 6% em 2025)**. Se você não aplicar filtro *point-in-time* de cancelamento, a inadimplência infla de **9,4% para 18,7%** (jun/2026). Um título cancelado em out/2025 não pode ser considerado inadimplente numa foto de dez/2025 — mas ainda estava em aberto numa foto de set/2025.
+1. **Títulos cancelados (~4% do faturamento, 6% em 2025)**. Se você não aplicar filtro *point-in-time* de cancelamento, a inadimplência infla de **9,4% para 18,7%** (jun/2026). Um título cancelado em out/2025 não pode ser considerado inadimplente numa foto de dez/2025, mas ainda estava em aberto numa foto de set/2025.
 2. **Cliente em crise**: um cliente Grande para de pagar a partir de set/2025.
 3. **Estresse setorial**: Construção Civil piora no 2º semestre de 2025.
 4. **5 contratos com margem negativa** (frota velha + manutenção corretiva alta).
-5. **Efeito base**: métricas móveis de 12 meses só estabilizam a partir de 2025 — o dataset começa em jan/2024.
+5. **Efeito base**: métricas móveis de 12 meses só estabilizam a partir de 2025: o dataset começa em jan/2024.
 6. Contratos podem começar antes de 2024 e ainda estar ativos; alguns são rescindidos antes do prazo (gera Multa Rescisória).
 7. **Duas versões de orçamento para 2026**: somar sem filtrar `eh_versao_vigente` dobra o ano. A `Revisao 2026` corta o faturamento de 37,80 mi para 35,82 mi e sobe a meta de inadimplência de 6,50% para 8,00%.
-8. **Metas percentuais não se somam nem se tiram média simples**: `tipo_agregacao` diz como consolidar — margem é média ponderada por `Receita Liquida`, inadimplência é valor de fim de período (o do último mês).
+8. **Metas percentuais não se somam nem se tiram média simples**: `tipo_agregacao` diz como consolidar: margem é média ponderada por `Receita Liquida`, inadimplência é valor de fim de período (o do último mês).
 
 ## Números de referência (para validar seu modelo)
 
@@ -148,30 +148,30 @@ Cuidado com `ALL()` na medida retroativa: ela ignora o filtro de data do calend�
 
 ## Ressalvas
 
-Dados 100% sintéticos, gerados por processo estocástico com narrativas plantadas. Não representam a realidade de nenhuma empresa e não servem para benchmark de mercado. As correlações existem porque foram programadas — um modelo preditivo treinado aqui aprende as regras do gerador, não o comportamento real de clientes.
+Dados 100% sintéticos, gerados por processo estocástico com narrativas plantadas. Não representam a realidade de nenhuma empresa e não servem para benchmark de mercado. As correlações existem porque foram programadas, um modelo preditivo treinado aqui aprende as regras do gerador, não o comportamento real de clientes.
 
 ## Definicoes por tras dos numeros de referencia
 
-Reproduzidos exatamente contra o banco em 2026-08-31 — as definicoes nao estavam explicitas acima:
+Reproduzidos exatamente contra o banco em 2026-08-31, as definicoes nao estavam explicitas acima:
 
 - **Inadimplencia > 30 dias**: numerador = `valor_bruto` de titulos com `data_vencimento <= ref - 30`, nao pagos e nao cancelados *na data de referencia*; denominador = **faturamento bruto dos ultimos 12 meses de competencia**, tambem com filtro point-in-time de cancelamento. Nao e sobre a carteira vencida nem sobre o faturado acumulado.
-- **Receita liquida** da tabela de referencia (27,9 / 32,8 / 23,0 mi): `sum(valor_liquido)` **incluindo** titulos cancelados — e o denominador da margem publicada. Excluindo cancelados da 26,96 / 30,74 / 22,59 mi.
+- **Receita liquida** da tabela de referencia (27,9 / 32,8 / 23,0 mi): `sum(valor_liquido)` **incluindo** titulos cancelados, e o denominador da margem publicada. Excluindo cancelados da 26,96 / 30,74 / 22,59 mi.
 - **Cancelamentos %** (4,0 / 6,0 / 2,0): **nao sao uma metrica reconstituivel** e nao devem ser usados como referencia. Duas definicoes foram testadas contra o banco e nenhuma os reproduz: por competencia da 3,53 / 6,23 / 1,97, por ano de cancelamento da 1,22 / 5,45 / 5,88. Os valores **absolutos** batem (R$ 1,051 / 2,182 / 0,486 mi), entao o que diverge e o percentual, provavelmente um parametro do gerador e nao uma conta refeita sobre os dados. O app adota a leitura por competencia, que e a unica coerente com o denominador de faturamento, e nao publica os 4/6/2 em lugar nenhum.
 - **Aging** e **faturamento bruto** conferem casa a casa com o publicado acima.
 
 ## Metas (orcamento)
 
-A tabela `metas` **nao veio de um CSV**. Houve um `fato_meta.csv` na raiz, feito a mao, apagado em 2026-09-01: tinha metas que nao fechavam entre granularidades (a anual excedia a soma das mensais em 1,1% a 2,6%) e cuja origem nao era reconstituivel. O orcamento foi regerado em 2026-09-01 por `scripts/gerar_metas.py` — script **removido do repositorio em 2026-09-04**, ja tendo cumprido sua funcao (a tabela `metas` esta no banco); quem precisar dele o recupera do historico do git. O orcamento tem estas propriedades:
+A tabela `metas` **nao veio de um CSV**. Houve um `fato_meta.csv` na raiz, feito a mao, apagado em 2026-09-01: tinha metas que nao fechavam entre granularidades (a anual excedia a soma das mensais em 1,1% a 2,6%) e cuja origem nao era reconstituivel. O orcamento foi regerado em 2026-09-01 por `scripts/gerar_metas.py`, script **removido do repositorio em 2026-09-04**, ja tendo cumprido sua funcao (a tabela `metas` esta no banco); quem precisar dele o recupera do historico do git. O orcamento tem estas propriedades:
 
-**Coerencia por construcao** — verificada no banco, zero divergencias:
+**Coerencia por construcao**: verificada no banco, zero divergencias:
 - As 12 mensais somam exatamente as 4 trimestrais e a anual (metricas `Soma`).
 - Os 8 segmentos somam exatamente o total da Empresa, em toda granularidade.
 - `Margem Operacional` = (`Receita Liquida` − `Custo Operacional`) / `Receita Liquida`, reproduzivel a partir das proprias linhas da tabela.
 - Indice unico parcial garante uma unica versao vigente por metrica x periodo x recorte.
 
-**Metricas** (6): `Faturamento`, `Receita Liquida`, `Recebimento (Caixa)` — as tres com quebra por segmento; `Custo Operacional`, `Margem Operacional`, `Inadimplencia > 30d` — so no nivel Empresa, porque custo de veiculo ocioso (`custos.id_contrato` nulo) nao tem segmento a que atribuir.
+**Metricas** (6): `Faturamento`, `Receita Liquida`, `Recebimento (Caixa)` (as tres com quebra por segmento); `Custo Operacional`, `Margem Operacional`, `Inadimplencia > 30d`, so no nivel Empresa, porque custo de veiculo ocioso (`custos.id_contrato` nulo) nao tem segmento a que atribuir.
 
-**As metas nao conhecem o futuro.** Cada orcamento foi montado sobre o realizado do ano *anterior*, nunca sobre o do proprio ano — e por isso as narrativas plantadas aparecem como desvio, que e o que torna a analise de variacao interessante:
+**As metas nao conhecem o futuro.** Cada orcamento foi montado sobre o realizado do ano *anterior*, nunca sobre o do proprio ano, e por isso as narrativas plantadas aparecem como desvio, que e o que torna a analise de variacao interessante:
 
 | Premissa | 2024 | 2025 | 2026 orig. | 2026 revisao |
 |---|---|---|---|---|
@@ -192,4 +192,4 @@ A `Revisao 2026` e um reforecast de abr/2026: **jan-mar travados no realizado** 
 | 2025 | +6,8% | −2,9% | −0,98 p.p. | **+7,20 p.p.** |
 | 2026 (8m) | +2,9% | +3,6% | −0,61 p.p. | +2,02 p.p. (ago) |
 
-O grande desvio e a inadimplencia de 2025: o orcamento foi fechado em dez/2024 com o indicador em 3,56% e nao previa o cliente Grande que para de pagar em set/2025 nem o estresse da Construcao Civil. Faturamento e caixa seguiram acima do plano — a crise e de credito, nao de receita. Essa e a leitura que a tabela existe para permitir.
+O grande desvio e a inadimplencia de 2025: o orcamento foi fechado em dez/2024 com o indicador em 3,56% e nao previa o cliente Grande que para de pagar em set/2025 nem o estresse da Construcao Civil. Faturamento e caixa seguiram acima do plano, a crise e de credito, nao de receita. Essa e a leitura que a tabela existe para permitir.

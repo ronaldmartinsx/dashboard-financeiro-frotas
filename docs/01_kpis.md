@@ -1,11 +1,11 @@
-# 01 — Definicao de negocio, KPIs e estrutura do app
+# 01: Definicao de negocio, KPIs e estrutura do app
 
 > [!WARNING]
 > **Documento histórico, de 2026-09-01. Não é especificação do app atual.**
 >
 > Ele descreve o escopo original, anterior à redução de 2026-09-02. Cita margem
 > operacional, curva ABC, séries retroativas de inadimplência, análise de contratos
-> e de frota — tudo isso **foi removido**. Quem tratar este texto como requisito vai
+> e de frota, tudo isso **foi removido**. Quem tratar este texto como requisito vai
 > reimplementar o que saiu de propósito.
 >
 > Para o que existe hoje: `README.md` (escopo e páginas), `docs/02_arquitetura.md`
@@ -22,16 +22,16 @@ Todos os numeros abaixo foram apurados por SQL contra o banco em 2026-09-01. Nen
 
 ## 1. Sumario executivo
 
-A empresa **vende mais do que planejou e recebe quase o que planejou — e esta perdendo o controle do credito.**
+A empresa **vende mais do que planejou e recebe quase o que planejou, e esta perdendo o controle do credito.**
 
 - **Receita acima do plano, todos os anos.** Faturamento bruto 29,79 mi (2024) · 35,02 mi (2025) · 24,62 mi (2026, 8m).
   Contra a meta vigente: **−2,7% · +6,8% · +2,9%**. Caixa: **−4,7% · −2,9% · +3,6%**. Nao ha problema de demanda.
 - **A crise e de credito e comeca em out/2025.** A inadimplencia > 30d (point-in-time) sai de **6,92% em set/2025**
-  para **9,79% em out/2025** e **10,29% em nov/2025** — um salto de **+3,37 p.p. em dois meses**, R$ 1,17 mi de novo
+  para **9,79% em out/2025** e **10,29% em nov/2025**, um salto de **+3,37 p.p. em dois meses**, R$ 1,17 mi de novo
   vencido. Fecha 2025 em **10,20%** contra meta de **3,00%**: **+7,20 p.p.**, o maior desvio do dataset. Em ago/2026
   ainda esta em **10,02%**, contra meta de **8,80%** no mes (+1,22 p.p.).
 - **Tres focos explicam o salto.** (a) **Servicos Manicore S.A. 001** (Grande, Agronegocio, rating C): zero vencido ate
-  set/2025, R$ 53 mil vencidos em out/2025 e **nunca mais volta a zero** — R$ 159,5 mil vencidos em ago/2026, atrasos
+  set/2025, R$ 53 mil vencidos em out/2025 e **nunca mais volta a zero**, R$ 159,5 mil vencidos em ago/2026, atrasos
   de 70 a 119 dias, 24,4% do proprio faturamento 12m parado. Impacto acumulado vs. seu proprio historico: **R$ 245 mil**.
   (b) **Construcao Civil**: inadimplencia de 5,32% (dez/24) → **11,85% (jun/25)** → **20,24% (dez/25)** → 18,07% (ago/26);
   o segmento e **14,2% do faturamento 12m mas 25,6% do vencido**. (c) **Logistica e Transporte**, por tamanho: 40,3% da
@@ -68,7 +68,7 @@ Metodo: SQL direto, sem cache, sem arredondamento intermediario. `REF = 2026-08-
 | Inadimplencia x meta 2024 / 2025 | +0,56 / +7,20 p.p. | **+0,56 / +7,20 p.p.** | valor de dezembro − meta anual (Fim de Periodo) |
 | Coerencia do orcamento | "zero divergencias" | **confirmado** | 12 mensais = 4 trimestrais = anual (BRL); margem anual recalculada de RL e Custo = 35,00 / 35,50 / 33,00% exato |
 
-### 2.2 NAO bateram — divergencia de definicao
+### 2.2 NAO bateram: divergencia de definicao
 
 | # | Publicado | Apurado | Diagnostico e definicao adotada |
 |---|---|---|---|
@@ -80,11 +80,11 @@ Metodo: SQL direto, sem cache, sem arredondamento intermediario. `REF = 2026-08-
 
 - **Baixados entram na inadimplencia mas nao no aging.** O numerador de §3.3 nao filtra `data_baixa` (R$ 3,520 mi em REF);
   o aging de §3.5 filtra `data_baixa is null` (R$ 3,192 mi vencido). Diferenca: **R$ 328 mil**. E assim que os numeros
-  publicados foram gerados — manter, e rotular no app: *"aging exclui titulos baixados; inadimplencia nao."*
+  publicados foram gerados, manter, e rotular no app: *"aging exclui titulos baixados; inadimplencia nao."*
 - **4 titulos (R$ 182 mil) tem `data_baixa` posterior a REF** (2026-09-15 a 2026-10-19). Nao use `data_baixa is null` como
-  proxy de "vivo em REF"; se quiser point-in-time real, use `data_baixa is null or data_baixa > :ref` — mas isso **nao**
+  proxy de "vivo em REF"; se quiser point-in-time real, use `data_baixa is null or data_baixa > :ref`, mas isso **nao**
   reproduz o aging publicado. Nenhum `data_cancelamento` e futuro. 107 titulos (R$ 3,075 mi) tem `data_emissao` em
-  2026-09-01 — e a regra de emissao no 1o dia util apos a competencia, esperado.
+  2026-09-01, e a regra de emissao no 1o dia util apos a competencia, esperado.
 
 ---
 
@@ -114,7 +114,7 @@ Variantes apuradas (2024 / 2025 / 2026-8m), para o app **nunca** confundir:
 | Excluindo custo ocioso (= "margem de contratos") | 35,72% | 35,60% | 34,28% | unica valida com filtro de segmento/cliente |
 | Excluindo custo `Nao Caixa` (proxy EBITDA) | 56,90% | 56,79% | 53,90% | pagina de frota, rotulada |
 
-### 3.3 Inadimplencia > 30 dias (point-in-time) — **a metrica central**
+### 3.3 Inadimplencia > 30 dias (point-in-time): **a metrica central**
 ```sql
 numerador = sum(T.valor_bruto)
   where T.data_vencimento <= :ref - 30
@@ -152,7 +152,7 @@ sum(T.valor_pago) where T.data_pagamento between :ini and :fim   -- juros e mult
 ```
 Realizado: 24,461 (2024) · 30,601 (2025) · 22,804 mi (2026-8m). Sem juros: 24,242 / 30,252 / 22,469 mi
 (a versao **com** juros e a que reproduz o desvio publicado da serie de caixa). **Cobertura de caixa 12m**
-(set/25-ago/26) = 32,491 / 35,120 = **92,5%** — **abaixo** do piso de 93% da `Revisao 2026` e dos 97% do
+(set/25-ago/26) = 32,491 / 35,120 = **92,5%**, **abaixo** do piso de 93% da `Revisao 2026` e dos 97% do
 orcamento original. O numerador aqui e **sem** juros e multa: a meta aplica a taxa sobre o faturado puro,
 entao incluir juros somava 1,3 p.p. contra um denominador que nao os tem, e mantinha A4 em ambar
 escondendo o rompimento do piso.
@@ -165,7 +165,7 @@ faixa = a vencer | 1-30 | 31-60 | 61-90 | 91-180 | 180+   -- por (:ref - T.data_
 Em REF: a vencer **4,471** · 1-30d **0,761** · 31-60d **0,437** · 61-90d **0,403** · 91-180d **0,770** · 180+ **0,821** mi.
 Total vencido **3,192 mi**; carteira total em aberto **7,663 mi**; **% vencido da carteira = 41,7%**.
 
-### 3.6 Realizado x Meta — regra unica
+### 3.6 Realizado x Meta: regra unica
 ```sql
 -- BRL (Faturamento, Receita Liquida, Custo Operacional, Recebimento): soma das metas MENSAIS vigentes do periodo
 where eh_versao_vigente and granularidade='Mensal' and ano_mes between :ini_ym and :fim_ym
@@ -174,7 +174,7 @@ sum(meta_RL - meta_Custo) / sum(meta_RL)
 -- Inadimplencia > 30d (%): meta do ULTIMO mes do periodo (tipo_agregacao = 'Fim de Periodo')
 ```
 `eh_versao_vigente = true` **sempre**. Sem ele, 2026 duplica (Original 37,80 mi + Revisao 35,82 mi = 73,62 mi).
-Metas de **Custo, Margem e Inadimplencia so existem em `nivel_analise='Empresa'`** — qualquer filtro de segmento
+Metas de **Custo, Margem e Inadimplencia so existem em `nivel_analise='Empresa'`**, qualquer filtro de segmento
 deve **apagar** a comparacao com meta nessas tres.
 
 ### 3.7 Custo de Ociosidade
@@ -184,12 +184,12 @@ taxa_ociosidade = count(distinct id_veiculo) filter (id_contrato is null) / coun
 ```
 **Nao tem cliente, contrato nem segmento.** Nunca filtrar por essas dimensoes.
 
-### 3.8 Margem por Contrato — **so com periodo casado**
+### 3.8 Margem por Contrato: **so com periodo casado**
 ```sql
 -- receita e custo do MESMO conjunto de competencias em que o contrato faturou
 ```
 Sem isso o resultado e lixo: `CTR0023` (Construtora Jatapu 044) aparece com **−671%** de margem porque encerrou em
-2024-01-03 — recebeu 3 dias de receita (R$ 20 mil liquidos) contra o **custo cheio de janeiro de 10 veiculos**
+2024-01-03, recebeu 3 dias de receita (R$ 20 mil liquidos) contra o **custo cheio de janeiro de 10 veiculos**
 (R$ 154 mil). Corrigido esse artefato, ha **5 contratos com margem acumulada negativa** (confirmando a narrativa),
 mas o prejuizo real e de **R$ 15 mil**, nao R$ 149 mil.
 
@@ -215,7 +215,7 @@ Vencido > 30d, mes a mes: **zero** ate set/2025 → 53,1 mil (out/25) → 113,8 
 → **159,5 mil (ago/26)**. Taxa de titulos "ruins" (nao pagos ou pagos com >30d de atraso, controlada por maturidade):
 **18,2% antes de set/25 → 75,0% depois**. Impacto acumulado vs. o proprio historico: **R$ 245 mil**.
 **Peso:** R$ 655 mil de faturamento nos ultimos 12 meses = **1,8% da receita**, mas **4,5% do vencido** e
-**24,4% do proprio faturamento 12m parado**. Continua faturando — a decisao pendente e suspender ou renegociar.
+**24,4% do proprio faturamento 12m parado**. Continua faturando, a decisao pendente e suspender ou renegociar.
 
 ### 4.2 Construcao Civil se deteriora no 2S/2025
 Inadimplencia do segmento (mesma formula de §3.3, numerador e denominador do segmento):
@@ -227,11 +227,11 @@ Inadimplencia do segmento (mesma formula de §3.3, numerador e denominador do se
 No salto de set→nov/2025 (empresa: 6,92% → 10,29%), a Construcao Civil sozinha adicionou **R$ 317 mil** de novo
 vencido (de 567 para 884 mil), atras apenas de Logistica e Transporte (**R$ 430 mil**, mas com 2,8x mais receita).
 **Sobrerrepresentacao: 14,2% do faturamento 12m, 25,6% do vencido (1,80x).** Nomes: `CLI0034` Logistica Maues S.A. 034
-(Grande, D — 40,0% do proprio faturamento vencido), `CLI0019` Transportes Uatuma 019 (37,4%),
-`CLI0015` Transportes Manicore 015 (Grande, C — 32,2%), `CLI0030` Servicos Ponta Negra 030 (20,2%).
+(Grande, D, 40,0% do proprio faturamento vencido), `CLI0019` Transportes Uatuma 019 (37,4%),
+`CLI0015` Transportes Manicore 015 (Grande, C, 32,2%), `CLI0030` Servicos Ponta Negra 030 (20,2%).
 A margem do segmento tambem e a 3a pior: **32,5%** (12m) contra 39,3% de Energia e Saneamento.
 
-### 4.3 Contratos com margem negativa — e o falso positivo
+### 4.3 Contratos com margem negativa: e o falso positivo
 Periodo casado, todo o historico:
 
 | Contrato | Cliente | Tipo | RL | Custo | Margem | % corretiva | Causa |
@@ -245,10 +245,10 @@ Periodo casado, todo o historico:
 Prejuizo real (ex-`CTR0023`): **R$ 15 mil**. Os proximos da fila, materiais e **ativos**: `CTR0110` (Construtora
 Manicore 012, 7,3% sobre R$ 376 mil), `CTR0057` (Transportes Manicore 015, 11,5% sobre R$ 1,125 mi),
 `CTR0113` (14,5%), `CTR0127` (15,3%), `CTR0116` (16,4%). **Locacao Spot e Terceirizacao de Frota concentram o
-problema**: margem 12m por tipo — Terceirizacao **30,0%** · c/ Motorista 37,0% · Mensal Frota 38,8% · Spot 41,3%
+problema**: margem 12m por tipo, Terceirizacao **30,0%** · c/ Motorista 37,0% · Mensal Frota 38,8% · Spot 41,3%
 (a media do Spot esconde a variancia: e onde estao 4 dos 5 negativos).
 
-**Causa raiz — idade da frota** (custo 12m, set/25-ago/26):
+**Causa raiz, idade da frota** (custo 12m, set/25-ago/26):
 
 | Idade | Veiculos | Corretiva 12m | Por veiculo | % do custo |
 |---|---|---|---|---|
@@ -260,14 +260,14 @@ problema**: margem 12m por tipo — Terceirizacao **30,0%** · c/ Motorista 37,0
 Trocar os 45 veiculos de 7+ anos por frota de 0-2 anos economizaria **~R$ 644 mil/ano** em corretiva.
 
 ### 4.4 Quanto custa a ociosidade
-Custo de veiculo sem contrato: **R$ 297 mil (2024)** · **R$ 357 mil (2025)** · **R$ 434 mil (8m de 2026)** — anualizado,
+Custo de veiculo sem contrato: **R$ 297 mil (2024)** · **R$ 357 mil (2025)** · **R$ 434 mil (8m de 2026)**, anualizado,
 **+82% sobre 2025**. Componente caixa (excl. Depreciacao/Nao Caixa): R$ 313 mil em 2026(8m). Nos 12 meses moveis:
 **R$ 612 mil**, **2,7% do custo operacional total (R$ 22,391 mi)** e **1,8 p.p. de margem** (36,1% → 34,3%).
 Picos de frota parada: **nov/25 15 veiculos (6,7%)** · **fev/26 15 (6,4%)** · **jul/26 11 (4,6%)** · **ago/26 15 (6,3%)**.
 Por categoria (12m): Caminhonete 4x4 R$ 147 mil · Cavalo Mecanico R$ 108 mil · Caminhao Munck R$ 107 mil.
-**A ociosidade esta subindo justamente no fim da serie** — e o unico indicador operacional em piora clara.
+**A ociosidade esta subindo justamente no fim da serie**: e o unico indicador operacional em piora clara.
 
-### 4.5 Concentracao — curva ABC (12m moveis, set/25-ago/26, liquido de cancelados)
+### 4.5 Concentracao: curva ABC (12m moveis, set/25-ago/26, liquido de cancelados)
 
 | Classe | Clientes | Faturamento 12m | Share |
 |---|---|---|---|
@@ -276,16 +276,16 @@ Por categoria (12m): Caminhonete 4x4 R$ 147 mil · Cavalo Mecanico R$ 108 mil ·
 | C (80-100%) | 27 | R$ 7,229 mi | 20,6% |
 
 53 clientes faturaram nos ultimos 12 meses (de 58 cadastrados). Top 5 = 23,1%; maior cliente
-(`CLI0058` Energia Novo Airao 058, PME, B) = **5,97%** — nao ha dependencia critica de um unico nome na receita.
+(`CLI0058` Energia Novo Airao 058, PME, B) = **5,97%**, nao ha dependencia critica de um unico nome na receita.
 O risco esta do outro lado: **os 5 maiores devedores concentram 33,2% do vencido e os 10 maiores, 56,8%**
 (36 clientes com vencido > 30d). **Ratings C+D = 70,8% do vencido** com 22 dos 53 clientes.
-**Exposicao acima do limite de credito** (em aberto ÷ `limite_credito`, REF): **13 clientes** — Agropecuaria Trombetas 028
+**Exposicao acima do limite de credito** (em aberto ÷ `limite_credito`, REF): **13 clientes**, Agropecuaria Trombetas 028
 **283%** · Mineracao Anori 051 237% · Energia Novo Airao 058 229% · Servicos Autazes 023 206% ·
 Servicos Itapiranga 053 196% · Agropecuaria Negro 024 164%.
 
 ### 4.6 Onde o realizado mais desvia da meta vigente
 
-**Nivel empresa** — o unico confiavel:
+**Nivel empresa**: o unico confiavel:
 
 | Ano | Faturamento | Recebimento | Margem | Inadimplencia |
 |---|---|---|---|---|
@@ -293,10 +293,10 @@ Servicos Itapiranga 053 196% · Agropecuaria Negro 024 164%.
 | 2025 | **+6,78%** | −2,94% | −0,98 p.p. | **+7,20 p.p. (dez)** |
 | 2026 (8m) | +2,92% | +3,64% | **+1,70 p.p.**¹ | +1,22 p.p. (ago)² |
 
-¹ contra a meta ponderada dos 8 meses (30,69%); contra a meta anual (33,0%) daria −0,61 p.p. — ver D3.
-² contra a meta de ago/2026 (8,80%); contra a meta anual (8,00%) daria +2,02 p.p. — ver D2.
+¹ contra a meta ponderada dos 8 meses (30,69%); contra a meta anual (33,0%) daria −0,61 p.p., ver D3.
+² contra a meta de ago/2026 (8,80%); contra a meta anual (8,00%) daria +2,02 p.p., ver D2.
 
-**Nivel segmento** — o orcamento erra o mix, nao o total. Faturamento realizado x meta:
+**Nivel segmento**: o orcamento erra o mix, nao o total. Faturamento realizado x meta:
 
 | Segmento | 2025 | 2026 (8m) |
 |---|---|---|
@@ -319,7 +319,7 @@ segmento com **aviso explicito** e nunca usa-la como sinal de alerta automatico.
 
 ### 5.1 Primarios (topo de todas as paginas, no maximo 6)
 
-Criterio de escolha: cada um responde a uma pergunta que muda uma decisao **nesta semana** — vender mais, cortar custo,
+Criterio de escolha: cada um responde a uma pergunta que muda uma decisao **nesta semana**, vender mais, cortar custo,
 liberar caixa, cortar credito. Nao entraram metricas que so descrevem (ex.: Receita Liquida, que e faturamento x aliquota
 e nao tem alavanca propria; virou secundaria como denominador da margem).
 
@@ -328,9 +328,9 @@ e nao tem alavanca propria; virou secundaria como denominador da margem).
 | **P1** | **Faturamento Bruto** | Valor emitido por competencia, antes de impostos. | §3.1 | BRL · `R$ 1.234.567` | mes · trimestre · ano · segmento · cliente · contrato · tipo de receita | ↑ maior melhor | Ano de 2026 e parcial (8m): comparacao anual sem ajuste de periodo mente | `Faturamento`, Soma, Empresa **e Segmento** |
 | **P2** | **Margem Operacional** | Quanto sobra da receita liquida depois de todo o custo, inclusive de veiculo parado. | §3.2 | % · `34,7%`, desvio em `p.p.` | mes · trimestre · ano · **so Empresa quando ha custo ocioso** | ↑ maior melhor | Denominador **inclui** cancelados; com filtro de segmento o custo ocioso some e a margem sobe ~1,8 p.p. artificialmente | `Margem Operacional`, **Media Ponderada por Receita Liquida**, so Empresa |
 | **P3** | **Inadimplencia > 30d (point-in-time)** | Do faturado nos ultimos 12 meses, quanto esta vencido ha mais de 30 dias e ainda vivo na data de referencia. | §3.3 | % · `10,02%`, desvio em `p.p.` | mes (fim de mes) · segmento · porte · rating · cliente | ↓ menor melhor | Sem filtro PIT de cancelamento vai de 9,37% a **18,70%**; janela de 12m so estabiliza em **jan/2025** | `Inadimplencia > 30d`, **Fim de Periodo**, so Empresa |
-| **P4** | **Recebimento (Caixa)** | Quanto entrou no caixa no periodo, por data de pagamento. | §3.4 | BRL | mes · trimestre · ano · segmento · cliente | ↑ maior melhor | E por `data_pagamento`, **nao** por competencia — nao soma com faturamento do mesmo mes; inclui juros/multa | `Recebimento (Caixa)`, Soma, Empresa **e Segmento** |
+| **P4** | **Recebimento (Caixa)** | Quanto entrou no caixa no periodo, por data de pagamento. | §3.4 | BRL | mes · trimestre · ano · segmento · cliente | ↑ maior melhor | E por `data_pagamento`, **nao** por competencia; nao soma com faturamento do mesmo mes; inclui juros/multa | `Recebimento (Caixa)`, Soma, Empresa **e Segmento** |
 | **P5** | **Custo Operacional** | Custo total da operacao no periodo, com ocioso e depreciacao. | §3.2 | BRL | mes · trimestre · ano · categoria · tipo · veiculo · contrato | ↓ menor melhor | Sazonalidade brutal de IPVA em jan-fev (R$ 707+711 mil em 2026): serie mensal precisa de media movel ou comparativo YoY | `Custo Operacional`, Soma, **so Empresa** |
-| **P6** | **Carteira Vencida** | Saldo em aberto ja vencido na data de referencia, em reais. | §3.5 (faixas > 0 dias) | BRL + % da carteira · `R$ 3,19 mi (41,7%)` | foto em `:ref` · segmento · rating · cliente · faixa de aging | ↓ menor melhor | E **foto**, nao periodo: o filtro de competencia **nao** se aplica; exclui baixados (a inadimplencia nao) | **sem meta** — exibir sem gauge |
+| **P6** | **Carteira Vencida** | Saldo em aberto ja vencido na data de referencia, em reais. | §3.5 (faixas > 0 dias) | BRL + % da carteira · `R$ 3,19 mi (41,7%)` | foto em `:ref` · segmento · rating · cliente · faixa de aging | ↓ menor melhor | E **foto**, nao periodo: o filtro de competencia **nao** se aplica; exclui baixados (a inadimplencia nao) | **sem meta**; exibir sem gauge |
 
 ### 5.2 Secundarios, por pagina
 
@@ -343,7 +343,7 @@ e nao tem alavanca propria; virou secundaria como denominador da margem).
 | Curva ABC de clientes | Classificacao por faturamento 12m acumulado (A ate 50%, B ate 80%, C resto). | A: 12 cli / 49,1% · B: 14 / 30,3% · C: 27 / 20,6% | # e % | — | Janela de 12m: antes de jan/2025 nao existe |
 | Aging por faixa | §3.5 | 4,471 / 0,761 / 0,437 / 0,403 / 0,770 / 0,821 mi | BRL | ↓ nas faixas altas | Exclui baixados e cancelados |
 | Taxa de recuperacao de vencidos | Dos titulos que passaram de 30d de atraso, quanto foi pago. | R$ 9,822 mi de R$ 13,342 mi = **73,6%**, em media **92 dias** de atraso | % e dias | ↑ | Titulos recentes ainda nao tiveram tempo: filtrar `data_vencimento <= :ref - 90` |
-| Atraso medio ponderado | Media de `dias_atraso_pagamento` ponderada por `valor_bruto`, dos pagos no periodo. | **20,9 dias** (12m); prazo emissao→pagamento **43,0 dias** | dias | ↓ | So ve quem pagou — melhora artificialmente quando os piores param de pagar |
+| Atraso medio ponderado | Media de `dias_atraso_pagamento` ponderada por `valor_bruto`, dos pagos no periodo. | **20,9 dias** (12m); prazo emissao→pagamento **43,0 dias** | dias | ↓ | So ve quem pagou; melhora artificialmente quando os piores param de pagar |
 | Cobertura de caixa | Recebimento 12m **sem juros e multa** ÷ Faturamento valido 12m. | 32,491 / 35,120 = **92,5%** | % | ↑ | Descasamento temporal: caixa de m reflete faturamento de m−1 a m−3, entao crescer no faturamento derruba a razao. **Nao** e eficiencia de cobranca: para isso seria preciso safra por competencia, fora de escopo |
 | Juros e multa recuperados | `sum(valor_juros_multa)` | **R$ 902,7 mil** no historico | BRL | ↑ | Receita nao recorrente; nao entra em `titulos_receber.valor_bruto` |
 | Baixas por motivo | `sum(valor_baixa)` por `motivo_baixa`. | Perda Cobravel **R$ 664 mil** (21) · Glosa 207 (5) · Baixa Caixa 196 (7) · Cortesia 22 (2) | BRL | ↓ | 4 titulos (R$ 182 mil) tem `data_baixa` **futura** a REF |
@@ -351,18 +351,18 @@ e nao tem alavanca propria; virou secundaria como denominador da margem).
 | Uso do limite de credito | Em aberto ÷ `limite_credito` por cliente. | **13 clientes > 100%**; max **283%** | % | ↓ | `limite_credito` e nullable |
 | Exposicao por rating | Vencido > 30d por `rating_credito`. | A 0,4% · B 28,8% · C **47,5%** · D **23,3%** | % | ↓ | Rating e atributo estatico do cadastro, sem historico |
 | Margem por contrato | §3.8, **periodo casado**. | 5 negativos, prejuizo real R$ 15 mil (ex-artefato) | % e BRL | ↑ | Sem casar periodo, `CTR0023` mostra −671% |
-| Margem por tipo de contrato | RL ÷ custo por `tipo_contrato` (12m). | Terceirizacao **30,0%** · c/ Motorista 37,0% · Mensal Frota 38,8% · Spot 41,3% | % | ↑ | Exclui ocioso por construcao — rotular "margem de contratos" |
+| Margem por tipo de contrato | RL ÷ custo por `tipo_contrato` (12m). | Terceirizacao **30,0%** · c/ Motorista 37,0% · Mensal Frota 38,8% · Spot 41,3% | % | ↑ | Exclui ocioso por construcao; rotular "margem de contratos" |
 | Margem por segmento | idem, por segmento do cliente (12m). | Varejo **24,2%** · Serv. Publicos 29,2% · Constr. Civil 32,5% · Industria 37,5% · Logistica 38,0% · Mineracao 38,1% · Agronegocio 38,3% · Energia 39,3% | % | ↑ | Idem: nao soma com a margem consolidada (falta R$ 612 mil de ocioso) |
 | Custo de ociosidade | §3.7 | R$ 612 mil (12m) = **2,7% do custo**, **1,8 p.p. de margem** | BRL | ↓ | **Sem segmento, cliente ou contrato** |
 | Taxa de ociosidade da frota | Veiculos sem contrato ÷ frota do mes. | ago/26 **15 de 239 = 6,3%** | % | ↓ | Grao mensal: um veiculo alocado dia 20 conta o mes inteiro como alocado |
 | Corretiva por veiculo-ano | Corretiva 12m ÷ veiculos da faixa de idade. | 0-2a R$ 8,9 mil → 7+a **R$ 23,2 mil** | BRL | ↓ | Idade = `2026 − ano_modelo`; `ano_modelo` e nullable |
 | Frota e valor | Contagem e valor de aquisicao. | 238 ativos (R$ 80,27 mi, idade media **4,2 anos**) · 7 vendidos (R$ 2,42 mi, 6,6 anos) | # e BRL | — | 1 veiculo nunca foi alocado |
 | Churn contratual | Contratos rescindidos e Multa Rescisoria. | 10 rescindidos (2 em 2023, 3 em 2024, **4 em 2025**, 1 em 2026); multa R$ 550/278/99 mil | # e BRL | ↓ | Multa Rescisoria e receita nao recorrente: inflar tendencia se somada a Locacao |
-| MRR contratado | `sum(valor_mensal_contratado)` dos contratos `Ativo`. | **R$ 2,773 mi/mes** em 78 contratos ativos | BRL | ↑ | Valor de assinatura do contrato, sem reajuste aplicado — nao bate com o faturado |
+| MRR contratado | `sum(valor_mensal_contratado)` dos contratos `Ativo`. | **R$ 2,773 mi/mes** em 78 contratos ativos | BRL | ↑ | Valor de assinatura do contrato, sem reajuste aplicado; nao bate com o faturado |
 
 ---
 
-## 6. Estrutura do app — 5 paginas
+## 6. Estrutura do app: 5 paginas
 
 | # | Pagina | Pergunta de negocio | Publico | KPIs | Decisao que habilita |
 |---|---|---|---|---|---|
@@ -389,14 +389,14 @@ Ordem de navegacao = ordem da tabela. Paginas 3, 4 e 5 sao as "profundas"; 1 e 2
 | **Cliente** | busca multi-selecao (58) | vazio | |
 | **Versao de orcamento** | vigente (padrao) · comparar Original x Revisao | **vigente** | Visivel **so na pagina 1** e so quando o periodo toca 2026. Fora dela, `eh_versao_vigente = true` fixo. |
 
-### 7.1 O que os filtros NAO podem filtrar — regras duras
+### 7.1 O que os filtros NAO podem filtrar: regras duras
 
 | Metrica | Filtro que **nao** se aplica | Comportamento exigido |
 |---|---|---|
 | **Inadimplencia > 30d (P3)** | Periodo de competencia | O denominador e **sempre** a janela fixa de 12 meses que termina na data de referencia. O periodo so muda o eixo x da serie. Exibir a janela usada no rodape do card. |
 | **Inadimplencia > 30d (P3)** | Datas anteriores a `2025-01-31` | Janela de 12m incompleta (efeito base): jan/24 = 0,00%, mai/24 = 8,74% sao artefatos. Serie **cinza tracejada** e sem alerta antes de jan/2025. |
-| **Inadimplencia, Custo Operacional, Margem — comparacao com meta** | Segmento, porte, rating, cliente, tipo de contrato | As metas dessas 3 metricas so existem em `nivel_analise='Empresa'`. Qualquer filtro dimensional deve **remover o gauge de meta** e mostrar "meta indisponivel neste recorte". |
-| **Custo de Ociosidade e Taxa de Ociosidade** | Segmento, cliente, contrato, rating, porte, tipo de contrato | `custos.id_contrato is null` — nao ha a quem atribuir. Com qualquer desses filtros ativo, o card fica **desabilitado** com nota "custo de veiculo ocioso nao possui atribuicao por cliente". |
+| **Inadimplencia, Custo Operacional, Margem; comparacao com meta** | Segmento, porte, rating, cliente, tipo de contrato | As metas dessas 3 metricas so existem em `nivel_analise='Empresa'`. Qualquer filtro dimensional deve **remover o gauge de meta** e mostrar "meta indisponivel neste recorte". |
+| **Custo de Ociosidade e Taxa de Ociosidade** | Segmento, cliente, contrato, rating, porte, tipo de contrato | `custos.id_contrato is null`; nao ha a quem atribuir. Com qualquer desses filtros ativo, o card fica **desabilitado** com nota "custo de veiculo ocioso nao possui atribuicao por cliente". |
 | **Custo Operacional e Margem Operacional (P2/P5)** | Segmento, cliente, contrato | Filtrar por essas dimensoes **exclui silenciosamente R$ 612 mil (12m)** de custo ocioso e infla a margem de 34,3% para 36,1%. Com filtro ativo, renomear o KPI para **"Margem de Contratos"** e marcar com badge. |
 | **Carteira Vencida e Aging (P6)** | Periodo de competencia | E foto na data de referencia, nao acumulado de periodo. O filtro de competencia fica visivelmente inativo no card. |
 | **Recebimento (Caixa) (P4)** | — | Filtra por `data_pagamento`, nao por competencia. Nunca somar com Faturamento do mesmo mes (defasagem de 1 a 3 meses). Rotular o eixo como "mes de caixa". |
@@ -453,7 +453,7 @@ Regras objetivas, avaliadas na data de referencia. Cada uma vem com o resultado 
 
 ## 9. Contrato para a equipe
 
-### 9.1 Arquiteto de dados (`frotas/metrics/`, `docs/02_*`) — precisa implementar
+### 9.1 Arquiteto de dados (`frotas/metrics/`, `docs/02_*`): precisa implementar
 
 - **Uma funcao por metrica canonica de §3**, todas parametrizadas por `:ref`, `:ini`, `:fim` e pelos filtros de §7:
   `faturamento_bruto`, `faturamento_valido`, `receita_liquida`, `custo_operacional`, `margem_operacional`,
@@ -474,9 +474,9 @@ Regras objetivas, avaliadas na data de referencia. Cada uma vem com o resultado 
   o app nao sobe.
 - Uma **view/CTE de calendario de referencia** com os fins de mes de `2024-01-31` a `2026-08-31` para as series PIT
   (evita `generate_series` espalhado pelas paginas). Atencao: `data_vencimento <= :ref - 30` exige cast de `date`.
-- Tudo **somente SELECT**; cache por `(metrica, filtros, ref)` — as consultas PIT sao O(n) por ponto da serie.
+- Tudo **somente SELECT**; cache por `(metrica, filtros, ref)`, as consultas PIT sao O(n) por ponto da serie.
 
-### 9.2 Especialista de UX / dataviz (`docs/03_*`, `frotas/ui/`) — precisa visualizar
+### 9.2 Especialista de UX / dataviz (`docs/03_*`, `frotas/ui/`): precisa visualizar
 
 - **Header de 6 KPIs** (P1-P6) repetido em todas as paginas: valor grande, meta vigente, desvio em `%` (BRL) ou `p.p.`
   (percentuais), sinal de cor pelo limiar de §8. P6 sem gauge (nao tem meta).
@@ -484,11 +484,11 @@ Regras objetivas, avaliadas na data de referencia. Cada uma vem com o resultado 
   "janela de 12 meses incompleta". Marcar out/2025 como ponto de inflexao (+2,87 p.p. no mes).
 - **Aging em barras empilhadas horizontais** com as 6 faixas, ordenadas por severidade, valor em R$ e % ao lado;
   clique na faixa filtra a lista de clientes.
-- **Ponte (waterfall) realizado→meta** na pagina 1, decompondo o desvio por segmento — com o aviso de mix de §7.1.
+- **Ponte (waterfall) realizado→meta** na pagina 1, decompondo o desvio por segmento, com o aviso de mix de §7.1.
 - **Curva ABC** como Pareto (barras + linha acumulada) com corte visivel em 50% e 80%.
 - **Scatter risco de cliente**: eixo x = faturamento 12m, eixo y = % vencido do proprio faturamento, tamanho = vencido
   em R$, cor = rating. Quadrante superior direito = os 8 vermelhos de A7. **`CLI0001` precisa saltar da tela.**
-- **Heatmap segmento x mes** da inadimplencia PIT — e onde Construcao Civil (5,32 → 20,24%) conta a historia sozinha.
+- **Heatmap segmento x mes** da inadimplencia PIT, e onde Construcao Civil (5,32 → 20,24%) conta a historia sozinha.
 - **Barras de corretiva por faixa de idade** com o valor por veiculo-ano (8,9 → 23,2 mil) e a economia anual estimada.
 - **Serie de ociosidade** com duplo eixo (veiculos parados x custo) e banda de alerta em 4% e 6%.
 - **Badges obrigatorios**: `escopo: contratos` quando ha filtro dimensional na margem/custo; `foto em <data>` nos cards
@@ -496,4 +496,4 @@ Regras objetivas, avaliadas na data de referencia. Cada uma vem com o resultado 
 - **Formatacao pt-BR sem excecao**: `R$ 1.234.567`, `R$ 3,19 mi`, `34,7%`, `+1,22 p.p.`, `2026-08` como `ago/26`.
   Cor: vermelho **so** para limiar vermelho de §8; ambar para ambar; verde apenas para desvio favoravel confirmado.
 - **Regra editorial**: toda tela que compara com meta deve deixar obvio o periodo da meta usada. Os erros D2 e D3 de
-  §2.2 nasceram exatamente de comparar 8 meses com meta anual — e o D3 chega a **inverter o sinal do desvio**.
+  §2.2 nasceram exatamente de comparar 8 meses com meta anual, e o D3 chega a **inverter o sinal do desvio**.

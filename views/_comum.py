@@ -899,16 +899,6 @@ def rotulos_de_barra(valores: Sequence[Any], *, compacto: bool = True) -> dict[s
     }
 
 
-def eixo_sem_ticks(fig: go.Figure, **extras: Any) -> None:
-    """Tira os valores do eixo Y, mantendo titulo e grade.
-
-    Onde cada marca ja traz o proprio numero, os ticks passam a ser uma segunda
-    leitura do mesmo dado -- e a mais dificil, porque exige a regua. O titulo
-    continua ali para dizer a unidade.
-    """
-    fig.update_yaxes(showticklabels=False, **extras)
-
-
 def rotular_ultimo_ponto(
     fig: go.Figure, x: Sequence[Any], y: Sequence[Any],
     texto: str | Callable[[Any], str], cor: str, *, tema: Tema,

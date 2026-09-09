@@ -293,19 +293,46 @@ def violacoes(coleta: Coleta) -> list[tuple[str, str, str, str]]:
 
 
 #: Documentos de prosa longa que seguem a mesma regra das telas: sem travessao.
-#: O README tinha 21 quando este portao foi escrito -- a regra existia so para o
-#: app e ninguem vigiava o texto que o visitante le primeiro.
-DOCUMENTOS: tuple[str, ...] = ("README.md",)
+#: O README tinha 21 quando este portao foi escrito e os cinco documentos de
+#: projeto tinham 290 -- a regra existia so para o app, e ninguem vigiava nem o
+#: texto que o visitante le primeiro nem o que explica as decisoes.
+DOCUMENTOS: tuple[str, ...] = (
+    "README.md",
+    "DICIONARIO_DADOS.md",
+    "docs/00_briefing_tecnico.md",
+    "docs/01_kpis.md",
+    "docs/02_arquitetura.md",
+    "docs/03_ux.md",
+    "docs/04_handover.md",
+)
+
+#: Travessao de **prosa**: com conteudo dos dois lados, ou abrindo linha
+#: continuada. Deixa passar de proposito os dois usos legitimos, os mesmos que
+#: a tela permite: a celula de tabela com o travessao sozinho (``| — |``, o
+#: vazio de :data:`frotas.ui.format.VAZIO`) e o glifo citado entre crases.
+_TRAVESSAO_PROSA = re.compile(r"[^\s|`]\s*—\s*[^\s|`]|^\s*—\s+\S")
+_CODIGO_INLINE = re.compile(r"`[^`]*`")
+_CERCA = "```"
 
 
 def travessoes_em_documento(nome: str) -> list[tuple[int, str]]:
-    """(linha, trecho) de cada travessao em texto corrido no documento."""
+    """(linha, trecho) de cada travessao em texto corrido no documento.
+
+    Bloco de codigo cercado e codigo inline ficam de fora: la dentro o ``—`` e
+    um valor exibido, nao pontuacao.
+    """
     caminho = _RAIZ / nome
     if not caminho.exists():
         return []
-    achados = []
+    achados: list[tuple[int, str]] = []
+    dentro_de_codigo = False
     for numero, linha in enumerate(caminho.read_text(encoding="utf-8").splitlines(), 1):
-        if re.search(r"\S\s*—|—\s*\S", linha):
+        if linha.lstrip().startswith(_CERCA):
+            dentro_de_codigo = not dentro_de_codigo
+            continue
+        if dentro_de_codigo:
+            continue
+        if _TRAVESSAO_PROSA.search(_CODIGO_INLINE.sub("``", linha)):
             achados.append((numero, linha.strip()[:70]))
     return achados
 

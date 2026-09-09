@@ -1,4 +1,4 @@
-# 04 — Handover
+# 04: Handover
 
 Fecha o trabalho da equipe de cinco agentes (KPIs · arquitetura de dados · UX/dataviz ·
 front-end · tech lead). Registra o que foi decidido e por quê, o que ficou em aberto,
@@ -9,7 +9,7 @@ Estado atual: **5/5 páginas renderizam sem exceção**, `validar_metricas` em *
 
 ---
 
-## 0. Redução de escopo — 2026-09-02
+## 0. Redução de escopo: 2026-09-02
 
 O projeto foi reduzido a **cinco eixos**: Faturamento · Recebimento · **Inadimplência
 somente na posição atual** · Metas · Custos. A entrega original tinha 5 páginas
@@ -19,7 +19,7 @@ analíticas e 179 verificações; agora são 1 guia + 4 páginas e 116 verifica�
 
 | Removido | Observação |
 |---|---|
-| Margem Operacional | por completo — inclusive como linha na tabela de metas, embora exista na tabela `metas` do banco |
+| Margem Operacional | por completo; inclusive como linha na tabela de metas, embora exista na tabela `metas` do banco |
 | Série retroativa de inadimplência | 32 fotos mensais, heatmap segmento × mês, recuperação por safra |
 | Página de Margem e Contratos | margem por contrato, contratos deficitários, margem por tipo e por segmento |
 | Análise de frota | corretiva por faixa de idade, corretiva recorrente por veículo, margem por veículo |
@@ -28,12 +28,12 @@ analíticas e 179 verificações; agora são 1 guia + 4 páginas e 116 verifica�
 
 **O que foi preservado de propósito**, apesar de parecer ligado ao removido:
 
-- **`inadimplencia_ponto_no_tempo`** — é a foto na data de referência, o coração do eixo 3.
+- **`inadimplencia_ponto_no_tempo`**: é a foto na data de referência, o coração do eixo 3.
   Some a série; fica a posição atual, para qualquer data que o usuário escolher.
 - **A lógica point-in-time de cancelamento dentro do faturamento válido.** A seção saiu da
   tela, mas o cálculo é a armadilha nº 1 do dataset: sem ele a inadimplência infla de
   9,4% para 18,7%.
-- **`_cancelamentos_por_motivo`**, tornada privada — é a única fonte do alerta A19, que fica.
+- **`_cancelamentos_por_motivo`**, tornada privada, é a única fonte do alerta A19, que fica.
 
 **Duas regras editoriais** passaram a valer e o código as sustenta: uma pergunta central
 por página declarada no título, e no máximo um bloco curto de texto por página. Os 48
@@ -41,13 +41,13 @@ blocos de texto autoral das páginas antigas viraram 4 blocos de corpo, 12 notas
 rodapé de visual e 2 legendas.
 
 **Nomenclatura**: nenhum nome de coluna do banco pode chegar à tela. `frotas/ui/rotulos.py`
-traduz 149 colunas e 45 valores de domínio, e `scripts/verificar_rotulos.py` falha o build
-se algo escapar — inclusive em título de eixo, legenda, colorbar e anotação de gráfico.
+traduz 151 colunas e 45 valores de domínio, e `scripts/verificar_rotulos.py` falha o build
+se algo escapar, inclusive em título de eixo, legenda, colorbar e anotação de gráfico.
 
 ### 0.1 Dívida de camada conhecida
 
 `frotas/metrics/alertas.py` monta **texto de apresentação** (título e detalhe dos alertas)
-e por isso importa `frotas.ui.format` — uma inversão de camada. Foi assim que o app passou
+e por isso importa `frotas.ui.format`, uma inversão de camada. Foi assim que o app passou
 a exibir `R$ 1.774 mi` (formato americano) e o nome de coluna `data_baixa` na tela até
 2026-09-02. Corrigido nas strings; a correção estrutural é o alerta devolver **valores
 estruturados** e a UI formatá-los. Enquanto não for feito, todo texto novo em `alertas.py`
@@ -63,10 +63,10 @@ Três invariantes, cada uma resolvendo um problema concreto:
 
 - **Só `frotas/metrics/` escreve SQL.** Mantém a definição de cada métrica em um lugar
   só e auditável pelo validador. Uma página que montasse o próprio SQL poderia
-  silenciosamente perder o filtro point-in-time de cancelamento — o erro que infla a
+  silenciosamente perder o filtro point-in-time de cancelamento, o erro que infla a
   inadimplência de 9,4% para 18,7%.
 - **A UI não conhece limiar** (`frotas/metrics/alertas.py`). Três das vinte regras têm
-  estado — A2 tem janela de 3 meses, A11 exige 2 meses consecutivos saindo de zero,
+  estado, A2 tem janela de 3 meses, A11 exige 2 meses consecutivos saindo de zero,
   A14 exige 3 meses consecutivos de corretiva alta. Avaliar isso em Python significaria
   transportar a série inteira; elas são resolvidas em SQL e devolvem só os infratores.
 - **A UI não inventa cor.** Zero hex literal em `views/`; a paleta foi validada por
@@ -88,18 +88,18 @@ Consequência: os números publicados em `DICIONARIO_DADOS.md` para 2026 (−0,6
 +2,02 p.p.) são a leitura anual. Ambos continuam disponíveis e verificados; o app
 mostra a outra por ser a honesta para período parcial.
 
-### 1.3 Margem por contrato exigia período casado — *removida na redução de escopo*
+### 1.3 Margem por contrato exigia período casado: *removida na redução de escopo*
 
 Registrado porque a armadilha volta se alguém reintroduzir análise por contrato.
 
 Sem restringir o custo às competências faturadas, `CTR0023` saía com −671% de margem:
 receita de 3 dias contra o custo cheio de 10 veículos. Com período casado, os contratos
-negativos somavam **R$ 14,8 mil** de prejuízo real, não R$ 148,9 mil — uma diferença de
+negativos somavam **R$ 14,8 mil** de prejuízo real, não R$ 148,9 mil, uma diferença de
 10×, inteiramente artefato de borda. A função devolvia `meses_com_receita` e
 `periodo_parcial` para a UI desenhar contrato parcial como marca vazada e excluí-lo de
 todo ranking, citando-o no rodapé em vez de escondê-lo.
 
-**Qualquer métrica por entidade com vigência própria** — contrato, veículo, alocação —
+**Qualquer métrica por entidade com vigência própria**: contrato, veículo, alocação —
 precisa do mesmo cuidado: casar o período de receita com o de custo, e marcar quem tem
 período parcial em vez de deixá-lo poluir o ranking.
 
@@ -119,7 +119,7 @@ Foi pedido que a inadimplência devolvesse `NULL` antes de 31/01/2025 por causa 
 efeito base. Isso apagaria **dez/2024 = 3,56%**, que é número de referência e cuja
 janela de 12 meses está completa. Em vez disso a função devolve um booleano
 `janela_completa`, e a UI acinzenta pela regra editorial. O mesmo princípio vale para
-`nivel='indisponivel'`: cinza, **nunca verde** — ausência de regra não é boa notícia.
+`nivel='indisponivel'`: cinza, **nunca verde**, ausência de regra não é boa notícia.
 
 ---
 
@@ -175,7 +175,7 @@ Nenhuma bloqueia o app. Todas estão marcadas como informativas no validador.
 
 | # | O que se esperava | O que o banco dá | Leitura |
 |---|---|---|---|
-| D1 ✔ *encerrada em 2026-09-06* | Cancelamentos 4,0 / 6,0 / 2,0% | 3,53 / 6,23 / 1,97% por competência; 1,22 / 5,45 / 5,88% por ano de cancelamento | Nenhuma definição reproduz 4,0% em 2024. Os valores absolutos conferem (R$ 1,051 / 2,182 / 0,486 mi) — é parâmetro do gerador, não métrica reconstituível. O app nunca os publicou; `DICIONARIO_DADOS.md` passou a dizer explicitamente que não servem de referência, com as duas leituras testadas ao lado. Nada mais a fazer. |
+| D1 ✔ *encerrada em 2026-09-06* | Cancelamentos 4,0 / 6,0 / 2,0% | 3,53 / 6,23 / 1,97% por competência; 1,22 / 5,45 / 5,88% por ano de cancelamento | Nenhuma definição reproduz 4,0% em 2024. Os valores absolutos conferem (R$ 1,051 / 2,182 / 0,486 mi); é parâmetro do gerador, não métrica reconstituível. O app nunca os publicou; `DICIONARIO_DADOS.md` passou a dizer explicitamente que não servem de referência, com as duas leituras testadas ao lado. Nada mais a fazer. |
 | D2 | A20 = 6 contratos de período parcial | 1 | O `docs/01_kpis.md` se contradiz: a regra de §7.1 acha 1; contando também os 13 sem receita nenhuma daria 14. Nenhuma leitura dá 6. Adotada a de §7.1. |
 | D3 | A17 = −10,1 p.p. | −10,05 p.p. | Diferença de apresentação: o −10,1 vem de subtrair valores já arredondados (24,2 − 34,3). |
 | D4 | Taxa de recuperação com corte de 90 dias | 78,2% em 93,4 dias | Os 73,6% em 92 dias publicados foram apurados **sem** o corte. Implementado como parâmetro `dias_maturidade`, padrão 0. |
@@ -184,17 +184,17 @@ Nenhuma bloqueia o app. Todas estão marcadas como informativas no validador.
 
 - **4 títulos (R$ 182 mil) têm `data_baixa` posterior à data de extração.** O aging os
   exclui; a inadimplência não. Diferença de R$ 328 mil. Está exposto como alerta A18.
-- Títulos baixados entram na inadimplência mas não no aging — decisão de definição,
+- Títulos baixados entram na inadimplência mas não no aging, decisão de definição,
   documentada em `docs/02_arquitetura.md` §5.
 
 ---
 
-## 3. Segurança — um achado corrigido, um pendente
+## 3. Segurança: um achado corrigido, um pendente
 
 Estado em 2026-09-02. O achado 3.2 foi **aplicado e verificado**; o 3.1 **não**, por
 falta de permissão para `CREATE ROLE` no ambiente de execução.
 
-### 3.1 O DSN do app ignora RLS — **PENDENTE**
+### 3.1 O DSN do app ignora RLS: **PENDENTE**
 
 `PG_DSN` conecta como `postgres`, que tem `rolbypassrls = true`. O caminho Postgres do
 app **ignora as policies de RLS**; hoje o único freio de escrita é a sessão read-only
@@ -209,12 +209,12 @@ alter role app_leitura set default_transaction_read_only = on;
 alter role app_leitura set statement_timeout = '30s';
 ```
 
-Depois, trocar o segredo `PG_DSN` para esse papel — o usuário no pooler é
+Depois, trocar o segredo `PG_DSN` para esse papel, o usuário no pooler é
 `app_leitura.<project-ref>`.
 
 **Por que não foi aplicado.** `CREATE ROLE ... LOGIN` é operação privilegiada e foi
 bloqueada pela política de permissões do ambiente de execução. Além disso, criá-lo
-exigiria gerar uma senha nova, que passaria pelo transcript da sessão — exatamente o
+exigiria gerar uma senha nova, que passaria pelo transcript da sessão, exatamente o
 problema de higiene que o §3.3 registra. Definir a senha no seu próprio terminal evita isso.
 
 **Armadilha ao aplicar:** `app_leitura` é `nobypassrls` e as policies existentes valem
@@ -237,9 +237,9 @@ end $$;
 Teste depois de trocar o `PG_DSN`: `python3 scripts/validar_metricas.py`. Se as policies
 faltarem ele falha em massa (zero linhas), que é exatamente o sintoma a procurar.
 
-### 3.2 Grants de escrita amplos em `public` — **CORRIGIDO em 2026-09-02**
+### 3.2 Grants de escrita amplos em `public`: **CORRIGIDO em 2026-09-02**
 
-`anon` e `authenticated` tinham `INSERT/UPDATE/DELETE/TRUNCATE` no grant de tabela — só a
+`anon` e `authenticated` tinham `INSERT/UPDATE/DELETE/TRUNCATE` no grant de tabela, só a
 ausência de policy de escrita os bloqueava. Um `alter table ... disable row level security`
 ou uma policy permissiva acidental abriria escrita imediatamente.
 
@@ -255,18 +255,18 @@ alter default privileges in schema public
 ```
 
 Verificado: `anon` e `authenticated` têm agora **apenas `SELECT`** em `public`.
-`service_role` mantém todos os privilégios, o que é correto — é a chave de backend.
+`service_role` mantém todos os privilégios, o que é correto, é a chave de backend.
 
 **Resíduo conhecido.** O `alter default privileges` só alcança os defaults do papel que o
 executa (`postgres`), dono das 8 tabelas deste projeto. O Supabase mantém um conjunto
-próprio sob `supabase_admin` que ainda concede `arwdDxtm` a `anon`/`authenticated` — uma
+próprio sob `supabase_admin` que ainda concede `arwdDxtm` a `anon`/`authenticated`, uma
 tabela futura criada **por `supabase_admin`** nasceria com escrita liberada. É
 configuração de plataforma e alterá-la exige privilégio que o `postgres` não tem.
 Se criar tabelas novas em `public`, confira o grant delas.
 
 ### 3.3 Antes de publicar
 
-- A senha do banco circulou em transcript de sessão — **rotacionar** em
+- A senha do banco circulou em transcript de sessão, **rotacionar** em
   Project Settings → Database se o transcript for compartilhado.
 - `git log -p | grep -iE 'postgresql://|service_role|eyJ'` deve voltar vazio.
 - A policy de leitura é `qual = true`: qualquer portador da chave publicável lê todos os
@@ -278,7 +278,7 @@ Se criar tabelas novas em `public`, confira o grant delas.
 ## 4. O que ficou fora do escopo
 
 - **Autenticação de usuário.** O app não tem login; qualquer um que alcance a URL vê tudo.
-- **Escrita de qualquer natureza** — sem anotações, sem marcação de título como
+- **Escrita de qualquer natureza**: sem anotações, sem marcação de título como
   "em negociação", sem exportação que persista estado.
 - **Modelo preditivo.** Deliberado: os dados são sintéticos e as correlações foram
   programadas. Um modelo treinado aqui aprende as regras do gerador, não comportamento
@@ -291,7 +291,7 @@ Se criar tabelas novas em `public`, confira o grant delas.
 
 ## 5. Como verificar que continua funcionando
 
-O `AppTest.switch_page()` **não funciona** com `st.navigation` — ele renderiza sempre a
+O `AppTest.switch_page()` **não funciona** com `st.navigation`, ele renderiza sempre a
 página inicial, o que faz um teste ingênuo passar cinco vezes na mesma página. Rode cada
 view diretamente:
 
@@ -312,16 +312,16 @@ at.session_state["filtros"] = Filtros.criar(
 
 Rode também `python3 scripts/verificar_rotulos.py`: ele instrumenta `st.plotly_chart` e
 `st.dataframe` e falha se um nome de coluna do banco chegar à tela. Foi provado que ele
-falha de verdade — uma página-canário com `valor_bruto` de cabeçalho, `inadimplencia_pct`
+falha de verdade, uma página-canário com `valor_bruto` de cabeçalho, `inadimplencia_pct`
 de eixo e `realizado` de série foi pega nos três casos.
 
 Tempo de carga com cache frio: página de metas **~8,5 s** (a mais pesada), guia **0,2 s**
-(não consulta o banco de propósito — é a página que sobrevive ao banco fora do ar), demais
+(não consulta o banco de propósito, é a página que sobrevive ao banco fora do ar), demais
 entre 2,2 s e 3,1 s.
 
 ---
 
-## 5.1 Verificação de encerramento — 2026-09-06
+## 5.1 Verificação de encerramento: 2026-09-06
 
 Última varredura antes de pausar o projeto. Tudo verde:
 

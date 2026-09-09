@@ -178,7 +178,6 @@ _BAIXO_CONTRASTE: Final[frozenset[str]] = frozenset({"#D99442", "#8FB3CC"})
 
 #: Cor de qualquer categoria fora do dominio conhecido ("Outros", nulo, resto do
 #: Pareto). Nunca gerar um 7o matiz: dobre no neutro de projecao do Bancada.
-COR_OUTROS: Final[str] = "#B9C4CD"
 
 #: Preenchimento nulo -- a marca so tem contorno (barra fantasma do ano anterior,
 #: por exemplo). Existe como token para que nenhuma view escreva cor na mao.
@@ -669,7 +668,7 @@ def layout_grafico(tema: Tema = "claro") -> dict:
 __all__ = [
     "Tema", "Nivel", "Direcao", "Tokens",
     "TEMA_CLARO", "tokens",
-    "PALETA_DADOS", "COR_OUTROS", "TRANSPARENTE",
+    "PALETA_DADOS", "TRANSPARENTE",
     "paleta_categorica", "exige_rotulo_direto",
     "INDICADORES", "cor_indicador", "RATING_NIVEL", "cor_rating",
     "RAMPA_NEUTRA", "RAMPA_RISCO", "rampa",

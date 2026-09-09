@@ -360,11 +360,6 @@ def disponivel() -> bool:
     return bool(config.obter_segredo(CHAVE_API))
 
 
-def origem_da_credencial() -> str | None:
-    """De onde a credencial veio, sem revelar o valor."""
-    return config.origem_segredo(CHAVE_API).origem
-
-
 def gerar(payload: Mapping[str, Any], *, tentativas: int = 2) -> Leitura:
     """Pede a leitura ao modelo e so devolve o que passar na conferencia.
 

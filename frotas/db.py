@@ -33,7 +33,7 @@ import re
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping
 
 import pandas as pd
 
@@ -388,32 +388,3 @@ def limpar_cache() -> None:
         limpar = getattr(fn, "clear", None)
         if callable(limpar):
             limpar()
-
-
-def valores_distintos(tabela: str, coluna: str, ttl: int = config.TTL_DIMENSOES) -> Sequence[str]:
-    """Lista ordenada de valores distintos de uma coluna de dominio enumerado.
-
-    ``tabela`` e ``coluna`` sao validados contra uma lista branca -- sao os
-    unicos identificadores que a camada monta por interpolacao, e por isso nao
-    aceitam entrada livre.
-    """
-    permitido = {
-        ("clientes", "segmento"), ("clientes", "porte"), ("clientes", "rating_credito"),
-        ("clientes", "uf"), ("veiculos", "categoria"), ("veiculos", "status_veiculo"),
-        ("contratos", "tipo_contrato"), ("contratos", "status_contrato"),
-        ("titulos_receber", "tipo_receita"), ("titulos_receber", "status_titulo"),
-        ("titulos_receber", "motivo_cancelamento"), ("titulos_receber", "motivo_baixa"),
-        ("titulos_receber", "forma_pagamento"),
-        ("custos", "categoria_custo"), ("custos", "tipo_custo"),
-        ("metas", "tipo_meta"), ("metas", "versao_meta"), ("metas", "granularidade"),
-    }
-    if (tabela, coluna) not in permitido:
-        raise SqlNaoPermitido(
-            f"Coluna '{tabela}.{coluna}' nao esta na lista branca de dimensoes.",
-            detalhe="lista branca",
-        )
-    sql = (
-        f"select distinct {coluna} as valor from public.{tabela} "
-        f"where {coluna} is not null order by 1"
-    )
-    return tuple(consultar(sql, ttl=ttl)["valor"].tolist())
