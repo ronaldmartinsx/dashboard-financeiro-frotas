@@ -22,11 +22,11 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # A mesma versao do ambiente do projeto. Fixar evita que o app quebre aqui
       # por um comportamento de versao que a maquina de desenvolvimento nao tem.
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
           cache: pip
