@@ -231,6 +231,36 @@ Seis invariantes que a revisão verifica e que devem continuar valendo:
 - **Nenhum número sem procedência chega à tela**, inclusive os de texto gerado por
   modelo, conferidos um a um contra o payload em `frotas/leitura.py`.
 
+## Como este projeto foi construído
+
+Construído com **Claude Code**, em par. O arquivo de contexto é o [`CLAUDE.md`](CLAUDE.md)
+da raiz: as camadas, as invariantes, o vocabulário de tela, as armadilhas do dataset e o
+que nunca fazer. O agente lê antes de encostar em qualquer coisa, sem precisar ser
+lembrado.
+
+**O que foi automatizado para o agente.** As seis verificações são a fronteira: nenhuma
+mudança se considera pronta sem elas verdes, e elas não dependem de alguém lembrar de
+rodar. Junto com elas, três decisões de projeto tiram do agente a chance de errar por
+conta própria: toda cor vive num arquivo só, todo rótulo vive num dicionário só, todo
+número passa por um formatador só.
+
+**O que deliberadamente não ficou na mão dele.** Escopo, prioridade, vocabulário de tela e
+qualquer decisão de negócio. O corte point-in-time de cancelamento e a comparação de meta
+por período casado foram decisões de quem conhece o negócio, não sugestões aceitas. Texto
+que o usuário lê passa por revisão humana palavra por palavra, e propostas foram
+revertidas: as barras de peso das tabelas voltaram ao componente nativo depois de uma
+versão customizada que não ficou mais legível.
+
+**Como a saída é revisada.** Os portões são o primeiro filtro, mas eles só pegam o que
+alguém já aprendeu a checar. Dois exemplos do que passou por eles e só caiu na leitura
+humana: um gráfico de risco por cliente plotava uma coluna parecida com a certa, e
+mostrava 34 clientes em nível crítico onde a regra sinalizava 8; e um gráfico morto
+chegou à produção porque o portão de render ignorava `st.warning`. O segundo virou portão
+novo, provado reintroduzindo o defeito antes de merecer confiança.
+
+É daí que vem a regra que o `CLAUDE.md` registra: **todo portão desta suíte nasceu de um
+defeito que passou.** Portão que nunca falhou não é portão.
+
 ## Segurança
 
 - **Não há credencial em lugar nenhum do app.** O `PG_DSN` só é lido por

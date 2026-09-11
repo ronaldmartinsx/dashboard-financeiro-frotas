@@ -298,6 +298,7 @@ def violacoes(coleta: Coleta) -> list[tuple[str, str, str, str]]:
 #: texto que o visitante le primeiro nem o que explica as decisoes.
 DOCUMENTOS: tuple[str, ...] = (
     "README.md",
+    "CLAUDE.md",
     "DICIONARIO_DADOS.md",
     "docs/00_briefing_tecnico.md",
     "docs/01_kpis.md",
