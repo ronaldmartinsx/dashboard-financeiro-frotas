@@ -1,8 +1,13 @@
-# So para regerar o snapshot de dados/ a partir do Supabase:
-#     python3 scripts/exportar_dados.py
-# O app nao usa nada daqui.
-
+# Ferramentas de desenvolvimento. O app nao usa nada daqui.
 -r requirements.txt
+
+# Verificacao. O primeiro portao de scripts/verificar_tudo.py chama
+# `python -m pyflakes`, e sem esta linha a suite falha em maquina limpa. Ficou
+# implicito enquanto a suite so rodou na maquina de quem ja tinha o pacote.
+pyflakes==3.2.0
+
+# Regerar o snapshot de dados/ a partir do banco de origem:
+#     python3 scripts/exportar_dados.py
 SQLAlchemy==2.0.43
 psycopg2-binary==2.9.10
 python-dotenv==1.1.1

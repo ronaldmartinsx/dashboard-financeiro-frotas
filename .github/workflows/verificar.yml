@@ -1,0 +1,43 @@
+# Os seis portoes de scripts/verificar_tudo.py, rodando a cada mudanca numa
+# maquina limpa. O que roda aqui e exatamente o que roda na mao: um comando so,
+# sem lista de passos paralela que possa divergir da suite local.
+name: Verificações
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Push novo cancela a execucao anterior do mesmo ramo: o interessante e o
+# resultado do ultimo commit, nao a fila.
+concurrency:
+  group: verificar-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  portoes:
+    name: Seis portões
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # A mesma versao do ambiente do projeto. Fixar evita que o app quebre aqui
+      # por um comportamento de versao que a maquina de desenvolvimento nao tem.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Instalar dependências
+        run: pip install --disable-pip-version-check -r requirements-dev.txt
+
+      # pyflakes · métricas (116) · rótulos · leitura executiva · tema · render
+      # das 5 páginas. Falhou um, falhou o job.
+      - name: Rodar os portões
+        run: python3 scripts/verificar_tudo.py

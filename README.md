@@ -12,6 +12,12 @@ camada semântica testada por **116 verificações** contra números conferidos.
 </p>
 
 <p align="center">
+  <a href="https://github.com/ronaldmartinsx/dashboard-financeiro-frotas/actions/workflows/verificar.yml"><img
+     src="https://github.com/ronaldmartinsx/dashboard-financeiro-frotas/actions/workflows/verificar.yml/badge.svg"
+     alt="Estado das seis verificações"></a>
+</p>
+
+<p align="center">
   <a href="https://dashboard-financeiro-rdev.streamlit.app"><b>Abrir o painel</b></a>
   &nbsp;·&nbsp;
   <a href="docs/">Documentos de projeto</a>
@@ -191,6 +197,11 @@ python3 scripts/verificar_tudo.py
 ```
 
 Roda em 3,5 s e só devolve 0 se as seis passarem. **Chame antes de commitar.**
+
+O mesmo comando roda sozinho no GitHub Actions a cada push e a cada pull request, numa
+máquina limpa (`.github/workflows/verificar.yml`). É um comando só, e não uma lista de
+passos paralela que possa divergir da suíte local. O selo no topo desta página mostra o
+resultado da última execução.
 
 - **`validar_metricas.py`** compara a camada semântica com os números de referência de
   `DICIONARIO_DADOS.md`. Saída esperada: **116/116 obrigatórias OK**, mais 3 informativas
