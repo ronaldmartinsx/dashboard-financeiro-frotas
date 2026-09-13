@@ -66,8 +66,11 @@ Três achados que o painel expõe e que não estavam na pergunta original:
 - **Desempenho por decisão de arquitetura.** A página mais pesada saiu de 12 s para 0,33 s
   ao trocar a conexão viva por um snapshot local, sem reescrever uma linha de SQL.
 
-Os cinco documentos de projeto estão em [`docs/`](docs/): briefing, KPIs, arquitetura, UX e
-handover. Eles registram **por que** cada decisão foi tomada, incluindo as revertidas.
+Os documentos de projeto estão em [`docs/`](docs/) e registram **por que** cada decisão foi
+tomada, incluindo as revertidas. Se for ler um só, leia
+[`05_a_solucao_explicada.md`](docs/05_a_solucao_explicada.md): ele amarra o problema, o
+cálculo de cada número, a conclusão a que os dados levaram e como a IA é impedida de
+inventar número.
 
 ## Rodando
 
@@ -187,7 +190,7 @@ scripts/
   verificar_rotulos.py    falha se nome de coluna, travessão ou cifrão cru chegar à tela
   verificar_leitura.py    18 casos do verificador de procedência (offline, sem custo)
   verificar_tema.py       invariantes visuais: hex, espelho do config, contraste, daltonismo
-docs/                     00 briefing · 01 KPIs · 02 arquitetura · 03 UX · 04 handover
+docs/                     00 briefing · 01 KPIs · 02 arquitetura · 03 UX · 04 handover · 05 a solução explicada
 ```
 
 ## Validação
