@@ -305,6 +305,7 @@ DOCUMENTOS: tuple[str, ...] = (
     "docs/02_arquitetura.md",
     "docs/03_ux.md",
     "docs/04_handover.md",
+    "docs/05_a_solucao_explicada.md",
 )
 
 #: Travessao de **prosa**: com conteudo dos dois lados, ou abrindo linha
