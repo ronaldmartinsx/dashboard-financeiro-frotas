@@ -434,3 +434,27 @@ com a matriz que o proprio Bancada publica. E o portao de render passou a reprov
 "o sinal como veu, nunca bloco cheio". O motivo dele (o bloco derruba o contraste do
 texto) nao se aplica porque invertemos o texto; o formato foi pedido pelo dono. O portao
 mede os quatro pares para o desvio nao virar defeito.
+
+---
+
+## 9. Pendência de vocabulário de tela: "exercício"
+
+Aberta em 2026-09-14, aguardando decisão do dono do projeto.
+
+A palavra **exercício** aparece quatro vezes em `views/_comum.py`, no botão da leitura
+executiva ("Gerar a leitura do exercício") e nos dois textos de apoio ao redor dele. É o
+termo contábil correto, mas o público da tela é gestor de negócio, e fora da contabilidade
+a palavra é ambígua.
+
+Surgiu ao preparar material de divulgação: o título do carrossel foi reescrito para
+"o resultado do ano" justamente porque "exercício" não se sustentava sozinho diante de um
+público amplo. Se a palavra não serve lá, também não serve na tela.
+
+**Proposta:** trocar por "Gerar a leitura do ano", e alinhar os dois textos de apoio.
+
+**Custo de não decidir agora:** nenhum para o app. Para a divulgação, sim: a captura de
+tela usada nos posts mostra o rótulo atual, então mudar depois obriga a refazer a captura.
+A ordem barata é decidir antes da próxima captura.
+
+**Por que está parada aqui e não resolvida:** vocabulário de tela é decisão do dono, não
+do agente. Ver a seção correspondente em `CLAUDE.md`.
