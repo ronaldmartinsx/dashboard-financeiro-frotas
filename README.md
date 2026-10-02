@@ -72,6 +72,20 @@ tomada, incluindo as revertidas. Se for ler um só, leia
 cálculo de cada número, a conclusão a que os dados levaram e como a IA é impedida de
 inventar número.
 
+## Reconhecimento
+
+Este painel venceu o **voto popular** do desafio de agosto de 2026 da comunidade Jornada
+de Dados, com **222 votos**, e o prêmio foi um voucher de certificação. O desafio pedia um
+agente de vendas de ponta a ponta, e a [submissão](https://github.com/suajornadadedados/desafio-jornada/pull/10)
+assumiu a diferença na primeira frase. A ponte foi o lema do próprio desafio, "o modelo
+decide o que dizer, o código decide o que pode ser feito", que é exatamente o que
+`frotas/leitura.py` faz com a leitura executiva.
+
+<p align="center">
+  <img src="docs/imagens/resultado-desafio-jornada.jpeg" width="600"
+     alt="Resultado da votação do desafio da Jornada de Dados: Ronald Martins, voto popular, 222 votos, voucher de certificação">
+</p>
+
 ## Rodando
 
 Há uma versão publicada em **[dashboard-financeiro-rdev.streamlit.app](https://dashboard-financeiro-rdev.streamlit.app)**. Para rodar local:

@@ -11,5 +11,8 @@
 4. Capture a janela do navegador, sem a barra de endereço.
 5. Salve como `painel.png` aqui e descomente a linha do `README.md`.
 
-A captura tem fundo `#F4F6F8`, o `--artefato` do design system Bancada. Ela entra
+`resultado-desafio-jornada.jpeg` é o anúncio do resultado da votação do desafio da
+Jornada de Dados, publicado pela organização. Não se refaz: é registro, não captura.
+
+A captura do painel tem fundo `#F4F6F8`, o `--artefato` do design system Bancada. Ela entra
 numa moldura do portfólio sem tratamento nenhum: é para isso que o painel é claro.
